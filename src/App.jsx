@@ -123,18 +123,24 @@ export default function App() {
   const [fb, setFb] = useState(false);
   const [hi, setHi] = useState([]);
 
-  // People & notes state (persisted to localStorage)
-  const [people, setPeople] = useState(() => loadLS("dbk-people", ["Person 1", "Person 2"]));
-  const [notes, setNotes] = useState(() => loadLS("dbk-notes", {}));
+  // Notes state (persisted to localStorage)
+  const [notes, setNotes] = useState(() => {
+    const raw = loadLS("dbk-notes", {});
+    // Migrate old two-person format { seed: { 0: text, 1: text } } to single string
+    const migrated = {};
+    for (const [k, v] of Object.entries(raw)) {
+      if (typeof v === "string") migrated[k] = v;
+      else if (v && typeof v === "object") {
+        const parts = [v[0], v[1]].filter(Boolean);
+        migrated[k] = parts.join("\n") || "";
+      }
+    }
+    return migrated;
+  });
   const [showNotes, setShowNotes] = useState(false);
-  const [editingPeople, setEditingPeople] = useState(false);
 
-  const updatePeople = (idx, name) => {
-    const np = [...people]; np[idx] = name;
-    setPeople(np); saveLS("dbk-people", np);
-  };
-  const updateNote = (seed, personIdx, text) => {
-    const nn = { ...notes, [seed]: { ...(notes[seed]||{}), [personIdx]: text } };
+  const updateNote = (seed, text) => {
+    const nn = { ...notes, [seed]: text };
     setNotes(nn); saveLS("dbk-notes", nn);
   };
 
@@ -244,7 +250,7 @@ export default function App() {
         </div>
 
         {/* Notes Panel */}
-        {showNotes && <NotesPanel mob={mob} people={people} notes={notes} updatePeople={updatePeople} updateNote={updateNote} editingPeople={editingPeople} setEditingPeople={setEditingPeople}/>}
+        {showNotes && <NotesPanel mob={mob} notes={notes} updateNote={updateNote}/>}
 
         {/* Full bracket overlay */}
         {fb && <FullBracket mob={mob} piM={piM} rds={rds} m64={[...MAIN,...piM.map(m=>m.winner).filter(Boolean)]} cr={cr} cm={cm} ip={ip}/>}
@@ -269,18 +275,18 @@ export default function App() {
           <div style={{ textAlign:"center", marginBottom:mob?12:16, fontSize:mob?14:13, color:"#8080a0" }}>Match {mn} of {mt}</div>
           {mob ? (
             <div style={{ display:"flex", flexDirection:"column", gap:0, alignItems:"center" }}>
-              <Card mob m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0],ip)} people={people} notes={notes} updateNote={updateNote}/>
+              <Card mob m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0],ip)} notes={notes} updateNote={updateNote}/>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:12, padding:"10px 0", width:"100%" }}>
                 <div style={{ flex:1, height:1, background:"linear-gradient(90deg,transparent,rgba(255,255,255,.12))" }}/>
                 <span style={{ fontSize:14, fontWeight:800, color:"#5a5a7e", letterSpacing:3 }}>VS</span>
                 <div style={{ flex:1, height:1, background:"linear-gradient(90deg,rgba(255,255,255,.12),transparent)" }}/>
               </div>
-              <Card mob m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} people={people} notes={notes} updateNote={updateNote}/>
+              <Card mob m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} notes={notes} updateNote={updateNote}/>
             </div>
           ) : (
             <>
               <div style={{ display:"flex", gap:14, flexWrap:"wrap", justifyContent:"center" }}>
-                {[mu[0],mu[1]].map(mv => <Card key={mv.seed} m={mv} h={hv===mv.seed} a={an===mv.seed} d={!!an} onH={setHv} onC={()=>pick(mv,ip)} people={people} notes={notes} updateNote={updateNote}/>)}
+                {[mu[0],mu[1]].map(mv => <Card key={mv.seed} m={mv} h={hv===mv.seed} a={an===mv.seed} d={!!an} onH={setHv} onC={()=>pick(mv,ip)} notes={notes} updateNote={updateNote}/>)}
               </div>
               <div style={{ textAlign:"center", marginTop:14 }}><span style={{ fontSize:18, fontWeight:800, color:"#2a2a44", letterSpacing:4 }}>VS</span></div>
             </>
@@ -305,11 +311,10 @@ export default function App() {
   );
 }
 
-function Card({ m, h, a, d, onH, onC, people, notes, updateNote, mob }) {
+function Card({ m, h, a, d, onH, onC, notes, updateNote, mob }) {
   const c = CLR[m.studio];
   const [showCardNotes, setShowCardNotes] = useState(false);
-  const mn = notes?.[m.seed] || {};
-  const hasNotes = mn[0] || mn[1];
+  const note = notes?.[m.seed] || "";
   return <div style={{ flex:mob?"1 1 100%":"1 1 320px", maxWidth:mob?undefined:560, width:mob?"100%":undefined }}>
     <button className={mob?"mob-card":""} onClick={()=>!d&&onC()} onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)} onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined} style={{
       width:"100%",
@@ -329,7 +334,7 @@ function Card({ m, h, a, d, onH, onC, people, notes, updateNote, mob }) {
         <span style={{ padding:mob?"3px 10px":"2px 8px", borderRadius:16, background:`${c.ac}18`, color:c.tx, fontSize:mob?11:10, fontWeight:700 }}>{m.studio}</span>
         <span>{m.year}</span>
       </div>
-      {hasNotes && !showCardNotes && <div style={{ fontSize:mob?11:9, color:"#9a9abe", opacity:.8, letterSpacing:1 }}>has notes</div>}
+      {note && !showCardNotes && <div style={{ fontSize:mob?11:9, color:"#9a9abe", opacity:.8, letterSpacing:1 }}>has notes</div>}
       {h && !mob && <div style={{ position:"absolute", bottom:10, fontSize:10, color:c.ac, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", opacity:.7 }}>Pick →</div>}
       {mob && <div style={{ fontSize:12, color:c.ac, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", opacity:.6 }}>Tap to pick</div>}
     </button>
@@ -339,79 +344,42 @@ function Card({ m, h, a, d, onH, onC, people, notes, updateNote, mob }) {
         padding:mob?"6px 14px":"2px 8px", letterSpacing:.5, minHeight:mob?36:undefined,
       }}>{showCardNotes ? "hide notes ▲" : "notes ▼"}</button>
     </div>
-    {showCardNotes && <CardNotes seed={m.seed} people={people} notes={mn} updateNote={updateNote} ac={c.ac} bg={c.bg} mob={mob}/>}
+    {showCardNotes && <CardNotes seed={m.seed} note={note} updateNote={updateNote} ac={c.ac} bg={c.bg} mob={mob}/>}
   </div>;
 }
 
-function CardNotes({ seed, people, notes, updateNote, ac, bg, mob }) {
+function CardNotes({ seed, note, updateNote, ac, bg, mob }) {
   return <div style={{
     background:`linear-gradient(155deg,${bg}ee,${bg}cc)`, border:`1px solid ${ac}22`, borderTop:"none",
-    borderRadius:mob?"0 0 14px 14px":"0 0 14px 14px", padding:mob?"10px 14px 14px":"10px 14px 12px",
+    borderRadius:"0 0 14px 14px", padding:mob?"10px 14px 14px":"10px 14px 12px",
   }}>
-    {[0,1].map(pi => <div key={pi} style={{ marginBottom: pi===0?10:0 }}>
-      <div style={{ fontSize:mob?11:9, fontWeight:700, color:ac, opacity:.7, letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>{people[pi]}</div>
-      <textarea
-        value={notes[pi]||""}
-        onChange={e => updateNote(seed, pi, e.target.value)}
-        onClick={e => e.stopPropagation()}
-        placeholder={`${people[pi]}'s thoughts...`}
-        rows={2}
-        style={{
-          width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.25)", border:"1px solid rgba(255,255,255,.08)",
-          borderRadius:8, padding:mob?"8px 10px":"6px 8px", color:"#d0d0e8", fontSize:mob?15:11, fontFamily:"inherit",
-          resize:"vertical", outline:"none", lineHeight:1.5,
-        }}
-        onFocus={e => e.target.style.borderColor=`${ac}44`}
-        onBlur={e => e.target.style.borderColor="rgba(255,255,255,.08)"}
-      />
-    </div>)}
+    <textarea
+      value={note}
+      onChange={e => updateNote(seed, e.target.value)}
+      onClick={e => e.stopPropagation()}
+      placeholder="Your thoughts..."
+      rows={2}
+      style={{
+        width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.25)", border:"1px solid rgba(255,255,255,.08)",
+        borderRadius:8, padding:mob?"8px 10px":"6px 8px", color:"#d0d0e8", fontSize:mob?15:11, fontFamily:"inherit",
+        resize:"vertical", outline:"none", lineHeight:1.5,
+      }}
+      onFocus={e => e.target.style.borderColor=`${ac}44`}
+      onBlur={e => e.target.style.borderColor="rgba(255,255,255,.08)"}
+    />
   </div>;
 }
 
-function NotesPanel({ people, notes, updatePeople, updateNote, editingPeople, setEditingPeople, mob }) {
+function NotesPanel({ notes, updateNote, mob }) {
   const [filter, setFilter] = useState("");
   const filtered = ALL_MOVIES.filter(m => m.name.toLowerCase().includes(filter.toLowerCase()));
   return <div style={{
     marginBottom:mob?20:24, padding:mob?16:20, background:"rgba(255,255,255,.03)", borderRadius:mob?14:16,
     border:"1px solid rgba(206,147,216,.15)", animation:"fi .3s",
   }}>
-    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:mob?12:14 }}>
+    <div style={{ marginBottom:mob?12:14 }}>
       <h3 style={{ fontSize:mob?16:15, fontWeight:700, color:"#ce93d8", margin:0, letterSpacing:.5 }}>Movie Notes</h3>
-      <button className={mob?"mob-btn":""} onClick={()=>setEditingPeople(!editingPeople)} style={{
-        background: editingPeople?"rgba(206,147,216,.12)":"rgba(255,255,255,.04)",
-        border: editingPeople?"1px solid rgba(206,147,216,.3)":"1px solid rgba(255,255,255,.08)",
-        color: editingPeople?"#ce93d8":"#8a8aae", padding:mob?"8px 16px":"4px 12px", borderRadius:8,
-        fontSize:mob?13:10, fontWeight:600, cursor:"pointer", letterSpacing:.5,
-        minHeight:mob?44:undefined, transition:"all .15s",
-      }}>{editingPeople ? "Done" : "Edit Names"}</button>
     </div>
-
-    {/* People name editing */}
-    {editingPeople && <div style={{ display:"flex", gap:10, marginBottom:mob?12:14, flexWrap:"wrap" }}>
-      {[0,1].map(pi => <div key={pi} style={{ flex:"1 1 140px" }}>
-        <div style={{ fontSize:mob?11:9, fontWeight:700, color:"#9a9abe", letterSpacing:1.5, textTransform:"uppercase", marginBottom:4 }}>Person {pi+1}</div>
-        <input
-          value={people[pi]}
-          onChange={e => updatePeople(pi, e.target.value)}
-          style={{
-            width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.25)", border:"1px solid rgba(255,255,255,.08)",
-            borderRadius:8, padding:mob?"10px 12px":"6px 10px", color:"#e0e0f0", fontSize:mob?16:12, fontFamily:"inherit", outline:"none",
-          }}
-          onFocus={e => e.target.style.borderColor="rgba(206,147,216,.4)"}
-          onBlur={e => e.target.style.borderColor="rgba(255,255,255,.08)"}
-        />
-      </div>)}
-    </div>}
-
-    {/* People names display */}
-    {!editingPeople && <div style={{ display:"flex", gap:mob?10:14, marginBottom:mob?12:14 }}>
-      {[0,1].map(pi => <div key={pi} style={{
-        flex:1, padding:mob?"8px 12px":"6px 12px", background:"rgba(255,255,255,.03)", borderRadius:8,
-        border:"1px solid rgba(255,255,255,.05)", textAlign:"center",
-      }}>
-        <span style={{ fontSize:mob?13:11, fontWeight:600, color:"#b8b8d0" }}>{people[pi]}</span>
-      </div>)}
-    </div>}
 
     {/* Search */}
     <input
@@ -430,20 +398,19 @@ function NotesPanel({ people, notes, updatePeople, updateNote, editingPeople, se
     {/* Movie list with notes */}
     <div style={{ maxHeight:mob?320:400, overflowY:"auto", paddingRight:4, WebkitOverflowScrolling:"touch" }}>
       {filtered.map(m => {
-        const mn = notes[m.seed] || {};
+        const note = notes[m.seed] || "";
         const c = CLR[m.studio];
-        return <NoteRow key={m.seed} m={m} mn={mn} c={c} people={people} updateNote={updateNote} mob={mob}/>;
+        return <NoteRow key={m.seed} m={m} note={note} c={c} updateNote={updateNote} mob={mob}/>;
       })}
     </div>
   </div>;
 }
 
-function NoteRow({ m, mn, c, people, updateNote, mob }) {
+function NoteRow({ m, note, c, updateNote, mob }) {
   const [open, setOpen] = useState(false);
-  const hasNotes = mn[0] || mn[1];
   return <div style={{
     marginBottom:mob?6:6, background:"rgba(255,255,255,.02)", borderRadius:mob?10:10,
-    border:`1px solid ${hasNotes?`${c.ac}18`:"rgba(255,255,255,.04)"}`,
+    border:`1px solid ${note?`${c.ac}18`:"rgba(255,255,255,.04)"}`,
   }}>
     <button onClick={()=>setOpen(!open)} style={{
       width:"100%", background:"transparent", border:"none", cursor:"pointer",
@@ -453,26 +420,23 @@ function NoteRow({ m, mn, c, people, updateNote, mob }) {
       <span style={{ fontSize:mob?10:8, fontWeight:700, color:c.ac, opacity:.6, width:mob?24:24, flexShrink:0 }}>#{m.seed}</span>
       <span style={{ fontSize:mob?14:12, fontWeight:600, color:"#d0d0e8", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.name}</span>
       {!mob && <span style={{ fontSize:9, color:c.tx, opacity:.5 }}>{m.studio} · {m.year}</span>}
-      {hasNotes && <span style={{ width:6, height:6, borderRadius:"50%", background:"#ce93d8", flexShrink:0 }}/>}
+      {note && <span style={{ width:6, height:6, borderRadius:"50%", background:"#ce93d8", flexShrink:0 }}/>}
       <span style={{ fontSize:mob?11:9, color:"#6a6a8e", flexShrink:0 }}>{open?"▲":"▼"}</span>
     </button>
     {open && <div style={{ padding:mob?"0 12px 12px":"0 12px 10px" }}>
-      {[0,1].map(pi => <div key={pi} style={{ marginBottom: pi===0?8:0 }}>
-        <div style={{ fontSize:mob?11:9, fontWeight:700, color:c.ac, opacity:.6, letterSpacing:1.5, textTransform:"uppercase", marginBottom:3 }}>{people[pi]}</div>
-        <textarea
-          value={mn[pi]||""}
-          onChange={e => updateNote(m.seed, pi, e.target.value)}
-          placeholder={`${people[pi]}'s thoughts on ${m.name}...`}
-          rows={2}
-          style={{
-            width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.2)", border:"1px solid rgba(255,255,255,.06)",
-            borderRadius:8, padding:mob?"8px 10px":"6px 8px", color:"#d0d0e8", fontSize:mob?15:11, fontFamily:"inherit",
-            resize:"vertical", outline:"none", lineHeight:1.5,
-          }}
-          onFocus={e => e.target.style.borderColor=`${c.ac}44`}
-          onBlur={e => e.target.style.borderColor="rgba(255,255,255,.06)"}
-        />
-      </div>)}
+      <textarea
+        value={note}
+        onChange={e => updateNote(m.seed, e.target.value)}
+        placeholder={`Thoughts on ${m.name}...`}
+        rows={2}
+        style={{
+          width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.2)", border:"1px solid rgba(255,255,255,.06)",
+          borderRadius:8, padding:mob?"8px 10px":"6px 8px", color:"#d0d0e8", fontSize:mob?15:11, fontFamily:"inherit",
+          resize:"vertical", outline:"none", lineHeight:1.5,
+        }}
+        onFocus={e => e.target.style.borderColor=`${c.ac}44`}
+        onBlur={e => e.target.style.borderColor="rgba(255,255,255,.06)"}
+      />
     </div>}
   </div>;
 }
