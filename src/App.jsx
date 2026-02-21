@@ -92,6 +92,11 @@ const CLR = {
   Pixar: { bg:"#3e1a0d", ac:"#ff8a65", gl:"rgba(255,138,101,.25)", tx:"#ffab91" },
 };
 
+const ALL_MOVIES = [...MAIN, ...PLAYIN];
+
+const loadLS = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
+const saveLS = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
+
 export default function App() {
   const [ph, setPh] = useState("pi");
   const [piM, setPiM] = useState(() => PIP.map(([a,b]) => [PLAYIN[a], PLAYIN[b]]));
@@ -105,6 +110,21 @@ export default function App() {
   const [bk, setBk] = useState(false);
   const [fb, setFb] = useState(false);
   const [hi, setHi] = useState([]);
+
+  // People & notes state (persisted to localStorage)
+  const [people, setPeople] = useState(() => loadLS("dbk-people", ["Person 1", "Person 2"]));
+  const [notes, setNotes] = useState(() => loadLS("dbk-notes", {}));
+  const [showNotes, setShowNotes] = useState(false);
+  const [editingPeople, setEditingPeople] = useState(false);
+
+  const updatePeople = (idx, name) => {
+    const np = [...people]; np[idx] = name;
+    setPeople(np); saveLS("dbk-people", np);
+  };
+  const updateNote = (seed, personIdx, text) => {
+    const nn = { ...notes, [seed]: { ...(notes[seed]||{}), [personIdx]: text } };
+    setNotes(nn); saveLS("dbk-notes", nn);
+  };
 
   const pick = (w, pi) => {
     setAn(w.seed);
@@ -189,8 +209,8 @@ export default function App() {
           <span>{hi.length}/69 decided</span><span>{rl}{rn?` · ${rn}`:""}</span>
         </div>
 
-        {/* Full Bracket toggle - always visible */}
-        <div style={{ textAlign:"center", marginBottom:16 }}>
+        {/* Full Bracket + Notes toggles */}
+        <div style={{ textAlign:"center", marginBottom:16, display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
           <button onClick={()=>setFb(!fb)} style={{
             background: fb?"rgba(255,215,0,.12)":"rgba(255,255,255,.04)",
             border: fb?"1px solid rgba(255,215,0,.3)":"1px solid rgba(255,255,255,.08)",
@@ -198,7 +218,17 @@ export default function App() {
             fontSize:12, fontWeight:600, cursor:"pointer", letterSpacing:.5,
             transition:"all .2s",
           }}>{fb ? "Hide Full Bracket" : "📋 View Full Bracket"}</button>
+          <button onClick={()=>setShowNotes(!showNotes)} style={{
+            background: showNotes?"rgba(206,147,216,.12)":"rgba(255,255,255,.04)",
+            border: showNotes?"1px solid rgba(206,147,216,.3)":"1px solid rgba(255,255,255,.08)",
+            color: showNotes?"#ce93d8":"#7a7a9e", padding:"6px 18px", borderRadius:10,
+            fontSize:12, fontWeight:600, cursor:"pointer", letterSpacing:.5,
+            transition:"all .2s",
+          }}>{showNotes ? "Hide Notes" : "📝 Movie Notes"}</button>
         </div>
+
+        {/* Notes Panel */}
+        {showNotes && <NotesPanel people={people} notes={notes} updatePeople={updatePeople} updateNote={updateNote} editingPeople={editingPeople} setEditingPeople={setEditingPeople}/>}
 
         {/* Full bracket overlay */}
         {fb && <FullBracket piM={piM} rds={rds} m64={[...MAIN,...piM.map(m=>m.winner).filter(Boolean)]} cr={cr} cm={cm} ip={ip}/>}
@@ -222,7 +252,7 @@ export default function App() {
         : mu ? <div key={`${ph}-${ip?piI:`${cr}-${cm}`}`} style={{ animation:"su .3s ease-out" }}>
           <div style={{ textAlign:"center", marginBottom:16, fontSize:13, color:"#707090" }}>Match {mn} of {mt}</div>
           <div style={{ display:"flex", gap:14, flexWrap:"wrap", justifyContent:"center" }}>
-            {[mu[0],mu[1]].map(mv => <Card key={mv.seed} m={mv} h={hv===mv.seed} a={an===mv.seed} d={!!an} onH={setHv} onC={()=>pick(mv,ip)}/>)}
+            {[mu[0],mu[1]].map(mv => <Card key={mv.seed} m={mv} h={hv===mv.seed} a={an===mv.seed} d={!!an} onH={setHv} onC={()=>pick(mv,ip)} people={people} notes={notes} updateNote={updateNote}/>)}
           </div>
           <div style={{ textAlign:"center", marginTop:14 }}><span style={{ fontSize:18, fontWeight:800, color:"#2a2a44", letterSpacing:4 }}>VS</span></div>
           <div style={{ display:"flex", justifyContent:"center", gap:10, marginTop:22 }}>
@@ -245,26 +275,171 @@ export default function App() {
   );
 }
 
-function Card({ m, h, a, d, onH, onC }) {
+function Card({ m, h, a, d, onH, onC, people, notes, updateNote }) {
   const c = CLR[m.studio];
-  return <button onClick={()=>!d&&onC()} onMouseEnter={()=>onH(m.seed)} onMouseLeave={()=>onH(null)} style={{
-    flex:"1 1 320px", maxWidth:560,
-    background: h?`linear-gradient(155deg,${c.bg},${c.ac}18)`:`linear-gradient(155deg,${c.bg},${c.bg}dd)`,
-    border: h?`2px solid ${c.ac}`:"2px solid rgba(255,255,255,.06)",
-    borderRadius:18, padding:"32px 24px 28px", cursor:d?"default":"pointer",
-    transition:"all .2s", transform:h&&!a?"translateY(-3px)":"none",
-    boxShadow:h?`0 10px 36px ${c.gl}`:"0 4px 16px rgba(0,0,0,.3)",
-    animation:a?"ch .35s ease forwards":"none",
-    display:"flex", flexDirection:"column", alignItems:"center", gap:10, textAlign:"center", position:"relative",
-  }}>
-    <div style={{ position:"absolute", top:10, left:12, fontSize:10, fontWeight:700, color:c.ac, opacity:.6, letterSpacing:1 }}>#{m.seed}</div>
-    <div style={{ fontSize:"clamp(20px,3.5vw,27px)", fontWeight:800, color:"#f0f0ff", lineHeight:1.2, marginTop:4 }}>{m.name}</div>
-    <div style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, color:"#8888aa" }}>
-      <span style={{ padding:"2px 8px", borderRadius:16, background:`${c.ac}18`, color:c.tx, fontSize:10, fontWeight:700 }}>{m.studio}</span>
-      <span>{m.year}</span>
+  const [showCardNotes, setShowCardNotes] = useState(false);
+  const mn = notes?.[m.seed] || {};
+  const hasNotes = mn[0] || mn[1];
+  return <div style={{ flex:"1 1 320px", maxWidth:560 }}>
+    <button onClick={()=>!d&&onC()} onMouseEnter={()=>onH(m.seed)} onMouseLeave={()=>onH(null)} style={{
+      width:"100%",
+      background: h?`linear-gradient(155deg,${c.bg},${c.ac}18)`:`linear-gradient(155deg,${c.bg},${c.bg}dd)`,
+      border: h?`2px solid ${c.ac}`:"2px solid rgba(255,255,255,.06)",
+      borderRadius: showCardNotes?"18px 18px 0 0":18, padding:"32px 24px 28px", cursor:d?"default":"pointer",
+      transition:"all .2s", transform:h&&!a?"translateY(-3px)":"none",
+      boxShadow:h?`0 10px 36px ${c.gl}`:"0 4px 16px rgba(0,0,0,.3)",
+      animation:a?"ch .35s ease forwards":"none",
+      display:"flex", flexDirection:"column", alignItems:"center", gap:10, textAlign:"center", position:"relative",
+    }}>
+      <div style={{ position:"absolute", top:10, left:12, fontSize:10, fontWeight:700, color:c.ac, opacity:.6, letterSpacing:1 }}>#{m.seed}</div>
+      <div style={{ fontSize:"clamp(20px,3.5vw,27px)", fontWeight:800, color:"#f0f0ff", lineHeight:1.2, marginTop:4 }}>{m.name}</div>
+      <div style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, color:"#8888aa" }}>
+        <span style={{ padding:"2px 8px", borderRadius:16, background:`${c.ac}18`, color:c.tx, fontSize:10, fontWeight:700 }}>{m.studio}</span>
+        <span>{m.year}</span>
+      </div>
+      {hasNotes && !showCardNotes && <div style={{ fontSize:9, color:"#9090ae", opacity:.7, letterSpacing:1 }}>has notes</div>}
+      {h && <div style={{ position:"absolute", bottom:10, fontSize:10, color:c.ac, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", opacity:.7 }}>Pick →</div>}
+    </button>
+    <div style={{ textAlign:"center", marginTop: showCardNotes?0:4 }}>
+      <button onClick={(e)=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
+        background:"transparent", border:"none", color:"#6a6a8e", fontSize:10, cursor:"pointer",
+        padding:"2px 8px", letterSpacing:.5,
+      }}>{showCardNotes ? "hide notes ▲" : "notes ▼"}</button>
     </div>
-    {h && <div style={{ position:"absolute", bottom:10, fontSize:10, color:c.ac, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", opacity:.7 }}>Pick →</div>}
-  </button>;
+    {showCardNotes && <CardNotes seed={m.seed} people={people} notes={mn} updateNote={updateNote} ac={c.ac} bg={c.bg}/>}
+  </div>;
+}
+
+function CardNotes({ seed, people, notes, updateNote, ac, bg }) {
+  return <div style={{
+    background:`linear-gradient(155deg,${bg}ee,${bg}cc)`, border:`1px solid ${ac}22`, borderTop:"none",
+    borderRadius:"0 0 14px 14px", padding:"10px 14px 12px",
+  }}>
+    {[0,1].map(pi => <div key={pi} style={{ marginBottom: pi===0?8:0 }}>
+      <div style={{ fontSize:9, fontWeight:700, color:ac, opacity:.6, letterSpacing:1.5, textTransform:"uppercase", marginBottom:3 }}>{people[pi]}</div>
+      <textarea
+        value={notes[pi]||""}
+        onChange={e => updateNote(seed, pi, e.target.value)}
+        onClick={e => e.stopPropagation()}
+        placeholder={`${people[pi]}'s thoughts...`}
+        rows={2}
+        style={{
+          width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.25)", border:"1px solid rgba(255,255,255,.08)",
+          borderRadius:8, padding:"6px 8px", color:"#c8c8e0", fontSize:11, fontFamily:"inherit",
+          resize:"vertical", outline:"none", lineHeight:1.4,
+        }}
+        onFocus={e => e.target.style.borderColor=`${ac}44`}
+        onBlur={e => e.target.style.borderColor="rgba(255,255,255,.08)"}
+      />
+    </div>)}
+  </div>;
+}
+
+function NotesPanel({ people, notes, updatePeople, updateNote, editingPeople, setEditingPeople }) {
+  const [filter, setFilter] = useState("");
+  const filtered = ALL_MOVIES.filter(m => m.name.toLowerCase().includes(filter.toLowerCase()));
+  return <div style={{
+    marginBottom:24, padding:20, background:"rgba(255,255,255,.03)", borderRadius:16,
+    border:"1px solid rgba(206,147,216,.15)", animation:"fi .3s",
+  }}>
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+      <h3 style={{ fontSize:15, fontWeight:700, color:"#ce93d8", margin:0, letterSpacing:.5 }}>Movie Notes</h3>
+      <button onClick={()=>setEditingPeople(!editingPeople)} style={{
+        background: editingPeople?"rgba(206,147,216,.12)":"rgba(255,255,255,.04)",
+        border: editingPeople?"1px solid rgba(206,147,216,.3)":"1px solid rgba(255,255,255,.08)",
+        color: editingPeople?"#ce93d8":"#7a7a9e", padding:"4px 12px", borderRadius:8,
+        fontSize:10, fontWeight:600, cursor:"pointer", letterSpacing:.5,
+      }}>{editingPeople ? "Done" : "Edit Names"}</button>
+    </div>
+
+    {/* People name editing */}
+    {editingPeople && <div style={{ display:"flex", gap:10, marginBottom:14, flexWrap:"wrap" }}>
+      {[0,1].map(pi => <div key={pi} style={{ flex:"1 1 140px" }}>
+        <div style={{ fontSize:9, fontWeight:700, color:"#8a8aae", letterSpacing:1.5, textTransform:"uppercase", marginBottom:3 }}>Person {pi+1}</div>
+        <input
+          value={people[pi]}
+          onChange={e => updatePeople(pi, e.target.value)}
+          style={{
+            width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.25)", border:"1px solid rgba(255,255,255,.08)",
+            borderRadius:8, padding:"6px 10px", color:"#e0e0f0", fontSize:12, fontFamily:"inherit", outline:"none",
+          }}
+          onFocus={e => e.target.style.borderColor="rgba(206,147,216,.4)"}
+          onBlur={e => e.target.style.borderColor="rgba(255,255,255,.08)"}
+        />
+      </div>)}
+    </div>}
+
+    {/* People names display */}
+    {!editingPeople && <div style={{ display:"flex", gap:14, marginBottom:14 }}>
+      {[0,1].map(pi => <div key={pi} style={{
+        flex:1, padding:"6px 12px", background:"rgba(255,255,255,.03)", borderRadius:8,
+        border:"1px solid rgba(255,255,255,.05)", textAlign:"center",
+      }}>
+        <span style={{ fontSize:11, fontWeight:600, color:"#b0b0cc" }}>{people[pi]}</span>
+      </div>)}
+    </div>}
+
+    {/* Search */}
+    <input
+      value={filter}
+      onChange={e => setFilter(e.target.value)}
+      placeholder="Search movies..."
+      style={{
+        width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.2)", border:"1px solid rgba(255,255,255,.06)",
+        borderRadius:10, padding:"8px 12px", color:"#c8c8e0", fontSize:12, fontFamily:"inherit",
+        outline:"none", marginBottom:12,
+      }}
+      onFocus={e => e.target.style.borderColor="rgba(206,147,216,.3)"}
+      onBlur={e => e.target.style.borderColor="rgba(255,255,255,.06)"}
+    />
+
+    {/* Movie list with notes */}
+    <div style={{ maxHeight:400, overflowY:"auto", paddingRight:4 }}>
+      {filtered.map(m => {
+        const mn = notes[m.seed] || {};
+        const c = CLR[m.studio];
+        return <NoteRow key={m.seed} m={m} mn={mn} c={c} people={people} updateNote={updateNote}/>;
+      })}
+    </div>
+  </div>;
+}
+
+function NoteRow({ m, mn, c, people, updateNote }) {
+  const [open, setOpen] = useState(false);
+  const hasNotes = mn[0] || mn[1];
+  return <div style={{
+    marginBottom:6, background:"rgba(255,255,255,.02)", borderRadius:10,
+    border:`1px solid ${hasNotes?`${c.ac}18`:"rgba(255,255,255,.04)"}`,
+  }}>
+    <button onClick={()=>setOpen(!open)} style={{
+      width:"100%", background:"transparent", border:"none", cursor:"pointer",
+      display:"flex", alignItems:"center", gap:8, padding:"8px 12px", textAlign:"left",
+    }}>
+      <span style={{ fontSize:8, fontWeight:700, color:c.ac, opacity:.5, width:24, flexShrink:0 }}>#{m.seed}</span>
+      <span style={{ fontSize:12, fontWeight:600, color:"#c8c8e0", flex:1 }}>{m.name}</span>
+      <span style={{ fontSize:9, color:c.tx, opacity:.5 }}>{m.studio} · {m.year}</span>
+      {hasNotes && <span style={{ width:5, height:5, borderRadius:"50%", background:"#ce93d8", flexShrink:0 }}/>}
+      <span style={{ fontSize:9, color:"#5a5a7e", flexShrink:0 }}>{open?"▲":"▼"}</span>
+    </button>
+    {open && <div style={{ padding:"0 12px 10px" }}>
+      {[0,1].map(pi => <div key={pi} style={{ marginBottom: pi===0?6:0 }}>
+        <div style={{ fontSize:9, fontWeight:700, color:c.ac, opacity:.5, letterSpacing:1.5, textTransform:"uppercase", marginBottom:2 }}>{people[pi]}</div>
+        <textarea
+          value={mn[pi]||""}
+          onChange={e => updateNote(m.seed, pi, e.target.value)}
+          placeholder={`${people[pi]}'s thoughts on ${m.name}...`}
+          rows={2}
+          style={{
+            width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.2)", border:"1px solid rgba(255,255,255,.06)",
+            borderRadius:8, padding:"6px 8px", color:"#c8c8e0", fontSize:11, fontFamily:"inherit",
+            resize:"vertical", outline:"none", lineHeight:1.4,
+          }}
+          onFocus={e => e.target.style.borderColor=`${c.ac}44`}
+          onBlur={e => e.target.style.borderColor="rgba(255,255,255,.06)"}
+        />
+      </div>)}
+    </div>}
+  </div>;
 }
 
 function Dots() {
