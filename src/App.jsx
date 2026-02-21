@@ -1,4 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+function useIsMobile(breakpoint = 600) {
+  const [mob, setMob] = useState(() => typeof window !== "undefined" && window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handler = (e) => setMob(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [breakpoint]);
+  return mob;
+}
 
 const MAIN = [
   { seed:1, name:"The Lion King", year:1994, studio:"Disney" },
@@ -98,6 +109,7 @@ const loadLS = (key, fallback) => { try { const v = localStorage.getItem(key); r
 const saveLS = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
 
 export default function App() {
+  const mob = useIsMobile();
   const [ph, setPh] = useState("pi");
   const [piM, setPiM] = useState(() => PIP.map(([a,b]) => [PLAYIN[a], PLAYIN[b]]));
   const [piI, setPiI] = useState(0);
@@ -186,7 +198,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight:"100vh", background:"linear-gradient(155deg,#06060f,#0e0e24 30%,#180a20 60%,#06060f)", fontFamily:"'Inter',sans-serif", color:"#e0e0f0" }}>
-      <Dots/>
+      <Dots mob={mob}/>
       <style>{`
         @keyframes tw{0%,100%{opacity:.2}50%{opacity:1}}
         @keyframes su{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
@@ -195,78 +207,96 @@ export default function App() {
         @keyframes ch{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(.98);opacity:.6}}
         @keyframes fi{from{opacity:0}to{opacity:1}}
         @keyframes pp{0%,100%{border-color:rgba(255,215,0,.15)}50%{border-color:rgba(255,215,0,.4)}}
+        @media(max-width:600px){
+          .mob-btn:active{opacity:.7!important;transform:scale(.97)!important}
+          .mob-card:active{transform:scale(.98)!important;opacity:.9!important}
+        }
       `}</style>
-      <div style={{ position:"relative", zIndex:1, maxWidth:1200, margin:"0 auto", padding:"20px 32px 40px" }}>
-        <div style={{ textAlign:"center", marginBottom:28 }}>
-          <div style={{ fontSize:11, letterSpacing:7, textTransform:"uppercase", color:"#5a5a7e", marginBottom:6 }}>The Ultimate</div>
+      <div style={{ position:"relative", zIndex:1, maxWidth:1200, margin:"0 auto", padding:mob?"14px 14px 28px":"20px 32px 40px" }}>
+        <div style={{ textAlign:"center", marginBottom:mob?18:28 }}>
+          <div style={{ fontSize:mob?9:11, letterSpacing:mob?5:7, textTransform:"uppercase", color:"#5a5a7e", marginBottom:mob?4:6 }}>The Ultimate</div>
           <h1 style={{ fontSize:"clamp(26px,5vw,42px)", fontWeight:800, margin:"0 0 4px", background:"linear-gradient(135deg,#4fc3f7,#ce93d8 35%,#ff8a65 65%,#ffd54f)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Disney × Pixar Bracket</h1>
-          <div style={{ fontSize:13, color:"#6a6a8e" }}>70 movies · 6 play-in games · 69 matchups · 1 champion</div>
+          <div style={{ fontSize:mob?11:13, color:"#6a6a8e" }}>{mob?"70 movies · 69 matchups · 1 champion":"70 movies · 6 play-in games · 69 matchups · 1 champion"}</div>
         </div>
-        <div style={{ background:"rgba(255,255,255,.05)", borderRadius:20, height:5, marginBottom:6, overflow:"hidden" }}>
+        <div style={{ background:"rgba(255,255,255,.05)", borderRadius:20, height:mob?4:5, marginBottom:mob?4:6, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,#4fc3f7,#ce93d8,#ff8a65,#ffd54f)", borderRadius:20, transition:"width .5s" }}/>
         </div>
-        <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"#555578", marginBottom:24 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", fontSize:mob?10:11, color:"#555578", marginBottom:mob?16:24 }}>
           <span>{hi.length}/69 decided</span><span>{rl}{rn?` · ${rn}`:""}</span>
         </div>
 
         {/* Full Bracket + Notes toggles */}
-        <div style={{ textAlign:"center", marginBottom:16, display:"flex", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
-          <button onClick={()=>setFb(!fb)} style={{
+        <div style={{ textAlign:"center", marginBottom:mob?12:16, display:"flex", gap:mob?6:8, justifyContent:"center", flexWrap:"wrap" }}>
+          <button className={mob?"mob-btn":""} onClick={()=>setFb(!fb)} style={{
             background: fb?"rgba(255,215,0,.12)":"rgba(255,255,255,.04)",
             border: fb?"1px solid rgba(255,215,0,.3)":"1px solid rgba(255,255,255,.08)",
-            color: fb?"#ffd54f":"#7a7a9e", padding:"6px 18px", borderRadius:10,
-            fontSize:12, fontWeight:600, cursor:"pointer", letterSpacing:.5,
-            transition:"all .2s",
-          }}>{fb ? "Hide Full Bracket" : "📋 View Full Bracket"}</button>
-          <button onClick={()=>setShowNotes(!showNotes)} style={{
+            color: fb?"#ffd54f":"#7a7a9e", padding:mob?"8px 14px":"6px 18px", borderRadius:10,
+            fontSize:mob?11:12, fontWeight:600, cursor:"pointer", letterSpacing:.5,
+            transition:"all .15s", minHeight:mob?44:undefined,
+          }}>{fb ? "Hide Bracket" : "📋 Full Bracket"}</button>
+          <button className={mob?"mob-btn":""} onClick={()=>setShowNotes(!showNotes)} style={{
             background: showNotes?"rgba(206,147,216,.12)":"rgba(255,255,255,.04)",
             border: showNotes?"1px solid rgba(206,147,216,.3)":"1px solid rgba(255,255,255,.08)",
-            color: showNotes?"#ce93d8":"#7a7a9e", padding:"6px 18px", borderRadius:10,
-            fontSize:12, fontWeight:600, cursor:"pointer", letterSpacing:.5,
-            transition:"all .2s",
-          }}>{showNotes ? "Hide Notes" : "📝 Movie Notes"}</button>
+            color: showNotes?"#ce93d8":"#7a7a9e", padding:mob?"8px 14px":"6px 18px", borderRadius:10,
+            fontSize:mob?11:12, fontWeight:600, cursor:"pointer", letterSpacing:.5,
+            transition:"all .15s", minHeight:mob?44:undefined,
+          }}>{showNotes ? "Hide Notes" : "📝 Notes"}</button>
         </div>
 
         {/* Notes Panel */}
-        {showNotes && <NotesPanel people={people} notes={notes} updatePeople={updatePeople} updateNote={updateNote} editingPeople={editingPeople} setEditingPeople={setEditingPeople}/>}
+        {showNotes && <NotesPanel mob={mob} people={people} notes={notes} updatePeople={updatePeople} updateNote={updateNote} editingPeople={editingPeople} setEditingPeople={setEditingPeople}/>}
 
         {/* Full bracket overlay */}
-        {fb && <FullBracket piM={piM} rds={rds} m64={[...MAIN,...piM.map(m=>m.winner).filter(Boolean)]} cr={cr} cm={cm} ip={ip}/>}
+        {fb && <FullBracket mob={mob} piM={piM} rds={rds} m64={[...MAIN,...piM.map(m=>m.winner).filter(Boolean)]} cr={cr} cm={cm} ip={ip}/>}
 
-        {ip && <div style={{ textAlign:"center", marginBottom:20, animation:"fi .4s" }}>
-          <div style={{ display:"inline-block", padding:"6px 18px", borderRadius:20, background:"rgba(255,215,0,.08)", border:"1px solid rgba(255,215,0,.2)", animation:"pp 3s ease-in-out infinite", fontSize:12, fontWeight:700, color:"#ffd54f", letterSpacing:2, textTransform:"uppercase" }}>🎬 Play-In — Bottom 12 fight for 6 spots</div>
+        {ip && <div style={{ textAlign:"center", marginBottom:mob?14:20, animation:"fi .4s" }}>
+          <div style={{ display:"inline-block", padding:mob?"5px 12px":"6px 18px", borderRadius:20, background:"rgba(255,215,0,.08)", border:"1px solid rgba(255,215,0,.2)", animation:"pp 3s ease-in-out infinite", fontSize:mob?10:12, fontWeight:700, color:"#ffd54f", letterSpacing:mob?1:2, textTransform:"uppercase" }}>{mob?"🎬 Play-In Round":"🎬 Play-In — Bottom 12 fight for 6 spots"}</div>
         </div>}
 
-        {ch ? <div style={{ textAlign:"center", animation:"su .5s ease-out", padding:"40px 20px" }}>
-          <div style={{ fontSize:56, animation:"cb 2s ease-in-out infinite", marginBottom:12 }}>👑</div>
-          <div style={{ fontSize:11, letterSpacing:6, textTransform:"uppercase", color:"#ffd54f", marginBottom:10 }}>Your Champion</div>
-          <div style={{ fontSize:"clamp(30px,6vw,50px)", fontWeight:800, color:"#ffd54f", animation:"wg 2s ease-in-out infinite", marginBottom:6 }}>{ch.name}</div>
-          <div style={{ fontSize:15, color:"#9090ae" }}>{ch.studio} · {ch.year} · #{ch.seed} seed</div>
-          <div style={{ marginTop:40, display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
-            <Btn p onClick={reset}>Run It Back</Btn>
-            <Btn onClick={()=>setBk(!bk)}>{bk?"Hide":"View"} Full Bracket</Btn>
+        {ch ? <div style={{ textAlign:"center", animation:"su .5s ease-out", padding:mob?"24px 12px":"40px 20px" }}>
+          <div style={{ fontSize:mob?42:56, animation:"cb 2s ease-in-out infinite", marginBottom:mob?8:12 }}>👑</div>
+          <div style={{ fontSize:mob?10:11, letterSpacing:mob?4:6, textTransform:"uppercase", color:"#ffd54f", marginBottom:mob?8:10 }}>Your Champion</div>
+          <div style={{ fontSize:"clamp(26px,6vw,50px)", fontWeight:800, color:"#ffd54f", animation:"wg 2s ease-in-out infinite", marginBottom:6 }}>{ch.name}</div>
+          <div style={{ fontSize:mob?13:15, color:"#9090ae" }}>{ch.studio} · {ch.year} · #{ch.seed} seed</div>
+          <div style={{ marginTop:mob?24:40, display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
+            <Btn mob={mob} p onClick={reset}>Run It Back</Btn>
+            <Btn mob={mob} onClick={()=>setBk(!bk)}>{bk?"Hide":"View"} Bracket</Btn>
           </div>
-          {bk && <BV pi={piM} rds={rds}/>}
+          {bk && <BV mob={mob} pi={piM} rds={rds}/>}
         </div>
 
         : mu ? <div key={`${ph}-${ip?piI:`${cr}-${cm}`}`} style={{ animation:"su .3s ease-out" }}>
-          <div style={{ textAlign:"center", marginBottom:16, fontSize:13, color:"#707090" }}>Match {mn} of {mt}</div>
-          <div style={{ display:"flex", gap:14, flexWrap:"wrap", justifyContent:"center" }}>
-            {[mu[0],mu[1]].map(mv => <Card key={mv.seed} m={mv} h={hv===mv.seed} a={an===mv.seed} d={!!an} onH={setHv} onC={()=>pick(mv,ip)} people={people} notes={notes} updateNote={updateNote}/>)}
+          <div style={{ textAlign:"center", marginBottom:mob?10:16, fontSize:mob?12:13, color:"#707090" }}>Match {mn} of {mt}</div>
+          {mob ? (
+            <div style={{ display:"flex", flexDirection:"column", gap:0, alignItems:"center" }}>
+              <Card mob m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0],ip)} people={people} notes={notes} updateNote={updateNote}/>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, padding:"6px 0", width:"100%" }}>
+                <div style={{ flex:1, height:1, background:"linear-gradient(90deg,transparent,rgba(255,255,255,.1))" }}/>
+                <span style={{ fontSize:12, fontWeight:800, color:"#4a4a6e", letterSpacing:3 }}>VS</span>
+                <div style={{ flex:1, height:1, background:"linear-gradient(90deg,rgba(255,255,255,.1),transparent)" }}/>
+              </div>
+              <Card mob m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} people={people} notes={notes} updateNote={updateNote}/>
+            </div>
+          ) : (
+            <>
+              <div style={{ display:"flex", gap:14, flexWrap:"wrap", justifyContent:"center" }}>
+                {[mu[0],mu[1]].map(mv => <Card key={mv.seed} m={mv} h={hv===mv.seed} a={an===mv.seed} d={!!an} onH={setHv} onC={()=>pick(mv,ip)} people={people} notes={notes} updateNote={updateNote}/>)}
+              </div>
+              <div style={{ textAlign:"center", marginTop:14 }}><span style={{ fontSize:18, fontWeight:800, color:"#2a2a44", letterSpacing:4 }}>VS</span></div>
+            </>
+          )}
+          <div style={{ display:"flex", justifyContent:"center", gap:mob?8:10, marginTop:mob?14:22 }}>
+            {hi.length>0 && <Btn mob={mob} s onClick={undo}>← Undo</Btn>}
+            <Btn mob={mob} s mu onClick={reset}>Reset</Btn>
+            {!ip && <Btn mob={mob} s mu onClick={()=>setBk(!bk)}>{bk?"Hide":"Bracket"}</Btn>}
           </div>
-          <div style={{ textAlign:"center", marginTop:14 }}><span style={{ fontSize:18, fontWeight:800, color:"#2a2a44", letterSpacing:4 }}>VS</span></div>
-          <div style={{ display:"flex", justifyContent:"center", gap:10, marginTop:22 }}>
-            {hi.length>0 && <Btn s onClick={undo}>← Undo</Btn>}
-            <Btn s mu onClick={reset}>Reset</Btn>
-            {!ip && <Btn s mu onClick={()=>setBk(!bk)}>{bk?"Hide":"Bracket"}</Btn>}
-          </div>
-          {bk&&!ip && <BV pi={piM} rds={rds} cr={cr} cm={cm}/>}
-          {!bk && up && ui+1<up.length && <div style={{ marginTop:30 }}>
-            <div style={{ fontSize:10, color:"#4a4a6e", marginBottom:8, letterSpacing:2.5, textTransform:"uppercase", fontWeight:700 }}>Up Next</div>
-            {up.slice(ui+1,ui+5).map((m,i) => <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 12px", background:"rgba(255,255,255,.025)", borderRadius:8, fontSize:12, marginBottom:4 }}>
-              <span style={{ fontWeight:600, color:"#8888a8", flex:1 }}>{m[0].name}</span>
-              <span style={{ fontSize:9, color:"#3a3a55", letterSpacing:2, margin:"0 8px" }}>VS</span>
-              <span style={{ fontWeight:600, color:"#8888a8", flex:1, textAlign:"right" }}>{m[1].name}</span>
+          {bk&&!ip && <BV mob={mob} pi={piM} rds={rds} cr={cr} cm={cm}/>}
+          {!bk && up && ui+1<up.length && <div style={{ marginTop:mob?20:30 }}>
+            <div style={{ fontSize:mob?9:10, color:"#4a4a6e", marginBottom:mob?6:8, letterSpacing:2.5, textTransform:"uppercase", fontWeight:700 }}>Up Next</div>
+            {up.slice(ui+1,ui+(mob?3:5)).map((m,i) => <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:mob?"5px 10px":"6px 12px", background:"rgba(255,255,255,.025)", borderRadius:8, fontSize:mob?11:12, marginBottom:mob?3:4 }}>
+              <span style={{ fontWeight:600, color:"#8888a8", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m[0].name}</span>
+              <span style={{ fontSize:9, color:"#3a3a55", letterSpacing:2, margin:"0 6px", flexShrink:0 }}>VS</span>
+              <span style={{ fontWeight:600, color:"#8888a8", flex:1, textAlign:"right", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m[1].name}</span>
             </div>)}
           </div>}
         </div> : null}
@@ -275,45 +305,48 @@ export default function App() {
   );
 }
 
-function Card({ m, h, a, d, onH, onC, people, notes, updateNote }) {
+function Card({ m, h, a, d, onH, onC, people, notes, updateNote, mob }) {
   const c = CLR[m.studio];
   const [showCardNotes, setShowCardNotes] = useState(false);
   const mn = notes?.[m.seed] || {};
   const hasNotes = mn[0] || mn[1];
-  return <div style={{ flex:"1 1 320px", maxWidth:560 }}>
-    <button onClick={()=>!d&&onC()} onMouseEnter={()=>onH(m.seed)} onMouseLeave={()=>onH(null)} style={{
+  return <div style={{ flex:mob?"1 1 100%":"1 1 320px", maxWidth:mob?undefined:560, width:mob?"100%":undefined }}>
+    <button className={mob?"mob-card":""} onClick={()=>!d&&onC()} onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)} onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined} style={{
       width:"100%",
       background: h?`linear-gradient(155deg,${c.bg},${c.ac}18)`:`linear-gradient(155deg,${c.bg},${c.bg}dd)`,
       border: h?`2px solid ${c.ac}`:"2px solid rgba(255,255,255,.06)",
-      borderRadius: showCardNotes?"18px 18px 0 0":18, padding:"32px 24px 28px", cursor:d?"default":"pointer",
-      transition:"all .2s", transform:h&&!a?"translateY(-3px)":"none",
-      boxShadow:h?`0 10px 36px ${c.gl}`:"0 4px 16px rgba(0,0,0,.3)",
+      borderRadius: showCardNotes?(mob?"14px 14px 0 0":"18px 18px 0 0"):(mob?14:18),
+      padding:mob?"20px 16px 18px":"32px 24px 28px", cursor:d?"default":"pointer",
+      transition:"all .15s", transform:h&&!a&&!mob?"translateY(-3px)":"none",
+      boxShadow:h?`0 ${mob?6:10}px ${mob?20:36}px ${c.gl}`:`0 4px ${mob?10:16}px rgba(0,0,0,.3)`,
       animation:a?"ch .35s ease forwards":"none",
-      display:"flex", flexDirection:"column", alignItems:"center", gap:10, textAlign:"center", position:"relative",
+      display:"flex", flexDirection:"column", alignItems:"center", gap:mob?6:10, textAlign:"center", position:"relative",
+      WebkitTapHighlightColor:"transparent",
     }}>
-      <div style={{ position:"absolute", top:10, left:12, fontSize:10, fontWeight:700, color:c.ac, opacity:.6, letterSpacing:1 }}>#{m.seed}</div>
-      <div style={{ fontSize:"clamp(20px,3.5vw,27px)", fontWeight:800, color:"#f0f0ff", lineHeight:1.2, marginTop:4 }}>{m.name}</div>
-      <div style={{ display:"flex", gap:8, alignItems:"center", fontSize:12, color:"#8888aa" }}>
-        <span style={{ padding:"2px 8px", borderRadius:16, background:`${c.ac}18`, color:c.tx, fontSize:10, fontWeight:700 }}>{m.studio}</span>
+      <div style={{ position:"absolute", top:mob?8:10, left:mob?10:12, fontSize:mob?9:10, fontWeight:700, color:c.ac, opacity:.6, letterSpacing:1 }}>#{m.seed}</div>
+      <div style={{ fontSize:mob?"clamp(17px,4.5vw,22px)":"clamp(20px,3.5vw,27px)", fontWeight:800, color:"#f0f0ff", lineHeight:1.2, marginTop:mob?2:4 }}>{m.name}</div>
+      <div style={{ display:"flex", gap:8, alignItems:"center", fontSize:mob?11:12, color:"#8888aa" }}>
+        <span style={{ padding:"2px 8px", borderRadius:16, background:`${c.ac}18`, color:c.tx, fontSize:mob?9:10, fontWeight:700 }}>{m.studio}</span>
         <span>{m.year}</span>
       </div>
       {hasNotes && !showCardNotes && <div style={{ fontSize:9, color:"#9090ae", opacity:.7, letterSpacing:1 }}>has notes</div>}
-      {h && <div style={{ position:"absolute", bottom:10, fontSize:10, color:c.ac, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", opacity:.7 }}>Pick →</div>}
+      {h && !mob && <div style={{ position:"absolute", bottom:10, fontSize:10, color:c.ac, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", opacity:.7 }}>Pick →</div>}
+      {mob && <div style={{ fontSize:9, color:c.ac, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", opacity:.5 }}>Tap to pick</div>}
     </button>
-    <div style={{ textAlign:"center", marginTop: showCardNotes?0:4 }}>
+    <div style={{ textAlign:"center", marginTop: showCardNotes?0:mob?2:4 }}>
       <button onClick={(e)=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
-        background:"transparent", border:"none", color:"#6a6a8e", fontSize:10, cursor:"pointer",
-        padding:"2px 8px", letterSpacing:.5,
+        background:"transparent", border:"none", color:"#6a6a8e", fontSize:mob?9:10, cursor:"pointer",
+        padding:mob?"4px 12px":"2px 8px", letterSpacing:.5, minHeight:mob?32:undefined,
       }}>{showCardNotes ? "hide notes ▲" : "notes ▼"}</button>
     </div>
-    {showCardNotes && <CardNotes seed={m.seed} people={people} notes={mn} updateNote={updateNote} ac={c.ac} bg={c.bg}/>}
+    {showCardNotes && <CardNotes seed={m.seed} people={people} notes={mn} updateNote={updateNote} ac={c.ac} bg={c.bg} mob={mob}/>}
   </div>;
 }
 
-function CardNotes({ seed, people, notes, updateNote, ac, bg }) {
+function CardNotes({ seed, people, notes, updateNote, ac, bg, mob }) {
   return <div style={{
     background:`linear-gradient(155deg,${bg}ee,${bg}cc)`, border:`1px solid ${ac}22`, borderTop:"none",
-    borderRadius:"0 0 14px 14px", padding:"10px 14px 12px",
+    borderRadius:mob?"0 0 10px 10px":"0 0 14px 14px", padding:mob?"8px 10px 10px":"10px 14px 12px",
   }}>
     {[0,1].map(pi => <div key={pi} style={{ marginBottom: pi===0?8:0 }}>
       <div style={{ fontSize:9, fontWeight:700, color:ac, opacity:.6, letterSpacing:1.5, textTransform:"uppercase", marginBottom:3 }}>{people[pi]}</div>
@@ -325,7 +358,7 @@ function CardNotes({ seed, people, notes, updateNote, ac, bg }) {
         rows={2}
         style={{
           width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.25)", border:"1px solid rgba(255,255,255,.08)",
-          borderRadius:8, padding:"6px 8px", color:"#c8c8e0", fontSize:11, fontFamily:"inherit",
+          borderRadius:8, padding:"6px 8px", color:"#c8c8e0", fontSize:mob?13:11, fontFamily:"inherit",
           resize:"vertical", outline:"none", lineHeight:1.4,
         }}
         onFocus={e => e.target.style.borderColor=`${ac}44`}
@@ -335,25 +368,26 @@ function CardNotes({ seed, people, notes, updateNote, ac, bg }) {
   </div>;
 }
 
-function NotesPanel({ people, notes, updatePeople, updateNote, editingPeople, setEditingPeople }) {
+function NotesPanel({ people, notes, updatePeople, updateNote, editingPeople, setEditingPeople, mob }) {
   const [filter, setFilter] = useState("");
   const filtered = ALL_MOVIES.filter(m => m.name.toLowerCase().includes(filter.toLowerCase()));
   return <div style={{
-    marginBottom:24, padding:20, background:"rgba(255,255,255,.03)", borderRadius:16,
+    marginBottom:mob?16:24, padding:mob?14:20, background:"rgba(255,255,255,.03)", borderRadius:mob?12:16,
     border:"1px solid rgba(206,147,216,.15)", animation:"fi .3s",
   }}>
-    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-      <h3 style={{ fontSize:15, fontWeight:700, color:"#ce93d8", margin:0, letterSpacing:.5 }}>Movie Notes</h3>
-      <button onClick={()=>setEditingPeople(!editingPeople)} style={{
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:mob?10:14 }}>
+      <h3 style={{ fontSize:mob?13:15, fontWeight:700, color:"#ce93d8", margin:0, letterSpacing:.5 }}>Movie Notes</h3>
+      <button className={mob?"mob-btn":""} onClick={()=>setEditingPeople(!editingPeople)} style={{
         background: editingPeople?"rgba(206,147,216,.12)":"rgba(255,255,255,.04)",
         border: editingPeople?"1px solid rgba(206,147,216,.3)":"1px solid rgba(255,255,255,.08)",
-        color: editingPeople?"#ce93d8":"#7a7a9e", padding:"4px 12px", borderRadius:8,
-        fontSize:10, fontWeight:600, cursor:"pointer", letterSpacing:.5,
+        color: editingPeople?"#ce93d8":"#7a7a9e", padding:mob?"6px 12px":"4px 12px", borderRadius:8,
+        fontSize:mob?11:10, fontWeight:600, cursor:"pointer", letterSpacing:.5,
+        minHeight:mob?36:undefined, transition:"all .15s",
       }}>{editingPeople ? "Done" : "Edit Names"}</button>
     </div>
 
     {/* People name editing */}
-    {editingPeople && <div style={{ display:"flex", gap:10, marginBottom:14, flexWrap:"wrap" }}>
+    {editingPeople && <div style={{ display:"flex", gap:10, marginBottom:mob?10:14, flexWrap:"wrap" }}>
       {[0,1].map(pi => <div key={pi} style={{ flex:"1 1 140px" }}>
         <div style={{ fontSize:9, fontWeight:700, color:"#8a8aae", letterSpacing:1.5, textTransform:"uppercase", marginBottom:3 }}>Person {pi+1}</div>
         <input
@@ -361,7 +395,7 @@ function NotesPanel({ people, notes, updatePeople, updateNote, editingPeople, se
           onChange={e => updatePeople(pi, e.target.value)}
           style={{
             width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.25)", border:"1px solid rgba(255,255,255,.08)",
-            borderRadius:8, padding:"6px 10px", color:"#e0e0f0", fontSize:12, fontFamily:"inherit", outline:"none",
+            borderRadius:8, padding:mob?"8px 10px":"6px 10px", color:"#e0e0f0", fontSize:mob?14:12, fontFamily:"inherit", outline:"none",
           }}
           onFocus={e => e.target.style.borderColor="rgba(206,147,216,.4)"}
           onBlur={e => e.target.style.borderColor="rgba(255,255,255,.08)"}
@@ -370,7 +404,7 @@ function NotesPanel({ people, notes, updatePeople, updateNote, editingPeople, se
     </div>}
 
     {/* People names display */}
-    {!editingPeople && <div style={{ display:"flex", gap:14, marginBottom:14 }}>
+    {!editingPeople && <div style={{ display:"flex", gap:mob?8:14, marginBottom:mob?10:14 }}>
       {[0,1].map(pi => <div key={pi} style={{
         flex:1, padding:"6px 12px", background:"rgba(255,255,255,.03)", borderRadius:8,
         border:"1px solid rgba(255,255,255,.05)", textAlign:"center",
@@ -386,42 +420,43 @@ function NotesPanel({ people, notes, updatePeople, updateNote, editingPeople, se
       placeholder="Search movies..."
       style={{
         width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.2)", border:"1px solid rgba(255,255,255,.06)",
-        borderRadius:10, padding:"8px 12px", color:"#c8c8e0", fontSize:12, fontFamily:"inherit",
-        outline:"none", marginBottom:12,
+        borderRadius:10, padding:mob?"10px 12px":"8px 12px", color:"#c8c8e0", fontSize:mob?14:12, fontFamily:"inherit",
+        outline:"none", marginBottom:mob?10:12,
       }}
       onFocus={e => e.target.style.borderColor="rgba(206,147,216,.3)"}
       onBlur={e => e.target.style.borderColor="rgba(255,255,255,.06)"}
     />
 
     {/* Movie list with notes */}
-    <div style={{ maxHeight:400, overflowY:"auto", paddingRight:4 }}>
+    <div style={{ maxHeight:mob?320:400, overflowY:"auto", paddingRight:4, WebkitOverflowScrolling:"touch" }}>
       {filtered.map(m => {
         const mn = notes[m.seed] || {};
         const c = CLR[m.studio];
-        return <NoteRow key={m.seed} m={m} mn={mn} c={c} people={people} updateNote={updateNote}/>;
+        return <NoteRow key={m.seed} m={m} mn={mn} c={c} people={people} updateNote={updateNote} mob={mob}/>;
       })}
     </div>
   </div>;
 }
 
-function NoteRow({ m, mn, c, people, updateNote }) {
+function NoteRow({ m, mn, c, people, updateNote, mob }) {
   const [open, setOpen] = useState(false);
   const hasNotes = mn[0] || mn[1];
   return <div style={{
-    marginBottom:6, background:"rgba(255,255,255,.02)", borderRadius:10,
+    marginBottom:mob?4:6, background:"rgba(255,255,255,.02)", borderRadius:mob?8:10,
     border:`1px solid ${hasNotes?`${c.ac}18`:"rgba(255,255,255,.04)"}`,
   }}>
     <button onClick={()=>setOpen(!open)} style={{
       width:"100%", background:"transparent", border:"none", cursor:"pointer",
-      display:"flex", alignItems:"center", gap:8, padding:"8px 12px", textAlign:"left",
+      display:"flex", alignItems:"center", gap:mob?6:8, padding:mob?"10px 10px":"8px 12px", textAlign:"left",
+      minHeight:mob?44:undefined, WebkitTapHighlightColor:"transparent",
     }}>
-      <span style={{ fontSize:8, fontWeight:700, color:c.ac, opacity:.5, width:24, flexShrink:0 }}>#{m.seed}</span>
-      <span style={{ fontSize:12, fontWeight:600, color:"#c8c8e0", flex:1 }}>{m.name}</span>
-      <span style={{ fontSize:9, color:c.tx, opacity:.5 }}>{m.studio} · {m.year}</span>
+      <span style={{ fontSize:8, fontWeight:700, color:c.ac, opacity:.5, width:mob?20:24, flexShrink:0 }}>#{m.seed}</span>
+      <span style={{ fontSize:mob?11:12, fontWeight:600, color:"#c8c8e0", flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.name}</span>
+      {!mob && <span style={{ fontSize:9, color:c.tx, opacity:.5 }}>{m.studio} · {m.year}</span>}
       {hasNotes && <span style={{ width:5, height:5, borderRadius:"50%", background:"#ce93d8", flexShrink:0 }}/>}
       <span style={{ fontSize:9, color:"#5a5a7e", flexShrink:0 }}>{open?"▲":"▼"}</span>
     </button>
-    {open && <div style={{ padding:"0 12px 10px" }}>
+    {open && <div style={{ padding:mob?"0 10px 10px":"0 12px 10px" }}>
       {[0,1].map(pi => <div key={pi} style={{ marginBottom: pi===0?6:0 }}>
         <div style={{ fontSize:9, fontWeight:700, color:c.ac, opacity:.5, letterSpacing:1.5, textTransform:"uppercase", marginBottom:2 }}>{people[pi]}</div>
         <textarea
@@ -431,7 +466,7 @@ function NoteRow({ m, mn, c, people, updateNote }) {
           rows={2}
           style={{
             width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.2)", border:"1px solid rgba(255,255,255,.06)",
-            borderRadius:8, padding:"6px 8px", color:"#c8c8e0", fontSize:11, fontFamily:"inherit",
+            borderRadius:8, padding:"6px 8px", color:"#c8c8e0", fontSize:mob?13:11, fontFamily:"inherit",
             resize:"vertical", outline:"none", lineHeight:1.4,
           }}
           onFocus={e => e.target.style.borderColor=`${c.ac}44`}
@@ -442,9 +477,10 @@ function NoteRow({ m, mn, c, people, updateNote }) {
   </div>;
 }
 
-function Dots() {
+function Dots({ mob }) {
+  const count = mob ? 40 : 80;
   return <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}>
-    {Array.from({length:80}).map((_,i) => <div key={i} style={{
+    {Array.from({length:count}).map((_,i) => <div key={i} style={{
       position:"absolute", width:Math.random()*2.5+.5, height:Math.random()*2.5+.5,
       background:`rgba(255,255,255,${Math.random()*.5+.15})`, borderRadius:"50%",
       left:`${Math.random()*100}%`, top:`${Math.random()*100}%`,
@@ -453,42 +489,43 @@ function Dots() {
   </div>;
 }
 
-function Btn({ children, onClick, p, s, mu }) {
-  return <button onClick={onClick} style={{
+function Btn({ children, onClick, p, s, mu, mob }) {
+  return <button className={mob?"mob-btn":""} onClick={onClick} style={{
     background: p?"linear-gradient(135deg,#4fc3f7,#2196f3)":mu?"rgba(255,255,255,.03)":"rgba(255,255,255,.06)",
     border: p?"none":`1px solid rgba(255,255,255,${mu?.06:.1})`,
     color: p?"#fff":mu?"#5a5a7e":"#a0a0be",
-    padding: s?"6px 16px":"10px 24px", borderRadius:10,
-    fontSize: s?12:14, fontWeight:p?700:600, cursor:"pointer",
+    padding: s?(mob?"8px 14px":"6px 16px"):(mob?"12px 22px":"10px 24px"), borderRadius:10,
+    fontSize: s?(mob?11:12):(mob?13:14), fontWeight:p?700:600, cursor:"pointer",
+    minHeight:mob?40:undefined, transition:"all .15s", WebkitTapHighlightColor:"transparent",
   }}>{children}</button>;
 }
 
-function BV({ pi, rds, cr, cm }) {
-  return <div style={{ marginTop:28, padding:16, background:"rgba(255,255,255,.03)", borderRadius:14, border:"1px solid rgba(255,255,255,.06)", textAlign:"left", animation:"fi .3s" }}>
-    <h3 style={{ fontSize:14, fontWeight:700, color:"#b0b0cc", margin:"0 0 14px", letterSpacing:1 }}>Bracket Results</h3>
-    <RB t="Play-In Round" ms={pi} g/>
-    {rds.map((r,i) => <RB key={i} t={RND[i]} ms={r} cr={cr} cm={cm} ri={i}/>)}
+function BV({ pi, rds, cr, cm, mob }) {
+  return <div style={{ marginTop:mob?18:28, padding:mob?12:16, background:"rgba(255,255,255,.03)", borderRadius:mob?10:14, border:"1px solid rgba(255,255,255,.06)", textAlign:"left", animation:"fi .3s" }}>
+    <h3 style={{ fontSize:mob?12:14, fontWeight:700, color:"#b0b0cc", margin:mob?"0 0 10px":"0 0 14px", letterSpacing:1 }}>Bracket Results</h3>
+    <RB t="Play-In Round" ms={pi} g mob={mob}/>
+    {rds.map((r,i) => <RB key={i} t={RND[i]} ms={r} cr={cr} cm={cm} ri={i} mob={mob}/>)}
   </div>;
 }
 
-function RB({ t, ms, g, cr, cm, ri }) {
-  return <div style={{ marginBottom:16 }}>
-    <div style={{ fontSize:10, letterSpacing:2.5, textTransform:"uppercase", color:g?"#ffd54f":"#555578", marginBottom:6, fontWeight:700, opacity:g?.7:1 }}>{t}</div>
+function RB({ t, ms, g, cr, cm, ri, mob }) {
+  return <div style={{ marginBottom:mob?12:16 }}>
+    <div style={{ fontSize:mob?9:10, letterSpacing:mob?2:2.5, textTransform:"uppercase", color:g?"#ffd54f":"#555578", marginBottom:mob?4:6, fontWeight:700, opacity:g?.7:1 }}>{t}</div>
     {ms.map((m,mi) => {
       const w=m.winner, cur=ri===cr&&mi===cm;
-      return <div key={mi} style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, padding:"3px 8px", borderRadius:6, background:cur?"rgba(255,215,0,.08)":"transparent" }}>
-        <MN m={m[0]} w={w} r/><span style={{ color:"#2a2a44", fontSize:9, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w}/>
+      return <div key={mi} style={{ display:"flex", alignItems:"center", gap:mob?4:6, fontSize:mob?11:12, padding:mob?"3px 6px":"3px 8px", borderRadius:6, background:cur?"rgba(255,215,0,.08)":"transparent" }}>
+        <MN m={m[0]} w={w} r mob={mob}/><span style={{ color:"#2a2a44", fontSize:mob?8:9, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob}/>
       </div>;
     })}
   </div>;
 }
 
-function MN({ m, w, r }) {
+function MN({ m, w, r, mob }) {
   const won=w?.seed===m.seed, lost=w&&!won;
-  return <span style={{ color:won?"#ffd54f":lost?"#3a3a55":"#7a7a98", fontWeight:won?700:400, flex:1, textAlign:r?"right":"left", textDecoration:lost?"line-through":"none", opacity:lost?.4:1 }}>{m.name}</span>;
+  return <span style={{ color:won?"#ffd54f":lost?"#3a3a55":"#7a7a98", fontWeight:won?700:400, flex:1, textAlign:r?"right":"left", textDecoration:lost?"line-through":"none", opacity:lost?.4:1, overflow:mob?"hidden":undefined, textOverflow:mob?"ellipsis":undefined, whiteSpace:mob?"nowrap":undefined }}>{m.name}</span>;
 }
 
-function FullBracket({ piM, rds, m64, cr, cm, ip }) {
+function FullBracket({ piM, rds, m64, cr, cm, ip, mob }) {
   // Build the full R1 matchup list with names, using m64 if available
   const hasM64 = m64.length >= 64;
   const r1Display = R1.map(([a,b],i) => {
@@ -502,9 +539,14 @@ function FullBracket({ piM, rds, m64, cr, cm, ip }) {
   // Get played round data
   const r1Played = rds[0] || [];
 
-  const regionStyle = { marginBottom:20 };
-  const headStyle = { fontSize:11, letterSpacing:2, textTransform:"uppercase", fontWeight:700, marginBottom:8, paddingBottom:6, borderBottom:"1px solid rgba(255,255,255,.06)" };
+  const regionStyle = { marginBottom:mob?14:20 };
+  const headStyle = { fontSize:mob?10:11, letterSpacing:mob?1.5:2, textTransform:"uppercase", fontWeight:700, marginBottom:mob?6:8, paddingBottom:mob?4:6, borderBottom:"1px solid rgba(255,255,255,.06)" };
   const regColors = ["#4fc3f7","#ce93d8","#ff8a65","#ffd54f"];
+  const rowFs = mob ? 10 : 12;
+  const rowPad = mob ? "3px 6px" : "4px 8px";
+  const rowGap = mob ? 4 : 6;
+  const vsFs = mob ? 8 : 9;
+  const ellipsis = mob ? { overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" } : {};
 
   const piLabel = (slot) => {
     const piIdx = slot - 58;
@@ -516,18 +558,18 @@ function FullBracket({ piM, rds, m64, cr, cm, ip }) {
     return `${a.name} / ${b.name}`;
   };
 
-  return <div style={{ marginBottom:28, padding:20, background:"rgba(255,255,255,.03)", borderRadius:16, border:"1px solid rgba(255,255,255,.06)", animation:"fi .3s" }}>
-    <h3 style={{ fontSize:16, fontWeight:700, color:"#c8c8e0", margin:"0 0 6px", letterSpacing:.5 }}>Full Bracket</h3>
-    <div style={{ fontSize:12, color:"#6a6a8e", marginBottom:20 }}>70 movies · 4 regions · Winners from each region meet in the Final Four</div>
+  return <div style={{ marginBottom:mob?18:28, padding:mob?12:20, background:"rgba(255,255,255,.03)", borderRadius:mob?12:16, border:"1px solid rgba(255,255,255,.06)", animation:"fi .3s" }}>
+    <h3 style={{ fontSize:mob?14:16, fontWeight:700, color:"#c8c8e0", margin:"0 0 6px", letterSpacing:.5 }}>Full Bracket</h3>
+    <div style={{ fontSize:mob?10:12, color:"#6a6a8e", marginBottom:mob?14:20 }}>{mob?"4 regions · Final Four · Championship":"70 movies · 4 regions · Winners from each region meet in the Final Four"}</div>
 
     {/* Play-In */}
     <div style={regionStyle}>
       <div style={{ ...headStyle, color:"#ffd54f", opacity:.8 }}>🎬 Play-In Round</div>
       {piM.map((m,i) => {
         const w = m.winner;
-        return <div key={i} style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, padding:"4px 8px", borderRadius:6, background: ip&&i===0&&!w ? "rgba(255,215,0,.06)" : "transparent" }}>
-          <MN m={m[0]} w={w} r/><span style={{ color:"#2a2a44", fontSize:9, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w}/>
-          {w && <span style={{ fontSize:9, color:"#ffd54f", opacity:.5, marginLeft:4 }}>✓</span>}
+        return <div key={i} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background: ip&&i===0&&!w ? "rgba(255,215,0,.06)" : "transparent" }}>
+          <MN m={m[0]} w={w} r mob={mob}/><span style={{ color:"#2a2a44", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob}/>
+          {w && <span style={{ fontSize:vsFs, color:"#ffd54f", opacity:.5, marginLeft:mob?2:4 }}>✓</span>}
         </div>;
       })}
     </div>
@@ -546,25 +588,25 @@ function FullBracket({ piM, rds, m64, cr, cm, ip }) {
           const aSeed = mu.a?.seed;
           const bSeed = mu.b?.seed;
           const isCurrentMatch = !ip && cr===0 && cm===regIdx*8+mi;
-          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, padding:"4px 8px", borderRadius:6, background:isCurrentMatch?"rgba(255,215,0,.06)":"transparent" }}>
+          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCurrentMatch?"rgba(255,215,0,.06)":"transparent" }}>
             <span style={{
-              flex:1, textAlign:"right",
+              flex:1, textAlign:"right", ...ellipsis,
               color: w?.seed===aSeed?"#ffd54f" : w&&w.seed!==aSeed?"#3a3a55" : p?"#7a7a98":"#6a6a8e",
               fontWeight: w?.seed===aSeed?700:400,
               textDecoration: w&&w.seed!==aSeed?"line-through":"none",
               opacity: w&&w.seed!==aSeed?.4:1,
               fontStyle: !mu.a?"italic":"normal",
-            }}>{aSeed?`#${aSeed} `:""}{aName}</span>
-            <span style={{ color:"#2a2a44", fontSize:9, letterSpacing:1, flexShrink:0 }}>vs</span>
+            }}>{!mob&&aSeed?`#${aSeed} `:""}{aName}</span>
+            <span style={{ color:"#2a2a44", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span>
             <span style={{
-              flex:1,
+              flex:1, ...ellipsis,
               color: w?.seed===bSeed?"#ffd54f" : w&&w.seed!==bSeed?"#3a3a55" : p?"#7a7a98":"#6a6a8e",
               fontWeight: w?.seed===bSeed?700:400,
               textDecoration: w&&w.seed!==bSeed?"line-through":"none",
               opacity: w&&w.seed!==bSeed?.4:1,
               fontStyle: !mu.b?"italic":"normal",
-            }}>{bName}{bSeed?` #${bSeed}`:""}</span>
-            {w && <span style={{ fontSize:9, color:"#ffd54f", opacity:.5, marginLeft:2 }}>✓</span>}
+            }}>{bName}{!mob&&bSeed?` #${bSeed}`:""}</span>
+            {w && <span style={{ fontSize:vsFs, color:"#ffd54f", opacity:.5, marginLeft:2 }}>✓</span>}
           </div>;
         })}
       </div>;
@@ -578,9 +620,9 @@ function FullBracket({ piM, rds, m64, cr, cm, ip }) {
         {rd.map((m, mi) => {
           const w = m.winner;
           const isCur = !ip && cr===roundNum && cm===mi;
-          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, padding:"4px 8px", borderRadius:6, background:isCur?"rgba(255,215,0,.06)":"transparent" }}>
-            <MN m={m[0]} w={w} r/><span style={{ color:"#2a2a44", fontSize:9, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w}/>
-            {w && <span style={{ fontSize:9, color:"#ffd54f", opacity:.5, marginLeft:2 }}>✓</span>}
+          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCur?"rgba(255,215,0,.06)":"transparent" }}>
+            <MN m={m[0]} w={w} r mob={mob}/><span style={{ color:"#2a2a44", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob}/>
+            {w && <span style={{ fontSize:vsFs, color:"#ffd54f", opacity:.5, marginLeft:2 }}>✓</span>}
           </div>;
         })}
       </div>;
