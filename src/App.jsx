@@ -108,20 +108,36 @@ const ALL_MOVIES = [...MAIN, ...PLAYIN];
 const loadLS = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const saveLS = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
 
+const serMatch = (ms) => ms.map(m => ({ p: [m[0], m[1]], w: m.winner || null }));
+const desMatch = (ms) => ms.map(({ p, w }) => { const m = [p[0], p[1]]; if (w) m.winner = w; return m; });
+
 export default function App() {
   const mob = useIsMobile();
-  const [ph, setPh] = useState("pi");
-  const [piM, setPiM] = useState(() => PIP.map(([a,b]) => [PLAYIN[a], PLAYIN[b]]));
-  const [piI, setPiI] = useState(0);
-  const [rds, setRds] = useState([]);
-  const [cr, setCr] = useState(0);
-  const [cm, setCm] = useState(0);
-  const [ch, setCh] = useState(null);
+
+  // Load saved bracket state once
+  const [init] = useState(() => {
+    const s = loadLS("dbk-state", null);
+    if (!s) return null;
+    return { ...s, piM: desMatch(s.piM), rds: s.rds.map(r => desMatch(r)) };
+  });
+
+  const [ph, setPh] = useState(() => init?.ph || "pi");
+  const [piM, setPiM] = useState(() => init?.piM || PIP.map(([a,b]) => [PLAYIN[a], PLAYIN[b]]));
+  const [piI, setPiI] = useState(() => init?.piI ?? 0);
+  const [rds, setRds] = useState(() => init?.rds || []);
+  const [cr, setCr] = useState(() => init?.cr ?? 0);
+  const [cm, setCm] = useState(() => init?.cm ?? 0);
+  const [ch, setCh] = useState(() => init?.ch || null);
   const [hv, setHv] = useState(null);
   const [an, setAn] = useState(null);
   const [bk, setBk] = useState(false);
   const [fb, setFb] = useState(false);
-  const [hi, setHi] = useState([]);
+  const [hi, setHi] = useState(() => init?.hi || []);
+
+  // Persist bracket state
+  useEffect(() => {
+    saveLS("dbk-state", { ph, piM: serMatch(piM), piI, rds: rds.map(r => serMatch(r)), cr, cm, ch, hi });
+  }, [ph, piM, piI, rds, cr, cm, ch, hi]);
 
   // Notes state (persisted to localStorage)
   const [notes, setNotes] = useState(() => {
