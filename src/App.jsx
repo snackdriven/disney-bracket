@@ -176,7 +176,7 @@ export default function App() {
         @keyframes fi{from{opacity:0}to{opacity:1}}
         @keyframes pp{0%,100%{border-color:rgba(255,215,0,.15)}50%{border-color:rgba(255,215,0,.4)}}
       `}</style>
-      <div style={{ position:"relative", zIndex:1, maxWidth:780, margin:"0 auto", padding:"20px 16px 40px" }}>
+      <div style={{ position:"relative", zIndex:1, maxWidth:1200, margin:"0 auto", padding:"20px 32px 40px" }}>
         <div style={{ textAlign:"center", marginBottom:28 }}>
           <div style={{ fontSize:11, letterSpacing:7, textTransform:"uppercase", color:"#5a5a7e", marginBottom:6 }}>The Ultimate</div>
           <h1 style={{ fontSize:"clamp(26px,5vw,42px)", fontWeight:800, margin:"0 0 4px", background:"linear-gradient(135deg,#4fc3f7,#ce93d8 35%,#ff8a65 65%,#ffd54f)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Disney × Pixar Bracket</h1>
@@ -248,7 +248,7 @@ export default function App() {
 function Card({ m, h, a, d, onH, onC }) {
   const c = CLR[m.studio];
   return <button onClick={()=>!d&&onC()} onMouseEnter={()=>onH(m.seed)} onMouseLeave={()=>onH(null)} style={{
-    flex:"1 1 260px", maxWidth:340,
+    flex:"1 1 320px", maxWidth:560,
     background: h?`linear-gradient(155deg,${c.bg},${c.ac}18)`:`linear-gradient(155deg,${c.bg},${c.bg}dd)`,
     border: h?`2px solid ${c.ac}`:"2px solid rgba(255,255,255,.06)",
     borderRadius:18, padding:"32px 24px 28px", cursor:d?"default":"pointer",
