@@ -157,13 +157,19 @@ const saveLS = (key, val) => { try { localStorage.setItem(key, JSON.stringify(va
 const serMatch = (ms) => ms.map(m => ({ p: [m[0], m[1]], w: m.winner || null }));
 const desMatch = (ms) => ms.map(({ p, w }) => { const m = [p[0], p[1]]; if (w) m.winner = w; return m; });
 
-// Canvas layout constants (for PNG export)
-const C_SW=180, C_SH=40, C_GAP=4, C_MATCH_H=84;
-const C_POSTER_W=24, C_POSTER_H=36;
-const C_L_COL=[0,218,435,653,870];
-const C_R_COL=[2220,1983,1765,1548,1330];
-const C_CHAMP_X=1090;
-function matchTopY_c(r,i){const sp=95*Math.pow(2,r);return Math.round(120+sp/2+i*sp-42);}
+// Canvas PNG export constants
+const CW = 2400, CH = 1700;
+const CSW = 170, CSH = 36, CGAP = 4, CMH = 76; // slot/match dims
+const CPW = 24, CPH = 34;                        // poster dims
+const CSTEP = 200;                               // column step (CSW + 30px gap)
+const CBT = 120, CBH = 1380;                     // bracket top Y, bracket height
+const clx = r => 10 + r * CSTEP;                // left column x at round r
+const crx = r => CW - 10 - CSW - r * CSTEP;    // right column x at round r
+const cps = r => Math.round(16 / Math.pow(2, r)); // matches per side at round r
+const cmty = (r, i) => {                         // match top Y: round r, position i within side
+  const sp = CBH / cps(r);
+  return Math.round(CBT + sp * (i + 0.5) - CMH / 2);
+};
 
 // ---- TMDB / OMDB helpers ----
 
@@ -215,87 +221,120 @@ async function loadImages(metaMap) {
 
 // ---- Canvas drawing functions (PNG export) ----
 
-function cBg(ctx, w, h) {
-  const grad = ctx.createLinearGradient(0, 0, w, h);
+function cBg(ctx) {
+  const grad = ctx.createLinearGradient(0, 0, CW, CH);
   grad.addColorStop(0, "#06060f");
   grad.addColorStop(0.4, "#0e0e24");
   grad.addColorStop(0.7, "#180a20");
   grad.addColorStop(1, "#06060f");
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(0, 0, CW, CH);
 }
 
-function cHeader(ctx, w) {
+function cHeader(ctx) {
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffd54f";
   ctx.font = "bold 28px Inter, sans-serif";
-  ctx.fillText("Disney × Pixar Bracket", w / 2, 44);
+  ctx.fillText("Disney × Pixar Bracket", CW / 2, 44);
   ctx.fillStyle = "#6a6a8e";
   ctx.font = "14px Inter, sans-serif";
-  ctx.fillText("70 movies · 69 matchups · 1 champion", w / 2, 68);
+  ctx.fillText("70 movies · 69 matchups · 1 champion", CW / 2, 68);
 }
 
 function cRoundLabels(ctx) {
-  const labels = ["R64","R32","Sweet 16","Elite 8","Final 4"];
+  const labels = ["R64", "R32", "Sweet 16", "Elite 8", "Final Four"];
   ctx.fillStyle = "#5a5a7e";
   ctx.font = "11px Inter, sans-serif";
-  labels.forEach((lbl, i) => {
-    ctx.textAlign = "center";
-    ctx.fillText(lbl, C_L_COL[i] + C_SW/2, 108);
-    ctx.fillText(lbl, C_R_COL[i] + C_SW/2, 108);
+  ctx.textAlign = "center";
+  labels.forEach((lbl, r) => {
+    ctx.fillText(lbl, clx(r) + CSW / 2, 108);
+    ctx.fillText(lbl, crx(r) + CSW / 2, 108);
   });
 }
 
 function cRegionLabels(ctx) {
-  const colors = ["#4fc3f7","#ce93d8","#ff8a65","#ffd54f"];
-  REG.forEach((name, i) => {
-    const y = matchTopY_c(0, i * 8) + (C_MATCH_H * 7) / 2;
-    ctx.fillStyle = colors[i];
-    ctx.font = "bold 12px Inter, sans-serif";
-    ctx.textAlign = "left";
+  const colors = ["#4fc3f7", "#ce93d8", "#ff8a65", "#ffd54f"];
+  REG.forEach((name, ri) => {
+    // Regions 0+1 on left side (top half, bottom half), regions 2+3 on right side
+    const side = ri < 2 ? "left" : "right";
+    const regionInSide = ri % 2; // 0 = top 8 matches, 1 = bottom 8 matches
+    const startI = regionInSide * 8;
+    const topY = cmty(0, startI);
+    const botY = cmty(0, startI + 7) + CMH;
+    const y = (topY + botY) / 2;
+    const x = side === "left" ? 6 : CW - 8;
+    ctx.fillStyle = colors[ri];
+    ctx.font = "bold 11px Inter, sans-serif";
+    ctx.textAlign = "center";
     ctx.save();
-    ctx.translate(8, y);
+    ctx.translate(x, y);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText(name, 0, 0);
+    ctx.fillText(name, 0, 4);
     ctx.restore();
   });
 }
 
-function cConnectors(ctx, side, rds) {
-  ctx.strokeStyle = "rgba(255,255,255,0.07)";
+function cConnectors(ctx, side) {
+  // Round-to-round bracket connectors (r=0..3)
+  ctx.strokeStyle = "rgba(255,255,255,0.06)";
   ctx.lineWidth = 1;
   for (let r = 0; r < 4; r++) {
-    const cols = side === "left" ? C_L_COL : C_R_COL;
-    const matchesInRound = 32 / Math.pow(2, r);
-    for (let i = 0; i < matchesInRound; i += 2) {
-      const y1 = matchTopY_c(r, i) + C_MATCH_H / 2;
-      const y2 = matchTopY_c(r, i + 1) + C_MATCH_H / 2;
-      const midY = (y1 + y2) / 2;
-      const x1 = side === "left" ? cols[r] + C_SW : cols[r];
-      const x2 = side === "left" ? cols[r + 1] : cols[r + 1] + C_SW;
+    const perSide = cps(r);
+    // Each adjacent pair of matches feeds into one match in the next round
+    for (let j = 0; j < perSide / 2; j++) {
+      const cy0 = cmty(r, j * 2) + CMH / 2;     // center Y of top match
+      const cy1 = cmty(r, j * 2 + 1) + CMH / 2; // center Y of bottom match
+      const yMid = (cy0 + cy1) / 2;              // = center Y of next-round match
+
+      let xFrom, xTo;
+      if (side === "left") {
+        xFrom = clx(r) + CSW; // exit: right edge of current col
+        xTo   = clx(r + 1);   // enter: left edge of next col
+      } else {
+        xFrom = crx(r);           // exit: left edge of current col
+        xTo   = crx(r + 1) + CSW; // enter: right edge of next col
+      }
+      const xMid = (xFrom + xTo) / 2;
+
+      // Top match → midX → yMid → next round
       ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo((x1 + x2) / 2, y1);
-      ctx.lineTo((x1 + x2) / 2, midY);
-      ctx.lineTo(x2, midY);
+      ctx.moveTo(xFrom, cy0);
+      ctx.lineTo(xMid, cy0);
+      ctx.lineTo(xMid, yMid);
+      ctx.lineTo(xTo, yMid);
       ctx.stroke();
+      // Bottom match → midX (joins vertical at yMid)
       ctx.beginPath();
-      ctx.moveTo(x1, y2);
-      ctx.lineTo((x1 + x2) / 2, y2);
+      ctx.moveTo(xFrom, cy1);
+      ctx.lineTo(xMid, cy1);
       ctx.stroke();
     }
   }
-  if (rds && rds.length > 0) {
-    // draw nothing extra; connectors are structural
+  // Final Four → champion connector
+  const ffY = cmty(4, 0) + CMH / 2;
+  const champMidX = CW / 2;
+  const champHalfW = 115; // champion box half-width
+  ctx.strokeStyle = "rgba(255,213,79,0.18)";
+  ctx.lineWidth = 1.5;
+  if (side === "left") {
+    ctx.beginPath();
+    ctx.moveTo(clx(4) + CSW, ffY);
+    ctx.lineTo(champMidX - champHalfW, ffY);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(crx(4), ffY);
+    ctx.lineTo(champMidX + champHalfW, ffY);
+    ctx.stroke();
   }
 }
 
 function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
-  const c = movie ? CLR[movie.studio] : { bg:"#0d0d20", ac:"#3a3a5e", tx:"#5a5a7e" };
+  const c = movie ? CLR[movie.studio] : { bg: "#0d0d20", ac: "#3a3a5e", tx: "#5a5a7e" };
   // Background
   ctx.fillStyle = won ? (isUpset ? "#3e1a0d" : "#1a1a0d") : lost ? "rgba(0,0,0,0.3)" : c.bg + "cc";
   ctx.beginPath();
-  ctx.roundRect(x, y, C_SW, C_SH, 4);
+  ctx.roundRect(x, y, CSW, CSH, 4);
   ctx.fill();
   // Border
   ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "rgba(255,255,255,0.04)" : `${c.ac}40`;
@@ -303,9 +342,9 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
   ctx.stroke();
   if (!movie) {
     ctx.fillStyle = "#3a3a5e";
-    ctx.font = "10px Inter, sans-serif";
+    ctx.font = "9px Inter, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText("TBD", x + 8, y + C_SH / 2 + 4);
+    ctx.fillText("TBD", x + 6, y + CSH / 2 + 3);
     return;
   }
   // Poster thumbnail
@@ -314,54 +353,48 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
   if (img) {
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(x + 4, y + (C_SH - C_POSTER_H) / 2, C_POSTER_W, C_POSTER_H, 2);
+    ctx.roundRect(x + 3, y + (CSH - CPH) / 2, CPW, CPH, 2);
     ctx.clip();
-    ctx.drawImage(img, x + 4, y + (C_SH - C_POSTER_H) / 2, C_POSTER_W, C_POSTER_H);
+    ctx.drawImage(img, x + 3, y + (CSH - CPH) / 2, CPW, CPH);
     ctx.restore();
-    textX = x + C_POSTER_W + 8;
+    textX = x + CPW + 7;
   }
   // Seed
   ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "#3a3a5e" : c.ac + "aa";
-  ctx.font = `bold 8px Inter, sans-serif`;
+  ctx.font = "bold 7px Inter, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(`#${movie.seed}`, textX, y + 11);
+  ctx.fillText(`#${movie.seed}`, textX, y + 10);
   // Name
   ctx.fillStyle = won ? "#f0f0ff" : lost ? "#3a3a5e" : "#c0c0e0";
-  ctx.font = `${won ? "bold " : ""}10px Inter, sans-serif`;
-  const maxW = C_SW - (textX - x) - 6;
+  ctx.font = `${won ? "bold " : ""}9px Inter, sans-serif`;
+  const maxW = CSW - (textX - x) - 4;
   let name = movie.name;
-  ctx.textAlign = "left";
-  while (name.length > 3 && ctx.measureText(name).width > maxW) {
-    name = name.slice(0, -1);
-  }
+  while (name.length > 3 && ctx.measureText(name).width > maxW) name = name.slice(0, -1);
   if (name !== movie.name) name = name.trim() + "…";
-  ctx.fillText(name, textX, y + 23);
+  ctx.fillText(name, textX, y + 21);
   // Year
   ctx.fillStyle = lost ? "#2a2a40" : "#5a5a7e";
-  ctx.font = "8px Inter, sans-serif";
-  ctx.fillText(movie.year, textX, y + 33);
+  ctx.font = "7px Inter, sans-serif";
+  ctx.fillText(movie.year, textX, y + 31);
 }
 
 function cMatch(ctx, x, y, m, isUpset0, isUpset1, imgs) {
   const w0 = m?.winner?.seed === m?.[0]?.seed;
   const w1 = m?.winner?.seed === m?.[1]?.seed;
   cSlot(ctx, x, y, m?.[0], w0, w1 && !!m?.winner, isUpset0, imgs);
-  cSlot(ctx, x, y + C_SH + C_GAP, m?.[1], w1, w0 && !!m?.winner, isUpset1, imgs);
+  cSlot(ctx, x, y + CSH + CGAP, m?.[1], w1, w0 && !!m?.winner, isUpset1, imgs);
 }
 
 function cSide(ctx, side, rds, upsets, imgs) {
-  const cols = side === "left" ? C_L_COL : C_R_COL;
-  const regionOffset = side === "left" ? 0 : 2;
-  for (let r = 0; r < Math.min(rds.length + 1, 5); r++) {
-    const round = r === 0 ? null : rds[r - 1];
-    const matchCount = 32 / Math.pow(2, r);
-    for (let i = 0; i < matchCount; i++) {
-      const regionIdx = Math.floor(i / (matchCount / 2)) + regionOffset;
-      const matchInRegion = i % (matchCount / 2);
-      const globalMatchIdx = regionIdx * (matchCount / 2) + matchInRegion;
-      const m = round?.[globalMatchIdx] || null;
-      const y = matchTopY_c(r, i);
-      const x = side === "left" ? cols[r] : cols[r];
+  for (let r = 0; r < 5; r++) {
+    const round = rds[r] || null;
+    const perSide = cps(r);
+    // Right side uses the second half of each round's match array
+    const offset = side === "right" ? perSide : 0;
+    const x = side === "left" ? clx(r) : crx(r);
+    for (let i = 0; i < perSide; i++) {
+      const m = round?.[offset + i] || null;
+      const y = cmty(r, i);
       const isUpset0 = m?.winner?.seed === m?.[0]?.seed && m?.[0]?.seed > m?.[1]?.seed;
       const isUpset1 = m?.winner?.seed === m?.[1]?.seed && m?.[1]?.seed > m?.[0]?.seed;
       cMatch(ctx, x, y, m, isUpset0, isUpset1, imgs);
@@ -370,59 +403,69 @@ function cSide(ctx, side, rds, upsets, imgs) {
 }
 
 function cChamp(ctx, ch, imgs) {
-  const x = C_CHAMP_X;
-  const y = 820;
-  ctx.fillStyle = "rgba(255,215,0,0.06)";
-  ctx.strokeStyle = "rgba(255,215,0,0.3)";
-  ctx.lineWidth = 1;
+  const ffY = cmty(4, 0) + CMH / 2; // Final Four match center Y (same for both sides)
+  const bW = 230, bH = 98;
+  const bX = CW / 2 - bW / 2;
+  const bY = ffY - bH / 2;
+  // Glow backing
+  ctx.fillStyle = "rgba(255,213,79,0.05)";
+  ctx.strokeStyle = "rgba(255,213,79,0.25)";
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.roundRect(x, y, C_SW + 20, 80, 8);
+  ctx.roundRect(bX, bY, bW, bH, 10);
   ctx.fill();
   ctx.stroke();
+  // Crown
   ctx.textAlign = "center";
-  ctx.fillStyle = "#ffd54f";
-  ctx.font = "bold 22px Inter, sans-serif";
-  ctx.fillText("👑", x + (C_SW + 20) / 2, y + 28);
+  ctx.font = "22px Inter, sans-serif";
+  ctx.fillText("👑", CW / 2, bY + 26);
   if (ch) {
     const img = imgs?.[ch.seed];
     if (img) {
       ctx.save();
       ctx.beginPath();
-      ctx.roundRect(x + 6, y + 36, 28, 38, 2);
+      ctx.roundRect(CW / 2 - 16, bY + 32, 32, 46, 3);
       ctx.clip();
-      ctx.drawImage(img, x + 6, y + 36, 28, 38);
+      ctx.drawImage(img, CW / 2 - 16, bY + 32, 32, 46);
       ctx.restore();
     }
     ctx.fillStyle = "#ffd54f";
-    ctx.font = "bold 11px Inter, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(ch.name.length > 16 ? ch.name.slice(0,14)+"…" : ch.name, x + (C_SW + 20) / 2, y + 64);
+    ctx.font = "bold 10px Inter, sans-serif";
+    ctx.fillText(ch.name.length > 20 ? ch.name.slice(0, 18) + "…" : ch.name, CW / 2, bY + 87);
   } else {
     ctx.fillStyle = "#5a5a7e";
-    ctx.font = "11px Inter, sans-serif";
-    ctx.fillText("Champion", x + (C_SW + 20) / 2, y + 64);
+    ctx.font = "10px Inter, sans-serif";
+    ctx.fillText("Champion", CW / 2, bY + 60);
   }
 }
 
 function cPlayin(ctx, piM, imgs) {
-  ctx.fillStyle = "#3a3a5e";
+  if (!piM?.length) return;
+  const pY = 1540;
+  ctx.fillStyle = "#5a5a7e";
   ctx.font = "bold 10px Inter, sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText("Play-In Round", 10, 120);
+  ctx.textAlign = "center";
+  ctx.fillText("Play-In Round", CW / 2, pY - 10);
+  // 6 matches in a row, centered
+  const mGap = 8;
+  const totalW = piM.length * CSW + (piM.length - 1) * mGap;
+  const startX = (CW - totalW) / 2;
   piM.forEach((m, i) => {
-    const y = 130 + i * (C_MATCH_H + 4);
-    cMatch(ctx, 10, y, m, false, false, imgs);
+    const x = startX + i * (CSW + mGap);
+    const isUpset0 = m?.winner?.seed === m?.[0]?.seed && m?.[0]?.seed > m?.[1]?.seed;
+    const isUpset1 = m?.winner?.seed === m?.[1]?.seed && m?.[1]?.seed > m?.[0]?.seed;
+    cMatch(ctx, x, pY, m, isUpset0, isUpset1, imgs);
   });
 }
 
 function drawBracket(canvas, { rds, piM, ch, upsets, imgs }) {
   const ctx = canvas.getContext("2d");
-  cBg(ctx, canvas.width, canvas.height);
-  cHeader(ctx, canvas.width);
+  cBg(ctx);
+  cHeader(ctx);
   cRoundLabels(ctx);
   cRegionLabels(ctx);
-  cConnectors(ctx, "left", rds);
-  cConnectors(ctx, "right", rds);
+  cConnectors(ctx, "left");
+  cConnectors(ctx, "right");
   cSide(ctx, "left", rds, upsets, imgs);
   cSide(ctx, "right", rds, upsets, imgs);
   cChamp(ctx, ch, imgs);
