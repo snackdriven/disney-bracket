@@ -1,4 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const SB_URL = "https://pynmkrcbkcfxifnztnrn.supabase.co";
+const SB_ANON = "sb_publishable_8VEm7zR0vqKjOZRwH6jimw_qIWt-RPp";
+const supabase = createClient(SB_URL, SB_ANON);
 
 function useIsMobile(breakpoint = 600) {
   const [mob, setMob] = useState(() => typeof window !== "undefined" && window.innerWidth <= breakpoint);
@@ -152,6 +157,277 @@ const saveLS = (key, val) => { try { localStorage.setItem(key, JSON.stringify(va
 const serMatch = (ms) => ms.map(m => ({ p: [m[0], m[1]], w: m.winner || null }));
 const desMatch = (ms) => ms.map(({ p, w }) => { const m = [p[0], p[1]]; if (w) m.winner = w; return m; });
 
+// Canvas layout constants (for PNG export)
+const C_SW=180, C_SH=40, C_GAP=4, C_MATCH_H=84;
+const C_POSTER_W=24, C_POSTER_H=36;
+const C_L_COL=[0,218,435,653,870];
+const C_R_COL=[2220,1983,1765,1548,1330];
+const C_CHAMP_X=1090;
+function matchTopY_c(r,i){const sp=95*Math.pow(2,r);return Math.round(120+sp/2+i*sp-42);}
+
+// ---- TMDB / OMDB helpers ----
+
+const extractImdbId = url => url?.match(/tt\d+/)?.[0] ?? null;
+
+async function fetchMovieMeta(tmdbKey, omdbKey) {
+  const cache = (() => { try { return JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}"); } catch { return {}; } })();
+  const missing = ALL_MOVIES.filter(m => !cache[m.seed]?.poster && extractImdbId(m.imdb));
+  const BATCH = 20;
+  for (let i = 0; i < missing.length; i += BATCH) {
+    await Promise.all(missing.slice(i, i + BATCH).map(async m => {
+      const id = extractImdbId(m.imdb);
+      cache[m.seed] = cache[m.seed] || {};
+      try {
+        if (tmdbKey) {
+          const r = await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${tmdbKey}&external_source=imdb_id`);
+          const d = await r.json();
+          const path = d.movie_results?.[0]?.poster_path;
+          if (path) cache[m.seed].poster = `https://image.tmdb.org/t/p/w92${path}`;
+        }
+        if (omdbKey) {
+          const r = await fetch(`https://www.omdbapi.com/?i=${id}&apikey=${omdbKey}`);
+          const d = await r.json();
+          if (d.Runtime && d.Runtime !== "N/A") cache[m.seed].runtime = d.Runtime;
+          if (d.imdbRating && d.imdbRating !== "N/A") cache[m.seed].rating = d.imdbRating;
+        }
+      } catch { /* silent per-movie failure */ }
+    }));
+  }
+  localStorage.setItem("tmdb-meta-v1", JSON.stringify(cache));
+  return cache;
+}
+
+async function loadImages(metaMap) {
+  const imgs = {};
+  await Promise.all(Object.entries(metaMap).map(([seed, meta]) => {
+    if (!meta?.poster) return Promise.resolve();
+    return new Promise(res => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => { imgs[seed] = img; res(); };
+      img.onerror = res;
+      img.src = meta.poster;
+    });
+  }));
+  return imgs;
+}
+
+// ---- Canvas drawing functions (PNG export) ----
+
+function cBg(ctx, w, h) {
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, "#06060f");
+  grad.addColorStop(0.4, "#0e0e24");
+  grad.addColorStop(0.7, "#180a20");
+  grad.addColorStop(1, "#06060f");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function cHeader(ctx, w) {
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffd54f";
+  ctx.font = "bold 28px Inter, sans-serif";
+  ctx.fillText("Disney × Pixar Bracket", w / 2, 44);
+  ctx.fillStyle = "#6a6a8e";
+  ctx.font = "14px Inter, sans-serif";
+  ctx.fillText("70 movies · 69 matchups · 1 champion", w / 2, 68);
+}
+
+function cRoundLabels(ctx) {
+  const labels = ["R64","R32","Sweet 16","Elite 8","Final 4"];
+  ctx.fillStyle = "#5a5a7e";
+  ctx.font = "11px Inter, sans-serif";
+  labels.forEach((lbl, i) => {
+    ctx.textAlign = "center";
+    ctx.fillText(lbl, C_L_COL[i] + C_SW/2, 108);
+    ctx.fillText(lbl, C_R_COL[i] + C_SW/2, 108);
+  });
+}
+
+function cRegionLabels(ctx) {
+  const colors = ["#4fc3f7","#ce93d8","#ff8a65","#ffd54f"];
+  REG.forEach((name, i) => {
+    const y = matchTopY_c(0, i * 8) + (C_MATCH_H * 7) / 2;
+    ctx.fillStyle = colors[i];
+    ctx.font = "bold 12px Inter, sans-serif";
+    ctx.textAlign = "left";
+    ctx.save();
+    ctx.translate(8, y);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(name, 0, 0);
+    ctx.restore();
+  });
+}
+
+function cConnectors(ctx, side, rds) {
+  ctx.strokeStyle = "rgba(255,255,255,0.07)";
+  ctx.lineWidth = 1;
+  for (let r = 0; r < 4; r++) {
+    const cols = side === "left" ? C_L_COL : C_R_COL;
+    const matchesInRound = 32 / Math.pow(2, r);
+    for (let i = 0; i < matchesInRound; i += 2) {
+      const y1 = matchTopY_c(r, i) + C_MATCH_H / 2;
+      const y2 = matchTopY_c(r, i + 1) + C_MATCH_H / 2;
+      const midY = (y1 + y2) / 2;
+      const x1 = side === "left" ? cols[r] + C_SW : cols[r];
+      const x2 = side === "left" ? cols[r + 1] : cols[r + 1] + C_SW;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo((x1 + x2) / 2, y1);
+      ctx.lineTo((x1 + x2) / 2, midY);
+      ctx.lineTo(x2, midY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x1, y2);
+      ctx.lineTo((x1 + x2) / 2, y2);
+      ctx.stroke();
+    }
+  }
+  if (rds && rds.length > 0) {
+    // draw nothing extra; connectors are structural
+  }
+}
+
+function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
+  const c = movie ? CLR[movie.studio] : { bg:"#0d0d20", ac:"#3a3a5e", tx:"#5a5a7e" };
+  // Background
+  ctx.fillStyle = won ? (isUpset ? "#3e1a0d" : "#1a1a0d") : lost ? "rgba(0,0,0,0.3)" : c.bg + "cc";
+  ctx.beginPath();
+  ctx.roundRect(x, y, C_SW, C_SH, 4);
+  ctx.fill();
+  // Border
+  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "rgba(255,255,255,0.04)" : `${c.ac}40`;
+  ctx.lineWidth = won ? 1.5 : 1;
+  ctx.stroke();
+  if (!movie) {
+    ctx.fillStyle = "#3a3a5e";
+    ctx.font = "10px Inter, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("TBD", x + 8, y + C_SH / 2 + 4);
+    return;
+  }
+  // Poster thumbnail
+  const img = imgs?.[movie.seed];
+  let textX = x + 6;
+  if (img) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x + 4, y + (C_SH - C_POSTER_H) / 2, C_POSTER_W, C_POSTER_H, 2);
+    ctx.clip();
+    ctx.drawImage(img, x + 4, y + (C_SH - C_POSTER_H) / 2, C_POSTER_W, C_POSTER_H);
+    ctx.restore();
+    textX = x + C_POSTER_W + 8;
+  }
+  // Seed
+  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "#3a3a5e" : c.ac + "aa";
+  ctx.font = `bold 8px Inter, sans-serif`;
+  ctx.textAlign = "left";
+  ctx.fillText(`#${movie.seed}`, textX, y + 11);
+  // Name
+  ctx.fillStyle = won ? "#f0f0ff" : lost ? "#3a3a5e" : "#c0c0e0";
+  ctx.font = `${won ? "bold " : ""}10px Inter, sans-serif`;
+  const maxW = C_SW - (textX - x) - 6;
+  let name = movie.name;
+  ctx.textAlign = "left";
+  while (name.length > 3 && ctx.measureText(name).width > maxW) {
+    name = name.slice(0, -1);
+  }
+  if (name !== movie.name) name = name.trim() + "…";
+  ctx.fillText(name, textX, y + 23);
+  // Year
+  ctx.fillStyle = lost ? "#2a2a40" : "#5a5a7e";
+  ctx.font = "8px Inter, sans-serif";
+  ctx.fillText(movie.year, textX, y + 33);
+}
+
+function cMatch(ctx, x, y, m, isUpset0, isUpset1, imgs) {
+  const w0 = m?.winner?.seed === m?.[0]?.seed;
+  const w1 = m?.winner?.seed === m?.[1]?.seed;
+  cSlot(ctx, x, y, m?.[0], w0, w1 && !!m?.winner, isUpset0, imgs);
+  cSlot(ctx, x, y + C_SH + C_GAP, m?.[1], w1, w0 && !!m?.winner, isUpset1, imgs);
+}
+
+function cSide(ctx, side, rds, upsets, imgs) {
+  const cols = side === "left" ? C_L_COL : C_R_COL;
+  const regionOffset = side === "left" ? 0 : 2;
+  for (let r = 0; r < Math.min(rds.length + 1, 5); r++) {
+    const round = r === 0 ? null : rds[r - 1];
+    const matchCount = 32 / Math.pow(2, r);
+    for (let i = 0; i < matchCount; i++) {
+      const regionIdx = Math.floor(i / (matchCount / 2)) + regionOffset;
+      const matchInRegion = i % (matchCount / 2);
+      const globalMatchIdx = regionIdx * (matchCount / 2) + matchInRegion;
+      const m = round?.[globalMatchIdx] || null;
+      const y = matchTopY_c(r, i);
+      const x = side === "left" ? cols[r] : cols[r];
+      const isUpset0 = m?.winner?.seed === m?.[0]?.seed && m?.[0]?.seed > m?.[1]?.seed;
+      const isUpset1 = m?.winner?.seed === m?.[1]?.seed && m?.[1]?.seed > m?.[0]?.seed;
+      cMatch(ctx, x, y, m, isUpset0, isUpset1, imgs);
+    }
+  }
+}
+
+function cChamp(ctx, ch, imgs) {
+  const x = C_CHAMP_X;
+  const y = 820;
+  ctx.fillStyle = "rgba(255,215,0,0.06)";
+  ctx.strokeStyle = "rgba(255,215,0,0.3)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x, y, C_SW + 20, 80, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffd54f";
+  ctx.font = "bold 22px Inter, sans-serif";
+  ctx.fillText("👑", x + (C_SW + 20) / 2, y + 28);
+  if (ch) {
+    const img = imgs?.[ch.seed];
+    if (img) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(x + 6, y + 36, 28, 38, 2);
+      ctx.clip();
+      ctx.drawImage(img, x + 6, y + 36, 28, 38);
+      ctx.restore();
+    }
+    ctx.fillStyle = "#ffd54f";
+    ctx.font = "bold 11px Inter, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(ch.name.length > 16 ? ch.name.slice(0,14)+"…" : ch.name, x + (C_SW + 20) / 2, y + 64);
+  } else {
+    ctx.fillStyle = "#5a5a7e";
+    ctx.font = "11px Inter, sans-serif";
+    ctx.fillText("Champion", x + (C_SW + 20) / 2, y + 64);
+  }
+}
+
+function cPlayin(ctx, piM, imgs) {
+  ctx.fillStyle = "#3a3a5e";
+  ctx.font = "bold 10px Inter, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("Play-In Round", 10, 120);
+  piM.forEach((m, i) => {
+    const y = 130 + i * (C_MATCH_H + 4);
+    cMatch(ctx, 10, y, m, false, false, imgs);
+  });
+}
+
+function drawBracket(canvas, { rds, piM, ch, upsets, imgs }) {
+  const ctx = canvas.getContext("2d");
+  cBg(ctx, canvas.width, canvas.height);
+  cHeader(ctx, canvas.width);
+  cRoundLabels(ctx);
+  cRegionLabels(ctx);
+  cConnectors(ctx, "left", rds);
+  cConnectors(ctx, "right", rds);
+  cSide(ctx, "left", rds, upsets, imgs);
+  cSide(ctx, "right", rds, upsets, imgs);
+  cChamp(ctx, ch, imgs);
+  cPlayin(ctx, piM, imgs);
+}
+
 export default function App() {
   const mob = useIsMobile();
 
@@ -187,6 +463,17 @@ export default function App() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedBracket, setCopiedBracket] = useState(false);
 
+  // Movie meta (posters, runtime, rating)
+  const [movieMeta, setMovieMeta] = useState(() => loadLS("tmdb-meta-v1", {}));
+  const [tmdbStatus, setTmdbStatus] = useState(null); // null|'fetching'|'done'|'error'
+  const [showTmdbModal, setShowTmdbModal] = useState(false);
+  const [pngStatus, setPngStatus] = useState(null); // null|'fetching'|'drawing'|'done'
+
+  // Supabase sync
+  const [sbUser, setSbUser] = useState(null);
+  const [syncStatus, setSyncStatus] = useState("idle"); // 'idle'|'syncing'|'synced'|'error'
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
   // Persist bracket state to localStorage and URL hash
   useEffect(() => {
     const serialized = { ph, piM: serMatch(piM), piI, rds: rds.map(r => serMatch(r)), cr, cm, ch, hi, upsets };
@@ -199,7 +486,6 @@ export default function App() {
   // Notes state (persisted to localStorage)
   const [notes, setNotes] = useState(() => {
     const raw = loadLS("dbk-notes", {});
-    // Migrate old two-person format { seed: { 0: text, 1: text } } to single string
     const migrated = {};
     for (const [k, v] of Object.entries(raw)) {
       if (typeof v === "string") migrated[k] = v;
@@ -215,6 +501,105 @@ export default function App() {
   const updateNote = (seed, text) => {
     const nn = { ...notes, [seed]: text };
     setNotes(nn); saveLS("dbk-notes", nn);
+  };
+
+  const pullFromSupabase = async () => {
+    const { data, error } = await supabase
+      .from("disney_bracket").select("notes,state").maybeSingle();
+    if (error || !data) return;
+    if (data.notes) { setNotes(data.notes); saveLS("dbk-notes", data.notes); }
+    if (data.state) {
+      const s = data.state;
+      try {
+        setPh(s.ph); setPiM(desMatch(s.piM)); setPiI(s.piI ?? 0);
+        setRds(s.rds.map(r => desMatch(r))); setCr(s.cr ?? 0); setCm(s.cm ?? 0);
+        setCh(s.ch || null); setHi(s.hi || []); setUpsets(s.upsets || []);
+        saveLS("dbk-state", s);
+      } catch { /* ignore malformed server data */ }
+    }
+  };
+
+  const handleFetchMeta = async (overrideTmdb, overrideOmdb) => {
+    const tmdbKey = overrideTmdb !== undefined ? overrideTmdb : localStorage.getItem("tmdb-key");
+    const omdbKey = overrideOmdb !== undefined ? overrideOmdb : (localStorage.getItem("omdb-key") || "548162f0");
+    if (!tmdbKey && !omdbKey) { setShowTmdbModal(true); return; }
+    setTmdbStatus("fetching");
+    try {
+      const map = await fetchMovieMeta(tmdbKey, omdbKey);
+      setMovieMeta(map);
+      setTmdbStatus("done");
+    } catch {
+      setTmdbStatus("error");
+    }
+    setTimeout(() => setTmdbStatus(null), 3000);
+  };
+
+  // Auth init — runs once on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSbUser(session?.user ?? null);
+      if (session?.user) pullFromSupabase();
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSbUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []); // intentional: pullFromSupabase is stable, runs once
+
+  // Auto-push on state change (debounced 2s)
+  const syncTimerRef = useRef(null);
+  useEffect(() => {
+    if (!sbUser) return;
+    clearTimeout(syncTimerRef.current);
+    const serialized = { ph, piM: serMatch(piM), piI, rds: rds.map(r => serMatch(r)), cr, cm, ch, hi, upsets };
+    syncTimerRef.current = setTimeout(async () => {
+      setSyncStatus("syncing");
+      const { error } = await supabase.from("disney_bracket").upsert({
+        user_id: sbUser.id, notes, state: serialized, updated_at: new Date().toISOString(),
+      });
+      setSyncStatus(error ? "error" : "synced");
+      setTimeout(() => setSyncStatus("idle"), 3000);
+    }, 2000);
+  }, [ph, piM, piI, rds, cr, cm, ch, hi, upsets, notes, sbUser]);
+
+  // Auto-fetch movie meta on mount if keys exist — reads cache from localStorage directly
+  useEffect(() => {
+    const tmdbKey = localStorage.getItem("tmdb-key");
+    const omdbKey = localStorage.getItem("omdb-key");
+    if (!omdbKey) localStorage.setItem("omdb-key", "548162f0");
+    const cached = (() => {
+      try { return Object.values(JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}")).filter(m => m?.poster || m?.rating).length; }
+      catch { return 0; }
+    })();
+    const effectiveOmdb = omdbKey || "548162f0";
+    if ((tmdbKey || effectiveOmdb) && cached < ALL_MOVIES.length) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      handleFetchMeta(tmdbKey, effectiveOmdb);
+    }
+  }, []); // intentional: mount-only, reads localStorage not state
+
+  const handleDownloadPng = async () => {
+    const tmdbKey = localStorage.getItem("tmdb-key");
+    const omdbKey = localStorage.getItem("omdb-key") || "548162f0";
+    if (!tmdbKey) { setShowTmdbModal(true); return; }
+    setPngStatus("fetching");
+    let imgs = {};
+    try {
+      const map = await fetchMovieMeta(tmdbKey, omdbKey);
+      setMovieMeta(map);
+      imgs = await loadImages(map);
+    } catch { /* text-only fallback */ }
+    setPngStatus("drawing");
+    await new Promise(r => setTimeout(r, 20));
+    const canvas = document.createElement("canvas");
+    canvas.width = 2400; canvas.height = 1700;
+    drawBracket(canvas, { rds, piM, ch, upsets, imgs });
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = "disney-pixar-bracket.png";
+    a.click();
+    setPngStatus("done");
+    setTimeout(() => setPngStatus(null), 2000);
   };
 
   const ip = ph==="pi";
@@ -336,8 +721,12 @@ export default function App() {
     }).catch(() => {});
   };
 
+  const metaCount = Object.values(movieMeta).filter(m => m?.poster || m?.rating).length;
+
   return (
     <div style={{ minHeight:"100vh", background:"linear-gradient(155deg,#06060f,#0e0e24 30%,#180a20 60%,#06060f)", fontFamily:"'Inter',sans-serif", color:"#e0e0f0" }}>
+      {showTmdbModal && <TmdbModal onSave={(t,o)=>{ setShowTmdbModal(false); handleFetchMeta(t,o); }} onClose={()=>setShowTmdbModal(false)}/>}
+      {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)}/>}
       <Dots mob={mob}/>
       <style>{`
         @keyframes tw{0%,100%{opacity:.2}50%{opacity:1}}
@@ -362,8 +751,27 @@ export default function App() {
         <div style={{ background:"rgba(255,255,255,.05)", borderRadius:20, height:mob?6:5, marginBottom:mob?6:6, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,#4fc3f7,#ce93d8,#ff8a65,#ffd54f)", borderRadius:20, transition:"width .5s" }}/>
         </div>
-        <div style={{ display:"flex", justifyContent:"space-between", fontSize:mob?12:11, color:"#6a6a8e", marginBottom:mob?18:24 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", fontSize:mob?12:11, color:"#6a6a8e", marginBottom:mob?10:14 }}>
           <span>{hi.length}/69 decided</span><span>{rl}{rn?` · ${rn}`:""}</span>
+        </div>
+
+        {/* Sync + posters strip */}
+        <div style={{ display:"flex", justifyContent:"flex-end", alignItems:"center", gap:8, marginBottom:mob?8:10, fontSize:mob?12:11, flexWrap:"wrap" }}>
+          {sbUser ? (
+            <>
+              <span style={{ color:"#6a6a8e" }}>
+                {syncStatus==="syncing"?"⏳ Syncing...":syncStatus==="synced"?"✓ Synced":syncStatus==="error"?"⚠ Sync error":"☁ Synced"}
+                {" "}{sbUser.email}
+              </span>
+              <button onClick={()=>supabase.auth.signOut()} style={{ background:"none", border:"none", color:"#5a5a7e", fontSize:mob?12:11, cursor:"pointer" }}>Sign out</button>
+            </>
+          ) : (
+            <button onClick={()=>setShowAuthModal(true)} style={{ background:"none", border:"none", color:"#6a6a8e", fontSize:mob?12:11, cursor:"pointer", letterSpacing:.5 }}>☁ Sync across devices</button>
+          )}
+          <span style={{ color:"#4a4a65" }}>·</span>
+          <button onClick={()=>tmdbStatus!=="fetching"&&handleFetchMeta()} style={{ background:"none", border:"none", color:metaCount>0?"#6a6a8e":"#4fc3f7", fontSize:mob?12:11, cursor:"pointer" }}>
+            {tmdbStatus==="fetching"?"⏳ Fetching..." : metaCount>0 ? `🎬 ${metaCount} movies loaded` : "🎬 Add posters & ratings"}
+          </button>
         </div>
 
         {/* Full Bracket + Notes toggles */}
@@ -411,6 +819,9 @@ export default function App() {
             <Btn mob={mob} onClick={()=>setBk(!bk)}>{bk?"Hide":"View"} Bracket</Btn>
             <Btn mob={mob} s mu onClick={copyLink}>{copiedLink ? "✓ Linked!" : "🔗 Share"}</Btn>
             <Btn mob={mob} s mu onClick={copyBracket}>{copiedBracket ? "✓ Copied!" : "📋 Export"}</Btn>
+            <Btn mob={mob} s mu onClick={handleDownloadPng}>
+              {pngStatus==="fetching"?"⏳ Fetching...":pngStatus==="drawing"?"⏳ Drawing...":pngStatus==="done"?"✓ Saved!":"⬇ PNG"}
+            </Btn>
           </div>
           {bk && <BV mob={mob} pi={piM} rds={rds}/>}
         </div>
@@ -419,18 +830,18 @@ export default function App() {
           <div style={{ textAlign:"center", marginBottom:mob?12:16, fontSize:mob?14:13, color:"#8080a0" }}>Match {mn} of {mt}</div>
           {mob ? (
             <div style={{ display:"flex", flexDirection:"column", gap:0, alignItems:"center" }}>
-              <Card mob m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0],ip)} notes={notes} updateNote={updateNote}/>
+              <Card mob m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:12, padding:"10px 0", width:"100%" }}>
                 <div style={{ flex:1, height:1, background:"linear-gradient(90deg,transparent,rgba(255,255,255,.12))" }}/>
                 <span style={{ fontSize:14, fontWeight:800, color:"#5a5a7e", letterSpacing:3 }}>VS</span>
                 <div style={{ flex:1, height:1, background:"linear-gradient(90deg,rgba(255,255,255,.12),transparent)" }}/>
               </div>
-              <Card mob m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} notes={notes} updateNote={updateNote}/>
+              <Card mob m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
             </div>
           ) : (
             <>
               <div style={{ display:"flex", gap:14, flexWrap:"wrap", justifyContent:"center" }}>
-                {[mu[0],mu[1]].map(mv => <Card key={mv.seed} m={mv} h={hv===mv.seed} a={an===mv.seed} d={!!an} onH={setHv} onC={()=>pick(mv,ip)} notes={notes} updateNote={updateNote}/>)}
+                {[mu[0],mu[1]].map(mv => <Card key={mv.seed} m={mv} h={hv===mv.seed} a={an===mv.seed} d={!!an} onH={setHv} onC={()=>pick(mv,ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>)}
               </div>
               <div style={{ textAlign:"center", marginTop:14 }}><span style={{ fontSize:18, fontWeight:800, color:"#2a2a44", letterSpacing:4 }}>VS</span></div>
             </>
@@ -446,6 +857,9 @@ export default function App() {
             <Btn mob={mob} s mu onClick={reset}>Reset</Btn>
             {!ip && <Btn mob={mob} s mu onClick={()=>setBk(!bk)}>{bk?"Hide":"Bracket"}</Btn>}
             {hi.length>0 && <Btn mob={mob} s mu onClick={copyLink}>{copiedLink ? "✓!" : "🔗 Share"}</Btn>}
+            {hi.length>0 && <Btn mob={mob} s mu onClick={handleDownloadPng}>
+              {pngStatus&&pngStatus!=="done"?"⏳":pngStatus==="done"?"✓!":"⬇ PNG"}
+            </Btn>}
           </div>
           {bk&&!ip && <BV mob={mob} pi={piM} rds={rds} cr={cr} cm={cm}/>}
           {!bk && up && ui+1<up.length && <div style={{ marginTop:mob?24:30 }}>
@@ -462,33 +876,67 @@ export default function App() {
   );
 }
 
-function Card({ m, h, a, d, onH, onC, notes, updateNote, mob }) {
+function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
   const c = CLR[m.studio];
   const [showCardNotes, setShowCardNotes] = useState(false);
   const note = notes?.[m.seed] || "";
+  const meta = movieMeta?.[m.seed];
+  const hasPoster = !!meta?.poster;
+
   return <div style={{ flex:mob?"1 1 100%":"1 1 320px", maxWidth:mob?undefined:560, width:mob?"100%":undefined }}>
-    <button className={mob?"mob-card":""} onClick={()=>!d&&onC()} onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)} onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined} style={{
-      width:"100%",
-      background: h?`linear-gradient(155deg,${c.bg},${c.ac}18)`:`linear-gradient(155deg,${c.bg},${c.bg}dd)`,
-      border: h?`2px solid ${c.ac}`:"2px solid rgba(255,255,255,.08)",
-      borderRadius: showCardNotes?(mob?"16px 16px 0 0":"18px 18px 0 0"):(mob?16:18),
-      padding:mob?"26px 20px 22px":"32px 24px 28px", cursor:d?"default":"pointer",
-      transition:"all .15s", transform:h&&!a&&!mob?"translateY(-3px)":"none",
-      boxShadow:h?`0 ${mob?8:10}px ${mob?24:36}px ${c.gl}`:`0 4px ${mob?12:16}px rgba(0,0,0,.3)`,
-      animation:a?"ch .35s ease forwards":"none",
-      display:"flex", flexDirection:"column", alignItems:"center", gap:mob?8:10, textAlign:"center", position:"relative",
-      WebkitTapHighlightColor:"transparent",
-    }}>
-      <div style={{ position:"absolute", top:mob?10:10, left:mob?12:12, fontSize:mob?11:10, fontWeight:700, color:c.ac, opacity:.7, letterSpacing:1 }}>#{m.seed}</div>
-      <div style={{ fontSize:mob?"clamp(20px,5.5vw,26px)":"clamp(20px,3.5vw,27px)", fontWeight:800, color:"#f0f0ff", lineHeight:1.25, marginTop:mob?4:4 }}>{m.name}</div>
-      <div style={{ display:"flex", gap:8, alignItems:"center", fontSize:mob?13:12, color:"#9898b8" }}>
-        <span style={{ padding:mob?"3px 10px":"2px 8px", borderRadius:16, background:`${c.ac}18`, color:c.tx, fontSize:mob?11:10, fontWeight:700 }}>{m.studio}</span>
-        <span>{m.year}</span>
-        {m.imdb && <a href={m.imdb} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ padding:mob?"3px 8px":"2px 6px", borderRadius:16, background:"#f5c51822", color:"#f5c518", fontSize:mob?11:10, fontWeight:700, textDecoration:"none", letterSpacing:.5 }}>IMDb</a>}
+    <button className={mob?"mob-card":""} onClick={()=>!d&&onC()}
+      onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)}
+      onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined}
+      style={{
+        width:"100%",
+        background: h?`linear-gradient(155deg,${c.bg},${c.ac}18)`:`linear-gradient(155deg,${c.bg},${c.bg}dd)`,
+        border: h?`2px solid ${c.ac}`:"2px solid rgba(255,255,255,.08)",
+        borderRadius: showCardNotes?(mob?"16px 16px 0 0":"18px 18px 0 0"):(mob?16:18),
+        padding: hasPoster?(mob?"16px 14px":"22px 20px"):(mob?"26px 20px 22px":"32px 24px 28px"),
+        cursor: d?"default":"pointer",
+        transition:"all .15s",
+        transform: h&&!a&&!mob?"translateY(-3px)":"none",
+        boxShadow: h?`0 ${mob?8:10}px ${mob?24:36}px ${c.gl}`:`0 4px ${mob?12:16}px rgba(0,0,0,.3)`,
+        animation: a?"ch .35s ease forwards":"none",
+        display:"flex",
+        flexDirection: hasPoster?"row":"column",
+        alignItems: "center",
+        gap: hasPoster?12:(mob?8:10),
+        textAlign: hasPoster?"left":"center",
+        position:"relative",
+        WebkitTapHighlightColor:"transparent",
+      }}>
+
+      {/* Seed badge — absolute when no poster, inline when poster */}
+      {!hasPoster && <div style={{ position:"absolute", top:mob?10:10, left:mob?12:12, fontSize:mob?11:10, fontWeight:700, color:c.ac, opacity:.7, letterSpacing:1 }}>#{m.seed}</div>}
+
+      {/* Poster thumbnail */}
+      {hasPoster && (
+        <img src={meta.poster} alt="" style={{
+          width: mob?40:48, height: mob?60:72,
+          objectFit:"cover", borderRadius:4,
+          flexShrink:0, opacity: a?0.6:1,
+          boxShadow:"0 2px 8px rgba(0,0,0,.4)",
+        }}/>
+      )}
+
+      {/* Text column */}
+      <div style={{ flex:1, display:"flex", flexDirection:"column", gap: mob?3:4, minWidth:0 }}>
+        {hasPoster && <div style={{ fontSize:mob?9:9, fontWeight:700, color:c.ac, opacity:.7, letterSpacing:1 }}>#{m.seed}</div>}
+        <div style={{ fontSize: hasPoster?(mob?"clamp(15px,4vw,18px)":"clamp(15px,2.5vw,20px)"):(mob?"clamp(20px,5.5vw,26px)":"clamp(20px,3.5vw,27px)"), fontWeight:800, color:"#f0f0ff", lineHeight:1.25, marginTop:hasPoster?0:(mob?4:4), overflow:"hidden", textOverflow:"ellipsis", whiteSpace: hasPoster?"nowrap":undefined }}>
+          {m.name}
+        </div>
+        <div style={{ display:"flex", gap:6, alignItems:"center", fontSize:mob?12:11, color:"#9898b8", flexWrap:"wrap" }}>
+          <span style={{ padding:mob?"2px 8px":"2px 7px", borderRadius:16, background:`${c.ac}18`, color:c.tx, fontSize:mob?10:9, fontWeight:700 }}>{m.studio}</span>
+          <span>{m.year}</span>
+          {meta?.runtime && <span style={{ color:"#6a6a8e" }}>{meta.runtime}</span>}
+          {meta?.rating && <span style={{ color:"#f5c518", fontSize:mob?10:10, fontWeight:600 }}>★ {meta.rating}</span>}
+          {m.imdb && <a href={m.imdb} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ padding:mob?"2px 7px":"2px 5px", borderRadius:16, background:"#f5c51822", color:"#f5c518", fontSize:mob?10:9, fontWeight:700, textDecoration:"none", letterSpacing:.5 }}>IMDb</a>}
+        </div>
+        {note && !showCardNotes && <div style={{ fontSize:mob?11:9, color:"#9a9abe", opacity:.8, letterSpacing:1 }}>has notes</div>}
+        {!hasPoster && h && !mob && <div style={{ position:"absolute", bottom:10, fontSize:10, color:c.ac, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", opacity:.7 }}>Pick →</div>}
+        {mob && <div style={{ fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", opacity:.6 }}>Tap to pick</div>}
       </div>
-      {note && !showCardNotes && <div style={{ fontSize:mob?11:9, color:"#9a9abe", opacity:.8, letterSpacing:1 }}>has notes</div>}
-      {h && !mob && <div style={{ position:"absolute", bottom:10, fontSize:10, color:c.ac, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", opacity:.7 }}>Pick →</div>}
-      {mob && <div style={{ fontSize:12, color:c.ac, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", opacity:.6 }}>Tap to pick</div>}
     </button>
     <div style={{ textAlign:"center", marginTop: showCardNotes?0:mob?4:4 }}>
       <button onClick={(e)=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
@@ -497,6 +945,70 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob }) {
       }}>{showCardNotes ? "hide notes ▲" : "notes ▼"}</button>
     </div>
     {showCardNotes && <CardNotes seed={m.seed} note={note} updateNote={updateNote} ac={c.ac} bg={c.bg} mob={mob}/>}
+  </div>;
+}
+
+function TmdbModal({ onSave, onClose }) {
+  const [tmdb, setTmdb] = useState(localStorage.getItem("tmdb-key") || "");
+  const [omdb, setOmdb] = useState(localStorage.getItem("omdb-key") || "548162f0");
+  const save = () => {
+    if (tmdb.trim()) localStorage.setItem("tmdb-key", tmdb.trim());
+    if (omdb.trim()) localStorage.setItem("omdb-key", omdb.trim());
+    onSave(tmdb.trim(), omdb.trim());
+  };
+  return <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <div style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:440, width:"90%", animation:"su .2s" }}>
+      <h3 style={{ color:"#f0f0ff", margin:"0 0 6px", fontSize:18 }}>Movie Posters, Ratings & Runtimes</h3>
+      <p style={{ color:"#8a8aa8", fontSize:12, margin:"0 0 18px", lineHeight:1.6 }}>Keys stored locally, never sent anywhere else. Both are free.</p>
+
+      <label style={{ display:"block", color:"#9898b8", fontSize:11, marginBottom:4, letterSpacing:.5 }}>
+        TMDB API key (v3) — <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener noreferrer" style={{ color:"#4fc3f7" }}>get one here</a>
+      </label>
+      <input value={tmdb} onChange={e=>setTmdb(e.target.value)}
+        placeholder="32-char hex..."
+        style={{ width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.3)", border:"1px solid rgba(255,255,255,.1)", borderRadius:8, padding:"9px 12px", color:"#e0e0f0", fontFamily:"monospace", fontSize:12, outline:"none", marginBottom:14 }}/>
+
+      <label style={{ display:"block", color:"#9898b8", fontSize:11, marginBottom:4, letterSpacing:.5 }}>
+        OMDB API key — <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener noreferrer" style={{ color:"#4fc3f7" }}>get one here</a>
+        <span style={{ color:"#5a5a7e" }}> (for IMDb ratings + runtimes)</span>
+      </label>
+      <input value={omdb} onChange={e=>setOmdb(e.target.value)}
+        placeholder="8-char hex..."
+        style={{ width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.3)", border:"1px solid rgba(255,255,255,.1)", borderRadius:8, padding:"9px 12px", color:"#e0e0f0", fontFamily:"monospace", fontSize:12, outline:"none", marginBottom:18 }}/>
+
+      <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+        <Btn mob={false} s mu onClick={onClose}>Cancel</Btn>
+        <Btn mob={false} s onClick={save}>Save & Fetch</Btn>
+      </div>
+    </div>
+  </div>;
+}
+
+function AuthModal({ onClose }) {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const sendLink = async () => {
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    if (!error) setSent(true);
+  };
+  return <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <div style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:380, width:"90%", animation:"su .2s" }}>
+      <h3 style={{ color:"#f0f0ff", margin:"0 0 8px", fontSize:18 }}>Sync Across Devices</h3>
+      {sent ? (
+        <p style={{ color:"#8a8aa8", fontSize:14, lineHeight:1.6 }}>Check your email for a magic link. Close this when you're signed in.</p>
+      ) : (
+        <>
+          <p style={{ color:"#8a8aa8", fontSize:13, margin:"0 0 16px", lineHeight:1.6 }}>Enter your email — we'll send a link. Your bracket and notes sync automatically once you're signed in.</p>
+          <input value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendLink()} type="email" placeholder="you@example.com"
+            style={{ width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.3)", border:"1px solid rgba(255,255,255,.1)", borderRadius:8, padding:"10px 12px", color:"#e0e0f0", fontSize:14, outline:"none", marginBottom:16 }}/>
+          <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+            <Btn mob={false} s mu onClick={onClose}>Cancel</Btn>
+            <Btn mob={false} s onClick={sendLink}>Send Magic Link</Btn>
+          </div>
+        </>
+      )}
+      {sent && <div style={{ marginTop:12, textAlign:"right" }}><Btn mob={false} s mu onClick={onClose}>Close</Btn></div>}
+    </div>
   </div>;
 }
 
