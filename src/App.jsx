@@ -333,15 +333,15 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
   const c = movie ? CLR[movie.studio] : { bg: "#0d0d20", ac: "#3a3a5e", tx: "#5a5a7e" };
   // Background
   ctx.fillStyle = won
-    ? (isUpset ? "rgba(255,138,101,0.22)" : "rgba(255,213,79,0.18)")
-    : lost ? "rgba(0,0,0,0.45)"
+    ? (isUpset ? "#3e1a0d" : "#1a1a0d")
+    : lost ? "rgba(0,0,0,0.3)"
     : c.bg + "cc";
   ctx.beginPath();
   ctx.roundRect(x, y, CSW, CSH, 4);
   ctx.fill();
   // Border
-  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "rgba(255,255,255,0.03)" : `${c.ac}40`;
-  ctx.lineWidth = won ? 2 : 1;
+  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "rgba(255,255,255,0.04)" : `${c.ac}40`;
+  ctx.lineWidth = won ? 1.5 : 1;
   ctx.stroke();
   if (!movie) {
     ctx.fillStyle = "#3a3a5e";
@@ -363,12 +363,12 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
     textX = x + CPW + 5;
   }
   // Seed
-  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "#3a3a50" : c.ac + "aa";
+  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "#3a3a5e" : c.ac + "aa";
   ctx.font = "bold 7px Inter, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(`#${movie.seed}`, textX, y + 9);
   // Name
-  ctx.fillStyle = won ? "#f0f0ff" : lost ? "#2e2e48" : "#c0c0e0";
+  ctx.fillStyle = won ? "#f0f0ff" : lost ? "#3a3a5e" : "#c0c0e0";
   ctx.font = `${won ? "bold " : ""}9px Inter, sans-serif`;
   const maxW = CSW - (textX - x) - 4;
   let name = movie.name;
@@ -376,7 +376,7 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
   if (name !== movie.name) name = name.trim() + "…";
   ctx.fillText(name, textX, y + 18);
   // Year
-  ctx.fillStyle = lost ? "#252538" : "#5a5a7e";
+  ctx.fillStyle = lost ? "#2a2a40" : "#5a5a7e";
   ctx.font = "7px Inter, sans-serif";
   ctx.fillText(movie.year, textX, y + 24);
 }
