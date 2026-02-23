@@ -157,12 +157,12 @@ const saveLS = (key, val) => { try { localStorage.setItem(key, JSON.stringify(va
 const serMatch = (ms) => ms.map(m => ({ p: [m[0], m[1]], w: m.winner || null }));
 const desMatch = (ms) => ms.map(({ p, w }) => { const m = [p[0], p[1]]; if (w) m.winner = w; return m; });
 
-// Canvas PNG export constants
-const CW = 2400, CH = 1700;
-const CSW = 170, CSH = 36, CGAP = 4, CMH = 76; // slot/match dims
-const CPW = 24, CPH = 34;                        // poster dims
-const CSTEP = 200;                               // column step (CSW + 30px gap)
-const CBT = 120, CBH = 1380;                     // bracket top Y, bracket height
+// Canvas PNG export constants — 1920×1080
+const CW = 1920, CH = 1080;
+const CSW = 130, CSH = 24, CGAP = 4, CMH = 52; // slot/match dims
+const CPW = 18, CPH = 22;                        // poster dims
+const CSTEP = 170;                               // column step (CSW + 40px gap)
+const CBT = 75, CBH = 880;                      // bracket top Y, bracket height
 const clx = r => 10 + r * CSTEP;                // left column x at round r
 const crx = r => CW - 10 - CSW - r * CSTEP;    // right column x at round r
 const cps = r => Math.round(16 / Math.pow(2, r)); // matches per side at round r
@@ -234,21 +234,21 @@ function cBg(ctx) {
 function cHeader(ctx) {
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffd54f";
-  ctx.font = "bold 28px Inter, sans-serif";
-  ctx.fillText("Disney × Pixar Bracket", CW / 2, 44);
+  ctx.font = "bold 20px Inter, sans-serif";
+  ctx.fillText("Disney × Pixar Bracket", CW / 2, 30);
   ctx.fillStyle = "#6a6a8e";
-  ctx.font = "14px Inter, sans-serif";
-  ctx.fillText("70 movies · 69 matchups · 1 champion", CW / 2, 68);
+  ctx.font = "11px Inter, sans-serif";
+  ctx.fillText("70 movies · 69 matchups · 1 champion", CW / 2, 50);
 }
 
 function cRoundLabels(ctx) {
   const labels = ["R64", "R32", "Sweet 16", "Elite 8", "Final Four"];
   ctx.fillStyle = "#5a5a7e";
-  ctx.font = "11px Inter, sans-serif";
+  ctx.font = "9px Inter, sans-serif";
   ctx.textAlign = "center";
   labels.forEach((lbl, r) => {
-    ctx.fillText(lbl, clx(r) + CSW / 2, 108);
-    ctx.fillText(lbl, crx(r) + CSW / 2, 108);
+    ctx.fillText(lbl, clx(r) + CSW / 2, 67);
+    ctx.fillText(lbl, crx(r) + CSW / 2, 67);
   });
 }
 
@@ -264,7 +264,7 @@ function cRegionLabels(ctx) {
     const y = (topY + botY) / 2;
     const x = side === "left" ? 6 : CW - 8;
     ctx.fillStyle = colors[ri];
-    ctx.font = "bold 11px Inter, sans-serif";
+    ctx.font = "bold 9px Inter, sans-serif";
     ctx.textAlign = "center";
     ctx.save();
     ctx.translate(x, y);
@@ -313,7 +313,7 @@ function cConnectors(ctx, side) {
   // Final Four → champion connector
   const ffY = cmty(4, 0) + CMH / 2;
   const champMidX = CW / 2;
-  const champHalfW = 115; // champion box half-width
+  const champHalfW = 100; // champion box half-width (200px wide box)
   ctx.strokeStyle = "rgba(255,213,79,0.18)";
   ctx.lineWidth = 1.5;
   if (side === "left") {
@@ -332,24 +332,27 @@ function cConnectors(ctx, side) {
 function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
   const c = movie ? CLR[movie.studio] : { bg: "#0d0d20", ac: "#3a3a5e", tx: "#5a5a7e" };
   // Background
-  ctx.fillStyle = won ? (isUpset ? "#3e1a0d" : "#1a1a0d") : lost ? "rgba(0,0,0,0.3)" : c.bg + "cc";
+  ctx.fillStyle = won
+    ? (isUpset ? "rgba(255,138,101,0.22)" : "rgba(255,213,79,0.18)")
+    : lost ? "rgba(0,0,0,0.45)"
+    : c.bg + "cc";
   ctx.beginPath();
   ctx.roundRect(x, y, CSW, CSH, 4);
   ctx.fill();
   // Border
-  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "rgba(255,255,255,0.04)" : `${c.ac}40`;
-  ctx.lineWidth = won ? 1.5 : 1;
+  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "rgba(255,255,255,0.03)" : `${c.ac}40`;
+  ctx.lineWidth = won ? 2 : 1;
   ctx.stroke();
   if (!movie) {
     ctx.fillStyle = "#3a3a5e";
-    ctx.font = "9px Inter, sans-serif";
+    ctx.font = "8px Inter, sans-serif";
     ctx.textAlign = "left";
     ctx.fillText("TBD", x + 6, y + CSH / 2 + 3);
     return;
   }
   // Poster thumbnail
   const img = imgs?.[movie.seed];
-  let textX = x + 6;
+  let textX = x + 5;
   if (img) {
     ctx.save();
     ctx.beginPath();
@@ -357,32 +360,33 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
     ctx.clip();
     ctx.drawImage(img, x + 3, y + (CSH - CPH) / 2, CPW, CPH);
     ctx.restore();
-    textX = x + CPW + 7;
+    textX = x + CPW + 5;
   }
   // Seed
-  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "#3a3a5e" : c.ac + "aa";
-  ctx.font = "bold 9px Inter, sans-serif";
+  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "#3a3a50" : c.ac + "aa";
+  ctx.font = "bold 7px Inter, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(`#${movie.seed}`, textX, y + 11);
+  ctx.fillText(`#${movie.seed}`, textX, y + 9);
   // Name
-  ctx.fillStyle = won ? "#f0f0ff" : lost ? "#3a3a5e" : "#c0c0e0";
-  ctx.font = `${won ? "bold " : ""}11px Inter, sans-serif`;
+  ctx.fillStyle = won ? "#f0f0ff" : lost ? "#2e2e48" : "#c0c0e0";
+  ctx.font = `${won ? "bold " : ""}9px Inter, sans-serif`;
   const maxW = CSW - (textX - x) - 4;
   let name = movie.name;
   while (name.length > 3 && ctx.measureText(name).width > maxW) name = name.slice(0, -1);
   if (name !== movie.name) name = name.trim() + "…";
-  ctx.fillText(name, textX, y + 24);
+  ctx.fillText(name, textX, y + 18);
   // Year
-  ctx.fillStyle = lost ? "#2a2a40" : "#5a5a7e";
-  ctx.font = "9px Inter, sans-serif";
-  ctx.fillText(movie.year, textX, y + 34);
+  ctx.fillStyle = lost ? "#252538" : "#5a5a7e";
+  ctx.font = "7px Inter, sans-serif";
+  ctx.fillText(movie.year, textX, y + 24);
 }
 
 function cMatch(ctx, x, y, m, isUpset0, isUpset1, imgs) {
-  const w0 = m?.winner?.seed === m?.[0]?.seed;
-  const w1 = m?.winner?.seed === m?.[1]?.seed;
-  cSlot(ctx, x, y, m?.[0], w0, w1 && !!m?.winner, isUpset0, imgs);
-  cSlot(ctx, x, y + CSH + CGAP, m?.[1], w1, w0 && !!m?.winner, isUpset1, imgs);
+  // !!m?.winner guard prevents undefined===undefined false-positive when both are null
+  const w0 = !!m?.winner && m.winner.seed === m?.[0]?.seed;
+  const w1 = !!m?.winner && m.winner.seed === m?.[1]?.seed;
+  cSlot(ctx, x, y, m?.[0], w0, !w0 && !!m?.winner, isUpset0, imgs);
+  cSlot(ctx, x, y + CSH + CGAP, m?.[1], w1, !w1 && !!m?.winner, isUpset1, imgs);
 }
 
 function cSide(ctx, side, rds, upsets, imgs) {
@@ -404,48 +408,48 @@ function cSide(ctx, side, rds, upsets, imgs) {
 
 function cChamp(ctx, ch, imgs) {
   const ffY = cmty(4, 0) + CMH / 2; // Final Four match center Y (same for both sides)
-  const bW = 230, bH = 98;
+  const bW = 200, bH = 80;
   const bX = CW / 2 - bW / 2;
   const bY = ffY - bH / 2;
   // Glow backing
-  ctx.fillStyle = "rgba(255,213,79,0.05)";
-  ctx.strokeStyle = "rgba(255,213,79,0.25)";
+  ctx.fillStyle = "rgba(255,213,79,0.06)";
+  ctx.strokeStyle = "rgba(255,213,79,0.3)";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.roundRect(bX, bY, bW, bH, 10);
+  ctx.roundRect(bX, bY, bW, bH, 8);
   ctx.fill();
   ctx.stroke();
   // Crown
   ctx.textAlign = "center";
-  ctx.font = "22px Inter, sans-serif";
-  ctx.fillText("👑", CW / 2, bY + 26);
+  ctx.font = "18px Inter, sans-serif";
+  ctx.fillText("👑", CW / 2, bY + 22);
   if (ch) {
     const img = imgs?.[ch.seed];
     if (img) {
       ctx.save();
       ctx.beginPath();
-      ctx.roundRect(CW / 2 - 16, bY + 32, 32, 46, 3);
+      ctx.roundRect(CW / 2 - 14, bY + 26, 28, 38, 3);
       ctx.clip();
-      ctx.drawImage(img, CW / 2 - 16, bY + 32, 32, 46);
+      ctx.drawImage(img, CW / 2 - 14, bY + 26, 28, 38);
       ctx.restore();
     }
     ctx.fillStyle = "#ffd54f";
-    ctx.font = "bold 10px Inter, sans-serif";
-    ctx.fillText(ch.name.length > 20 ? ch.name.slice(0, 18) + "…" : ch.name, CW / 2, bY + 87);
+    ctx.font = "bold 9px Inter, sans-serif";
+    ctx.fillText(ch.name.length > 20 ? ch.name.slice(0, 18) + "…" : ch.name, CW / 2, bY + 72);
   } else {
     ctx.fillStyle = "#5a5a7e";
-    ctx.font = "10px Inter, sans-serif";
-    ctx.fillText("Champion", CW / 2, bY + 60);
+    ctx.font = "9px Inter, sans-serif";
+    ctx.fillText("Champion", CW / 2, bY + 50);
   }
 }
 
 function cPlayin(ctx, piM, imgs) {
   if (!piM?.length) return;
-  const pY = 1540;
+  const pY = 970;
   ctx.fillStyle = "#5a5a7e";
-  ctx.font = "bold 10px Inter, sans-serif";
+  ctx.font = "bold 9px Inter, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Play-In Round", CW / 2, pY - 10);
+  ctx.fillText("Play-In Round", CW / 2, pY - 6);
   // 6 matches in a row, centered
   const mGap = 8;
   const totalW = piM.length * CSW + (piM.length - 1) * mGap;
@@ -458,16 +462,33 @@ function cPlayin(ctx, piM, imgs) {
   });
 }
 
+function buildDisplayRds(rds, piM) {
+  const d = [...rds];
+  // R64: synthesize from R1+MAIN if play-in not complete yet
+  if (!d[0]) {
+    const arr = [...MAIN, ...(piM || []).map(m => m.winner || null)];
+    d[0] = R1.map(([a, b]) => [arr[a] || null, arr[b] || null]);
+  }
+  // For each subsequent round that doesn't exist yet, synthesize from previous winners.
+  // This makes picks flow into future columns even before a round fully completes.
+  for (let r = 1; r < 5; r++) {
+    if (d[r]) continue;
+    const prev = d[r - 1];
+    if (!prev) break;
+    const next = [];
+    for (let i = 0; i < prev.length; i += 2) {
+      const w0 = prev[i]?.winner || null;
+      const w1 = prev[i + 1]?.winner || null;
+      next.push([w0, w1]);
+    }
+    d[r] = next;
+  }
+  return d;
+}
+
 function drawBracket(canvas, { rds, piM, ch, upsets, imgs }) {
   const ctx = canvas.getContext("2d");
-
-  // Synthesize R64 from R1 + MAIN if play-in isn't complete yet.
-  // Indices 0-57 are always MAIN movies; indices 58-63 are play-in winners (null if not picked).
-  let displayRds = rds;
-  if (!rds[0]) {
-    const arr = [...MAIN, ...(piM || []).map(m => m.winner || null)];
-    displayRds = [R1.map(([a, b]) => [arr[a] || null, arr[b] || null]), ...rds.slice(1)];
-  }
+  const displayRds = buildDisplayRds(rds, piM);
 
   cBg(ctx);
   cHeader(ctx);
@@ -645,7 +666,7 @@ export default function App() {
     setPngStatus("drawing");
     await new Promise(r => setTimeout(r, 20));
     const canvas = document.createElement("canvas");
-    canvas.width = 2400; canvas.height = 1700;
+    canvas.width = 1920; canvas.height = 1080;
     drawBracket(canvas, { rds, piM, ch, upsets, imgs });
     const a = document.createElement("a");
     a.href = canvas.toDataURL("image/png");
