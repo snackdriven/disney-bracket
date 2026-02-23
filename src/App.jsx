@@ -883,66 +883,92 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
   const note = notes?.[m.seed] || "";
   const meta = movieMeta?.[m.seed];
   const hasPoster = !!meta?.poster;
+  const panelW = mob ? 66 : 78;
+  const rTop = showCardNotes ? (mob ? "14px 14px 0 0" : "16px 16px 0 0") : (mob ? 14 : 16);
 
   return <div style={{ flex:mob?"1 1 100%":"1 1 320px", maxWidth:mob?undefined:560, width:mob?"100%":undefined }}>
     <button className={mob?"mob-card":""} onClick={()=>!d&&onC()}
       onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)}
       onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined}
       style={{
-        width:"100%",
-        background: h?`linear-gradient(155deg,${c.bg},${c.ac}18)`:`linear-gradient(155deg,${c.bg},${c.bg}dd)`,
-        border: h?`2px solid ${c.ac}`:"2px solid rgba(255,255,255,.08)",
-        borderRadius: showCardNotes?(mob?"16px 16px 0 0":"18px 18px 0 0"):(mob?16:18),
-        padding: hasPoster?(mob?"16px 14px":"22px 20px"):(mob?"26px 20px 22px":"32px 24px 28px"),
+        width:"100%", padding:0, position:"relative", overflow:"hidden",
+        background: h?`linear-gradient(135deg,${c.bg} 0%,${c.ac}22 100%)`:`linear-gradient(135deg,${c.bg}f8 0%,${c.bg}dd 100%)`,
+        border: h?`1.5px solid ${c.ac}55`:"1.5px solid rgba(255,255,255,.06)",
+        borderRadius: rTop,
         cursor: d?"default":"pointer",
-        transition:"all .15s",
-        transform: h&&!a&&!mob?"translateY(-3px)":"none",
-        boxShadow: h?`0 ${mob?8:10}px ${mob?24:36}px ${c.gl}`:`0 4px ${mob?12:16}px rgba(0,0,0,.3)`,
+        transition:"all .18s cubic-bezier(.25,.8,.25,1)",
+        transform: h&&!a&&!mob?"translateY(-4px)":"none",
+        boxShadow: h?`0 ${mob?14:22}px ${mob?36:54}px ${c.gl},inset 0 1px 0 ${c.ac}18`:`0 4px ${mob?14:18}px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04)`,
         animation: a?"ch .35s ease forwards":"none",
-        display:"flex",
-        flexDirection: hasPoster?"row":"column",
-        alignItems: "center",
-        gap: hasPoster?12:(mob?8:10),
-        textAlign: hasPoster?"left":"center",
-        position:"relative",
+        display:"flex", flexDirection:"row", alignItems:"stretch",
+        minHeight: mob?90:108, textAlign:"left",
         WebkitTapHighlightColor:"transparent",
       }}>
 
-      {/* Seed badge — absolute when no poster, inline when poster */}
-      {!hasPoster && <div style={{ position:"absolute", top:mob?10:10, left:mob?12:12, fontSize:mob?11:10, fontWeight:700, color:c.ac, opacity:.7, letterSpacing:1 }}>#{m.seed}</div>}
-
-      {/* Poster thumbnail */}
-      {hasPoster && (
-        <img src={meta.poster} alt="" style={{
-          width: mob?40:48, height: mob?60:72,
-          objectFit:"cover", borderRadius:4,
-          flexShrink:0, opacity: a?0.6:1,
-          boxShadow:"0 2px 8px rgba(0,0,0,.4)",
-        }}/>
-      )}
-
-      {/* Text column */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", gap: mob?3:4, minWidth:0 }}>
-        {hasPoster && <div style={{ fontSize:mob?9:9, fontWeight:700, color:c.ac, opacity:.7, letterSpacing:1 }}>#{m.seed}</div>}
-        <div style={{ fontSize: hasPoster?(mob?"clamp(15px,4vw,18px)":"clamp(15px,2.5vw,20px)"):(mob?"clamp(20px,5.5vw,26px)":"clamp(20px,3.5vw,27px)"), fontWeight:800, color:"#f0f0ff", lineHeight:1.25, marginTop:hasPoster?0:(mob?4:4), overflow:"hidden", textOverflow:"ellipsis", whiteSpace: hasPoster?"nowrap":undefined }}>
-          {m.name}
-        </div>
-        <div style={{ display:"flex", gap:6, alignItems:"center", fontSize:mob?12:11, color:"#9898b8", flexWrap:"wrap" }}>
-          <span style={{ padding:mob?"2px 8px":"2px 7px", borderRadius:16, background:`${c.ac}18`, color:c.tx, fontSize:mob?10:9, fontWeight:700 }}>{m.studio}</span>
-          <span>{m.year}</span>
-          {meta?.runtime && <span style={{ color:"#6a6a8e" }}>{meta.runtime}</span>}
-          {meta?.rating && <span style={{ color:"#f5c518", fontSize:mob?10:10, fontWeight:600 }}>★ {meta.rating}</span>}
-          {m.imdb && <a href={m.imdb} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ padding:mob?"2px 7px":"2px 5px", borderRadius:16, background:"#f5c51822", color:"#f5c518", fontSize:mob?10:9, fontWeight:700, textDecoration:"none", letterSpacing:.5 }}>IMDb</a>}
-        </div>
-        {note && !showCardNotes && <div style={{ fontSize:mob?11:9, color:"#9a9abe", opacity:.8, letterSpacing:1 }}>has notes</div>}
-        {!hasPoster && h && !mob && <div style={{ position:"absolute", bottom:10, fontSize:10, color:c.ac, fontWeight:600, letterSpacing:1.5, textTransform:"uppercase", opacity:.7 }}>Pick →</div>}
-        {mob && <div style={{ fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1.5, textTransform:"uppercase", opacity:.6 }}>Tap to pick</div>}
+      {/* Left panel: full-height poster OR decorative seed number */}
+      <div style={{
+        width:panelW, flexShrink:0, position:"relative", overflow:"hidden",
+        borderRadius: showCardNotes?(mob?"14px 0 0 0":"16px 0 0 0"):(mob?"14px 0 0 14px":"16px 0 0 16px"),
+      }}>
+        {hasPoster ? <>
+          <img src={meta.poster} alt="" style={{
+            width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top",
+            display:"block", opacity:a?.45:1,
+            transition:"opacity .3s, transform .2s",
+            transform: h&&!mob?"scale(1.05)":"scale(1)",
+          }}/>
+          {/* Right-edge blend into card */}
+          <div style={{ position:"absolute", top:0, right:0, bottom:0, width:"60%", background:`linear-gradient(90deg,transparent,${c.bg}f0)`, pointerEvents:"none" }}/>
+        </> : (
+          /* No poster: large faded seed number */
+          <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", background:`${c.ac}08`, borderRight:`1px solid ${c.ac}10` }}>
+            <span style={{ fontSize:mob?30:36, fontWeight:900, color:c.ac, opacity:h?.22:.1, lineHeight:1, userSelect:"none", transition:"opacity .18s", fontVariantNumeric:"tabular-nums" }}>{m.seed}</span>
+          </div>
+        )}
       </div>
+
+      {/* Content area */}
+      <div style={{ flex:1, padding:mob?"11px 12px 11px 10px":"13px 16px 13px 12px", display:"flex", flexDirection:"column", justifyContent:"center", gap:mob?4:5, minWidth:0 }}>
+
+        {/* Top row: seed (when poster) + studio + year + notes dot */}
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          {hasPoster && <span style={{ fontSize:9, fontWeight:800, color:c.ac, opacity:.5, letterSpacing:.5 }}>#{m.seed}</span>}
+          <span style={{ padding:"1px 7px", borderRadius:20, background:`${c.ac}18`, color:c.tx, fontSize:9, fontWeight:700, letterSpacing:.4 }}>{m.studio}</span>
+          <span style={{ fontSize:10, color:"#52526a" }}>{m.year}</span>
+          {note && !showCardNotes && <span style={{ width:5, height:5, borderRadius:"50%", background:"#ce93d8", flexShrink:0, marginLeft:2 }}/>}
+        </div>
+
+        {/* Title — 2-line clamp, never truncates with ellipsis on a single line */}
+        <div style={{
+          fontSize: mob?"clamp(15px,4.2vw,19px)":"clamp(15px,1.85vw,20px)",
+          fontWeight:800, color:a?`${c.ac}70`:"#edeeff",
+          lineHeight:1.22, letterSpacing:-.25,
+          overflow:"hidden", display:"-webkit-box",
+          WebkitLineClamp:2, WebkitBoxOrient:"vertical",
+          transition:"color .18s",
+        }}>{m.name}</div>
+
+        {/* Stats row */}
+        <div style={{ display:"flex", alignItems:"center", gap:7, flexWrap:"wrap" }}>
+          {meta?.runtime && <span style={{ fontSize:10, color:"#50506a", fontVariantNumeric:"tabular-nums" }}>{meta.runtime}</span>}
+          {meta?.rating && <span style={{ fontSize:10, color:"#e5b800", fontWeight:700 }}>★ {meta.rating}</span>}
+          {m.imdb && <a href={m.imdb} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ padding:"1px 5px", borderRadius:3, background:"#e5b80010", color:"#c49a00", fontSize:9, fontWeight:700, textDecoration:"none", border:"1px solid #e5b80018", letterSpacing:.3 }}>IMDb ↗</a>}
+        </div>
+
+        {mob && <div style={{ fontSize:9, color:c.ac, fontWeight:700, letterSpacing:1.8, textTransform:"uppercase", opacity:.4 }}>Tap to pick</div>}
+      </div>
+
+      {/* Hover: left accent bar */}
+      <div style={{ position:"absolute", left:0, top:"15%", bottom:"15%", width:3, background:`linear-gradient(180deg,transparent,${c.ac}cc,transparent)`, borderRadius:2, opacity:h&&!mob?1:0, transition:"opacity .18s" }}/>
+
+      {/* Desktop pick hint */}
+      {h&&!mob&&!a && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1, opacity:.7 }}>Pick →</div>}
     </button>
-    <div style={{ textAlign:"center", marginTop: showCardNotes?0:mob?4:4 }}>
-      <button onClick={(e)=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
-        background:"transparent", border:"none", color:"#7a7a9e", fontSize:mob?12:10, cursor:"pointer",
-        padding:mob?"6px 14px":"2px 8px", letterSpacing:.5, minHeight:mob?36:undefined,
+
+    <div style={{ textAlign:"center", marginTop:showCardNotes?0:mob?3:3 }}>
+      <button onClick={e=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
+        background:"transparent", border:"none", color:"#7a7a9e", fontSize:mob?11:10, cursor:"pointer",
+        padding:mob?"5px 14px":"2px 8px", letterSpacing:.5, minHeight:mob?32:undefined,
       }}>{showCardNotes ? "hide notes ▲" : "notes ▼"}</button>
     </div>
     {showCardNotes && <CardNotes seed={m.seed} note={note} updateNote={updateNote} ac={c.ac} bg={c.bg} mob={mob}/>}
