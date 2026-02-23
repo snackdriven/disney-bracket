@@ -11,6 +11,37 @@ function useIsMobile(breakpoint = 600) {
   return mob;
 }
 
+const FACTS = {
+  "The Lion King": "Most of Disney's top animators chose Pocahontas over this project, expecting it to be the bigger hit — Lion King ended up grossing more than three times as much",
+  "Toy Story": "The first feature-length CGI film ever made — Pixar's computers ran 24 hours a day for over a year just to render it",
+  "Finding Nemo": "The entire crew took scuba diving lessons, and the story team spent weeks at the Great Barrier Reef before drawing a single frame",
+  "Beauty and the Beast": "The first animated film ever nominated for Best Picture at the Academy Awards",
+  "The Little Mermaid": "Howard Ashman and Alan Menken structured the songs as a complete Broadway musical — their approach kicked off the entire Disney Renaissance",
+  "Up": "The opening montage has zero dialogue, just music and visuals, and has since become a staple of film school curricula worldwide",
+  "Aladdin": "Robin Williams improvised so extensively that production recorded over 16 hours of material — far more than they could write around",
+  "Inside Out": "Pixar consulted with neuroscientists and psychiatrists throughout development. Several mental health professionals cried at early screenings.",
+  "Coco": "Became the highest-grossing film of all time in Mexico upon release",
+  "Frozen": "Let It Go was written in one session — the Lopezes say it flowed out in a single sitting and barely changed before the final cut",
+  "The Incredibles": "Brad Bird pitched it as 'a James Bond film where the spy is a middle-aged dad' — Pixar greenlit it on that description alone",
+  "WALL·E": "One of the most dialogue-sparse major studio films ever made — long stretches pass with no spoken words at all",
+  "Mulan": "The first Disney protagonist to win her final battle through a clever trick rather than magic, brute strength, or being rescued",
+  "Tangled": "Rapunzel's hair required Pixar to build an entirely new simulation system — 100,000+ individual strands, each animated separately",
+  "Monsters, Inc.": "Boo's real name is briefly visible on her bedroom door in the final scene — it's Mary",
+  "Moana": "Auli'i Cravalho was discovered at a charity event just days before the casting deadline closed. She had never auditioned for anything before.",
+  "Ratatouille": "Brad Bird took over mid-production from a story that wasn't working. The finished film shares almost nothing with the original concept.",
+  "Toy Story 3": "The villain Lotso was conceived before the original Toy Story, but cut — the technology to animate plush fur didn't exist yet",
+  "Lilo & Stitch": "Originally pitched as a story about a little girl and her dog, set in Kansas. The alien was added specifically to avoid making another fairy tale.",
+  "The Emperor's New Groove": "Was originally a serious Inca-set musical called Kingdom of the Sun. Almost the entire production was scrapped and rebuilt from scratch.",
+  "Cinderella": "Walt Disney used the film's profits to pay off wartime studio debt and fund early development of what would become Disneyland",
+  "Sleeping Beauty": "Every frame was painted in widescreen format specifically for the new Cinemascope theater technology — the production took six years",
+  "Encanto": "Lin-Manuel Miranda wrote all eight original songs while simultaneously running Hamilton on Broadway",
+  "Soul": "Jon Batiste performed the jazz sequences live so the animators could build Joe Gardner's playing style around his actual movements",
+  "Zootopia": "The city required a different animation rig for every species — the fur simulation alone involves over 800,000 individual strands on the main characters",
+  "Raya and the Last Dragon": "Before designing a single character, the production team traveled to Thailand, Laos, Cambodia, Vietnam, Indonesia, and the Philippines",
+  "Turning Red": "The first Pixar feature set in Canada, and the first Pixar feature film directed solely by a woman of color",
+  "Elemental": "Ember's fire effects required Pixar to build a new simulation system — water, fire, and air characters each needed their own physics engine",
+};
+
 const MAIN = [
   { seed:1, name:"The Lion King", year:1994, studio:"Disney", imdb:"https://www.imdb.com/title/tt0110357/" },
   { seed:2, name:"Toy Story", year:1995, studio:"Pixar", imdb:"https://www.imdb.com/title/tt0114709/" },
@@ -97,6 +128,11 @@ const R1 = [
 ];
 
 const RND = ["Round of 64","Round of 32","Sweet 16","Elite 8","Final Four","Championship"];
+const DOTS = Array.from({length:80}, () => ({
+  w: Math.random()*2.5+.5, h: Math.random()*2.5+.5,
+  op: Math.random()*.5+.15, l: Math.random()*100, t: Math.random()*100,
+  dur: Math.random()*4+2, del: Math.random()*4,
+}));
 const REG = ["Legends & Legacies","Heart & Heartbreak","Magic & Mischief","Worlds Apart"];
 const CLR = {
   Disney: { bg:"#0d1b3e", ac:"#4fc3f7", gl:"rgba(79,195,247,.25)", tx:"#7ec8f0" },
@@ -106,7 +142,7 @@ const CLR = {
 const ALL_MOVIES = [...MAIN, ...PLAYIN];
 
 const loadLS = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
-const saveLS = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
+const saveLS = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch { /* storage unavailable */ } };
 
 const serMatch = (ms) => ms.map(m => ({ p: [m[0], m[1]], w: m.winner || null }));
 const desMatch = (ms) => ms.map(({ p, w }) => { const m = [p[0], p[1]]; if (w) m.winner = w; return m; });
@@ -114,8 +150,15 @@ const desMatch = (ms) => ms.map(({ p, w }) => { const m = [p[0], p[1]]; if (w) m
 export default function App() {
   const mob = useIsMobile();
 
-  // Load saved bracket state once
+  // Load saved bracket state — URL hash takes priority over localStorage (for sharing)
   const [init] = useState(() => {
+    try {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        const d = JSON.parse(atob(hash));
+        if (d?._v === 1) return { ...d, piM: desMatch(d.piM), rds: d.rds.map(r => desMatch(r)) };
+      }
+    } catch { /* ignore malformed hash */ }
     const s = loadLS("dbk-state", null);
     if (!s) return null;
     return { ...s, piM: desMatch(s.piM), rds: s.rds.map(r => desMatch(r)) };
@@ -133,11 +176,20 @@ export default function App() {
   const [bk, setBk] = useState(false);
   const [fb, setFb] = useState(false);
   const [hi, setHi] = useState(() => init?.hi || []);
+  const [upsets, setUpsets] = useState(() => init?.upsets ?? []);
+  const [upFlash, setUpFlash] = useState(false);
+  const [fact, setFact] = useState(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedBracket, setCopiedBracket] = useState(false);
 
-  // Persist bracket state
+  // Persist bracket state to localStorage and URL hash
   useEffect(() => {
-    saveLS("dbk-state", { ph, piM: serMatch(piM), piI, rds: rds.map(r => serMatch(r)), cr, cm, ch, hi });
-  }, [ph, piM, piI, rds, cr, cm, ch, hi]);
+    const serialized = { ph, piM: serMatch(piM), piI, rds: rds.map(r => serMatch(r)), cr, cm, ch, hi, upsets };
+    saveLS("dbk-state", serialized);
+    if (hi.length > 0 || ch) {
+      try { window.history.replaceState(null, "", "#" + btoa(JSON.stringify({ _v: 1, ...serialized }))); } catch { /* btoa failure */ }
+    }
+  }, [ph, piM, piI, rds, cr, cm, ch, hi, upsets]);
 
   // Notes state (persisted to localStorage)
   const [notes, setNotes] = useState(() => {
@@ -160,11 +212,33 @@ export default function App() {
     setNotes(nn); saveLS("dbk-notes", nn);
   };
 
+  const ip = ph==="pi";
+  const mu = ip ? piM[piI] : rds[cr]?.[cm];
+  const prog = ch ? 100 : (hi.length/69)*100;
+  const rl = ip ? "Play-In Round" : (RND[cr]||"");
+  const mn = ip ? piI+1 : cm+1;
+  const mt = ip ? 6 : (rds[cr]?.length||0);
+  const ri = !ip&&cr<=2 ? Math.floor(cm/(cr===0?8:cr===1?4:2)) : -1;
+  const rn = ri>=0&&ri<4 ? REG[ri] : "";
+  const up = ip ? piM : rds[cr];
+  const ui = ip ? piI : cm;
+
   const pick = (w, pi) => {
+    const opponent = mu[0].seed === w.seed ? mu[1] : mu[0];
+    const isUpset = w.seed > opponent.seed;
     setAn(w.seed);
-    setHi(h => [...h, { p: pi?"pi":"m", i: pi?piI:cm, r: cr }]);
+    if (isUpset) {
+      setUpsets(u => [...u, { winner: w, loser: opponent, round: ip ? "Play-In" : (RND[cr]||""), seedDiff: w.seed - opponent.seed }]);
+      setUpFlash(true);
+      setTimeout(() => setUpFlash(false), 1500);
+    }
+    setHi(h => [...h, { p: pi?"pi":"m", i: pi?piI:cm, r: cr, wasUpset: isUpset }]);
     setTimeout(() => {
       setAn(null);
+      if (FACTS[w.name]) {
+        setFact(FACTS[w.name]);
+        setTimeout(() => setFact(null), 4000);
+      }
       if (pi) {
         const nm = piM.map((m,i) => { if(i!==piI) return m; const c=[...m]; c.winner=w; return c; });
         setPiM(nm);
@@ -190,6 +264,8 @@ export default function App() {
     if(!hi.length) return;
     const l = hi[hi.length-1];
     setHi(hi.slice(0,-1));
+    setFact(null);
+    if (l.wasUpset) setUpsets(u => u.slice(0,-1));
     if(ch) setCh(null);
     if(l.p==="pi") {
       setPiM(piM.map((m,i) => { if(i!==l.i) return m; const c=[...m]; delete c.winner; return c; }));
@@ -205,18 +281,55 @@ export default function App() {
   const reset = () => {
     setPh("pi"); setPiM(PIP.map(([a,b])=>[PLAYIN[a],PLAYIN[b]])); setPiI(0);
     setRds([]); setCr(0); setCm(0); setCh(null); setHi([]); setBk(false); setFb(false);
+    setUpsets([]); setUpFlash(false); setFact(null); setCopiedLink(false); setCopiedBracket(false);
+    saveLS("dbk-state", null);
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
   };
 
-  const ip = ph==="pi";
-  const mu = ip ? piM[piI] : rds[cr]?.[cm];
-  const prog = ch ? 100 : (hi.length/69)*100;
-  const rl = ip ? "Play-In Round" : (RND[cr]||"");
-  const mn = ip ? piI+1 : cm+1;
-  const mt = ip ? 6 : (rds[cr]?.length||0);
-  const ri = !ip&&cr<=2 ? Math.floor(cm/(cr===0?8:cr===1?4:2)) : -1;
-  const rn = ri>=0&&ri<4 ? REG[ri] : "";
-  const up = ip ? piM : rds[cr];
-  const ui = ip ? piI : cm;
+  const exportBracket = () => {
+    const lines = ["🎬 Disney × Pixar Bracket Results", ""];
+    if (piM.some(m => m.winner)) {
+      lines.push("PLAY-IN ROUND");
+      piM.forEach(m => {
+        if (m.winner) {
+          const loser = m[0].seed === m.winner.seed ? m[1] : m[0];
+          lines.push(`  ${m.winner.name} def. ${loser.name}`);
+        }
+      });
+      lines.push("");
+    }
+    rds.forEach((rd, ri) => {
+      if (!rd.some(m => m.winner)) return;
+      lines.push(ri === 0 ? "ROUND OF 64" : RND[ri].toUpperCase());
+      rd.forEach((m, mi) => {
+        if (m.winner) {
+          const loser = m[0].seed === m.winner.seed ? m[1] : m[0];
+          const note = ri === 0 ? ` · ${REG[Math.floor(mi/8)]}` : "";
+          lines.push(`  ${m.winner.name} def. ${loser.name}${note}`);
+        }
+      });
+      lines.push("");
+    });
+    if (ch) {
+      lines.push(`CHAMPION: ${ch.name} 👑`);
+      lines.push(`  #${ch.seed} seed · ${ch.studio} · ${ch.year}`);
+    }
+    return lines.join("\n");
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 1500);
+    }).catch(() => {});
+  };
+
+  const copyBracket = () => {
+    navigator.clipboard.writeText(exportBracket()).then(() => {
+      setCopiedBracket(true);
+      setTimeout(() => setCopiedBracket(false), 1500);
+    }).catch(() => {});
+  };
 
   return (
     <div style={{ minHeight:"100vh", background:"linear-gradient(155deg,#06060f,#0e0e24 30%,#180a20 60%,#06060f)", fontFamily:"'Inter',sans-serif", color:"#e0e0f0" }}>
@@ -229,6 +342,7 @@ export default function App() {
         @keyframes ch{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(.98);opacity:.6}}
         @keyframes fi{from{opacity:0}to{opacity:1}}
         @keyframes pp{0%,100%{border-color:rgba(255,215,0,.15)}50%{border-color:rgba(255,215,0,.4)}}
+        @keyframes uf{0%{opacity:0;transform:translateY(-8px) scale(.9)}20%{opacity:1;transform:translateY(0) scale(1)}80%{opacity:1}100%{opacity:0}}
         @media(max-width:600px){
           .mob-btn:active{opacity:.7!important;transform:scale(.97)!important}
           .mob-card:active{transform:scale(.98)!important;opacity:.9!important}
@@ -280,9 +394,18 @@ export default function App() {
           <div style={{ fontSize:mob?12:11, letterSpacing:mob?4:6, textTransform:"uppercase", color:"#ffd54f", marginBottom:mob?8:10 }}>Your Champion</div>
           <div style={{ fontSize:"clamp(28px,7vw,50px)", fontWeight:800, color:"#ffd54f", animation:"wg 2s ease-in-out infinite", marginBottom:6 }}>{ch.name}</div>
           <div style={{ fontSize:mob?15:15, color:"#9a9abe" }}>{ch.studio} · {ch.year} · #{ch.seed} seed</div>
+          {upsets.length > 0 && <div style={{ marginTop:16, fontSize:mob?13:13, color:"#6a6a8e" }}>
+            <div>{upsets.length} upset{upsets.length !== 1 ? "s" : ""} picked</div>
+            {(() => {
+              const big = upsets.reduce((a,b) => b.seedDiff > a.seedDiff ? b : a);
+              return <div style={{ fontSize:mob?11:11, color:"#505070", marginTop:4 }}>Biggest: #{big.winner.seed} {big.winner.name} over #{big.loser.seed} {big.loser.name}</div>;
+            })()}
+          </div>}
           <div style={{ marginTop:mob?24:40, display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
             <Btn mob={mob} p onClick={reset}>Run It Back</Btn>
             <Btn mob={mob} onClick={()=>setBk(!bk)}>{bk?"Hide":"View"} Bracket</Btn>
+            <Btn mob={mob} s mu onClick={copyLink}>{copiedLink ? "✓ Linked!" : "🔗 Share"}</Btn>
+            <Btn mob={mob} s mu onClick={copyBracket}>{copiedBracket ? "✓ Copied!" : "📋 Export"}</Btn>
           </div>
           {bk && <BV mob={mob} pi={piM} rds={rds}/>}
         </div>
@@ -307,10 +430,17 @@ export default function App() {
               <div style={{ textAlign:"center", marginTop:14 }}><span style={{ fontSize:18, fontWeight:800, color:"#2a2a44", letterSpacing:4 }}>VS</span></div>
             </>
           )}
+          {upFlash && <div style={{ textAlign:"center", marginTop:12, animation:"uf 1.5s ease-out forwards" }}>
+            <span style={{ display:"inline-block", padding:"4px 14px", borderRadius:20, background:"rgba(255,80,80,.12)", border:"1px solid rgba(255,80,80,.25)", fontSize:mob?12:11, fontWeight:700, color:"#ff7070", letterSpacing:2, textTransform:"uppercase" }}>🚨 Upset!</span>
+          </div>}
+          {fact && <div style={{ margin:mob?"14px 0 0":"14px auto 0", maxWidth:mob?undefined:560, padding:"12px 18px", background:"rgba(255,255,255,.04)", borderRadius:12, border:"1px solid rgba(255,255,255,.07)", fontSize:mob?13:13, color:"#9898b8", fontStyle:"italic", lineHeight:1.6, animation:"su .3s ease-out" }}>
+            💡 {fact}
+          </div>}
           <div style={{ display:"flex", justifyContent:"center", gap:mob?10:10, marginTop:mob?18:22 }}>
             {hi.length>0 && <Btn mob={mob} s onClick={undo}>← Undo</Btn>}
             <Btn mob={mob} s mu onClick={reset}>Reset</Btn>
             {!ip && <Btn mob={mob} s mu onClick={()=>setBk(!bk)}>{bk?"Hide":"Bracket"}</Btn>}
+            {hi.length>0 && <Btn mob={mob} s mu onClick={copyLink}>{copiedLink ? "✓!" : "🔗 Share"}</Btn>}
           </div>
           {bk&&!ip && <BV mob={mob} pi={piM} rds={rds} cr={cr} cm={cm}/>}
           {!bk && up && ui+1<up.length && <div style={{ marginTop:mob?24:30 }}>
@@ -398,7 +528,6 @@ function NotesPanel({ notes, updateNote, mob }) {
       <h3 style={{ fontSize:mob?16:15, fontWeight:700, color:"#ce93d8", margin:0, letterSpacing:.5 }}>Movie Notes</h3>
     </div>
 
-    {/* Search */}
     <input
       value={filter}
       onChange={e => setFilter(e.target.value)}
@@ -412,7 +541,6 @@ function NotesPanel({ notes, updateNote, mob }) {
       onBlur={e => e.target.style.borderColor="rgba(255,255,255,.06)"}
     />
 
-    {/* Movie list with notes */}
     <div style={{ maxHeight:mob?320:400, overflowY:"auto", paddingRight:4, WebkitOverflowScrolling:"touch" }}>
       {filtered.map(m => {
         const note = notes[m.seed] || "";
@@ -459,13 +587,13 @@ function NoteRow({ m, note, c, updateNote, mob }) {
 }
 
 function Dots({ mob }) {
-  const count = mob ? 40 : 80;
+  const dots = mob ? DOTS.slice(0, 40) : DOTS;
   return <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}>
-    {Array.from({length:count}).map((_,i) => <div key={i} style={{
-      position:"absolute", width:Math.random()*2.5+.5, height:Math.random()*2.5+.5,
-      background:`rgba(255,255,255,${Math.random()*.5+.15})`, borderRadius:"50%",
-      left:`${Math.random()*100}%`, top:`${Math.random()*100}%`,
-      animation:`tw ${Math.random()*4+2}s ease-in-out infinite`, animationDelay:`${Math.random()*4}s`,
+    {dots.map((d,i) => <div key={i} style={{
+      position:"absolute", width:d.w, height:d.h,
+      background:`rgba(255,255,255,${d.op})`, borderRadius:"50%",
+      left:`${d.l}%`, top:`${d.t}%`,
+      animation:`tw ${d.dur}s ease-in-out infinite`, animationDelay:`${d.del}s`,
     }}/>)}
   </div>;
 }
@@ -507,17 +635,14 @@ function MN({ m, w, r, mob }) {
 }
 
 function FullBracket({ piM, rds, m64, cr, cm, ip, mob }) {
-  // Build the full R1 matchup list with names, using m64 if available
   const hasM64 = m64.length >= 64;
   const r1Display = R1.map(([a,b],i) => {
     if (hasM64) return { a: m64[a], b: m64[b], region: Math.floor(i/8) };
-    // Before play-ins done, show main seeds and "TBD" for play-in slots
     const ma = a < 58 ? MAIN[a] : null;
     const mb = b < 58 ? MAIN[b] : null;
     return { a: ma, b: mb, region: Math.floor(i/8), aSlot: a, bSlot: b };
   });
 
-  // Get played round data
   const r1Played = rds[0] || [];
 
   const regionStyle = { marginBottom:mob?16:20 };
@@ -543,7 +668,6 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob }) {
     <h3 style={{ fontSize:mob?16:16, fontWeight:700, color:"#d0d0e8", margin:"0 0 6px", letterSpacing:.5 }}>Full Bracket</h3>
     <div style={{ fontSize:mob?13:12, color:"#7a7a9e", marginBottom:mob?16:20 }}>{mob?"4 regions · Final Four · Championship":"70 movies · 4 regions · Winners from each region meet in the Final Four"}</div>
 
-    {/* Play-In */}
     <div style={regionStyle}>
       <div style={{ ...headStyle, color:"#ffd54f", opacity:.8 }}>🎬 Play-In Round</div>
       {piM.map((m,i) => {
@@ -555,7 +679,6 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob }) {
       })}
     </div>
 
-    {/* R1 by region */}
     {REG.map((regName, regIdx) => {
       const matches = r1Display.slice(regIdx*8, regIdx*8+8);
       const played = r1Played.slice(regIdx*8, regIdx*8+8);
@@ -593,7 +716,6 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob }) {
       </div>;
     })}
 
-    {/* Later rounds */}
     {rds.slice(1).map((rd, rdIdx) => {
       const roundNum = rdIdx + 1;
       return <div key={roundNum} style={regionStyle}>
