@@ -159,10 +159,10 @@ const desMatch = (ms) => ms.map(({ p, w }) => { const m = [p[0], p[1]]; if (w) m
 
 // Canvas PNG export constants — 1920×1080
 const CW = 1920, CH = 1080;
-const CSW = 130, CSH = 24, CGAP = 4, CMH = 52; // slot/match dims
-const CPW = 18, CPH = 22;                        // poster dims
-const CSTEP = 170;                               // column step (CSW + 40px gap)
-const CBT = 75, CBH = 880;                      // bracket top Y, bracket height
+const CSW = 148, CSH = 26, CGAP = 4, CMH = 56; // slot/match dims
+const CPW = 20, CPH = 24;                        // poster dims
+const CSTEP = 180;                               // column step (CSW + 32px gap)
+const CBT = 60, CBH = 900;                      // bracket top Y, bracket height
 const clx = r => 10 + r * CSTEP;                // left column x at round r
 const crx = r => CW - 10 - CSW - r * CSTEP;    // right column x at round r
 const cps = r => Math.round(16 / Math.pow(2, r)); // matches per side at round r
@@ -234,11 +234,11 @@ function cBg(ctx) {
 function cHeader(ctx) {
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffd54f";
-  ctx.font = "bold 20px Inter, sans-serif";
-  ctx.fillText("Disney × Pixar Bracket", CW / 2, 30);
+  ctx.font = "bold 18px Inter, sans-serif";
+  ctx.fillText("Disney × Pixar Bracket", CW / 2, 24);
   ctx.fillStyle = "#6a6a8e";
-  ctx.font = "11px Inter, sans-serif";
-  ctx.fillText("70 movies · 69 matchups · 1 champion", CW / 2, 50);
+  ctx.font = "10px Inter, sans-serif";
+  ctx.fillText("70 movies · 69 matchups · 1 champion", CW / 2, 40);
 }
 
 function cRoundLabels(ctx) {
@@ -247,8 +247,8 @@ function cRoundLabels(ctx) {
   ctx.font = "9px Inter, sans-serif";
   ctx.textAlign = "center";
   labels.forEach((lbl, r) => {
-    ctx.fillText(lbl, clx(r) + CSW / 2, 67);
-    ctx.fillText(lbl, crx(r) + CSW / 2, 67);
+    ctx.fillText(lbl, clx(r) + CSW / 2, 54);
+    ctx.fillText(lbl, crx(r) + CSW / 2, 54);
   });
 }
 
@@ -313,7 +313,7 @@ function cConnectors(ctx, side) {
   // Final Four → champion connector
   const ffY = cmty(4, 0) + CMH / 2;
   const champMidX = CW / 2;
-  const champHalfW = 100; // champion box half-width (200px wide box)
+  const champHalfW = 70; // champion box half-width (140px wide box)
   ctx.strokeStyle = "rgba(255,213,79,0.18)";
   ctx.lineWidth = 1.5;
   if (side === "left") {
@@ -408,7 +408,7 @@ function cSide(ctx, side, rds, upsets, imgs) {
 
 function cChamp(ctx, ch, imgs) {
   const ffY = cmty(4, 0) + CMH / 2; // Final Four match center Y (same for both sides)
-  const bW = 200, bH = 80;
+  const bW = 140, bH = 80;
   const bX = CW / 2 - bW / 2;
   const bY = ffY - bH / 2;
   // Glow backing
@@ -445,7 +445,7 @@ function cChamp(ctx, ch, imgs) {
 
 function cPlayin(ctx, piM, imgs) {
   if (!piM?.length) return;
-  const pY = 970;
+  const pY = 978;
   ctx.fillStyle = "#5a5a7e";
   ctx.font = "bold 9px Inter, sans-serif";
   ctx.textAlign = "center";
