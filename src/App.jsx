@@ -189,6 +189,7 @@ async function fetchMovieMeta(tmdbKey, omdbKey) {
           const d = await r.json();
           if (d.Runtime && d.Runtime !== "N/A") cache[m.seed].runtime = d.Runtime;
           if (d.imdbRating && d.imdbRating !== "N/A") cache[m.seed].rating = d.imdbRating;
+          if (!cache[m.seed].poster && d.Poster && d.Poster !== "N/A") cache[m.seed].poster = d.Poster;
         }
       } catch { /* silent per-movie failure */ }
     }));
@@ -567,12 +568,12 @@ export default function App() {
     const tmdbKey = localStorage.getItem("tmdb-key");
     const omdbKey = localStorage.getItem("omdb-key");
     if (!omdbKey) localStorage.setItem("omdb-key", "548162f0");
-    const cached = (() => {
-      try { return Object.values(JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}")).filter(m => m?.poster || m?.rating).length; }
+    const cachedPosters = (() => {
+      try { return Object.values(JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}")).filter(m => m?.poster).length; }
       catch { return 0; }
     })();
     const effectiveOmdb = omdbKey || "548162f0";
-    if ((tmdbKey || effectiveOmdb) && cached < ALL_MOVIES.length) {
+    if ((tmdbKey || effectiveOmdb) && cachedPosters < ALL_MOVIES.length) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       handleFetchMeta(tmdbKey, effectiveOmdb);
     }
@@ -581,7 +582,7 @@ export default function App() {
   const handleDownloadPng = async () => {
     const tmdbKey = localStorage.getItem("tmdb-key");
     const omdbKey = localStorage.getItem("omdb-key") || "548162f0";
-    if (!tmdbKey) { setShowTmdbModal(true); return; }
+    if (!tmdbKey && !omdbKey) { setShowTmdbModal(true); return; }
     setPngStatus("fetching");
     let imgs = {};
     try {
