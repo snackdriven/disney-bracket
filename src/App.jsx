@@ -383,7 +383,7 @@ export default function App() {
         {showNotes && <NotesPanel mob={mob} notes={notes} updateNote={updateNote}/>}
 
         {/* Full bracket overlay */}
-        {fb && <FullBracket mob={mob} piM={piM} rds={rds} m64={[...MAIN,...piM.map(m=>m.winner).filter(Boolean)]} cr={cr} cm={cm} ip={ip}/>}
+        {fb && <FullBracket mob={mob} piM={piM} rds={rds} m64={[...MAIN,...piM.map(m=>m.winner).filter(Boolean)]} cr={cr} cm={cm} ip={ip} upsets={upsets}/>}
 
         {ip && <div style={{ textAlign:"center", marginBottom:mob?16:20, animation:"fi .4s" }}>
           <div style={{ display:"inline-block", padding:mob?"8px 16px":"6px 18px", borderRadius:20, background:"rgba(255,215,0,.08)", border:"1px solid rgba(255,215,0,.2)", animation:"pp 3s ease-in-out infinite", fontSize:mob?13:12, fontWeight:700, color:"#ffd54f", letterSpacing:mob?1:2, textTransform:"uppercase" }}>{mob?"🎬 Play-In Round":"🎬 Play-In — Bottom 12 fight for 6 spots"}</div>
@@ -629,12 +629,13 @@ function RB({ t, ms, g, cr, cm, ri, mob }) {
   </div>;
 }
 
-function MN({ m, w, r, mob }) {
+function MN({ m, w, r, mob, upset }) {
   const won=w?.seed===m.seed, lost=w&&!won;
-  return <span style={{ color:won?"#ffd54f":lost?"#4a4a65":"#8a8aa8", fontWeight:won?700:400, flex:1, textAlign:r?"right":"left", textDecoration:lost?"line-through":"none", opacity:lost?.5:1, overflow:mob?"hidden":undefined, textOverflow:mob?"ellipsis":undefined, whiteSpace:mob?"nowrap":undefined }}>{m.name}</span>;
+  const winColor = upset ? "#ff8a65" : "#ffd54f";
+  return <span style={{ color:won?winColor:lost?"#4a4a65":"#8a8aa8", fontWeight:won?700:400, flex:1, textAlign:r?"right":"left", textDecoration:lost?"line-through":"none", opacity:lost?.5:1, overflow:mob?"hidden":undefined, textOverflow:mob?"ellipsis":undefined, whiteSpace:mob?"nowrap":undefined }}>{m.name}</span>;
 }
 
-function FullBracket({ piM, rds, m64, cr, cm, ip, mob }) {
+function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
   const hasM64 = m64.length >= 64;
   const r1Display = R1.map(([a,b],i) => {
     if (hasM64) return { a: m64[a], b: m64[b], region: Math.floor(i/8) };
@@ -665,16 +666,20 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob }) {
   };
 
   return <div style={{ marginBottom:mob?20:28, padding:mob?14:20, background:"rgba(255,255,255,.03)", borderRadius:mob?14:16, border:"1px solid rgba(255,255,255,.06)", animation:"fi .3s" }}>
-    <h3 style={{ fontSize:mob?16:16, fontWeight:700, color:"#d0d0e8", margin:"0 0 6px", letterSpacing:.5 }}>Full Bracket</h3>
+    <div style={{ display:"flex", alignItems:"baseline", justifyContent:"space-between", flexWrap:"wrap", gap:8, margin:"0 0 6px" }}>
+      <h3 style={{ fontSize:mob?16:16, fontWeight:700, color:"#d0d0e8", margin:0, letterSpacing:.5 }}>Full Bracket</h3>
+      {upsets?.length > 0 && <span style={{ fontSize:mob?11:10, color:"#ff8a65", opacity:.8, letterSpacing:1 }}>⚡ {upsets.length} upset{upsets.length!==1?"s":""}</span>}
+    </div>
     <div style={{ fontSize:mob?13:12, color:"#7a7a9e", marginBottom:mob?16:20 }}>{mob?"4 regions · Final Four · Championship":"70 movies · 4 regions · Winners from each region meet in the Final Four"}</div>
 
     <div style={regionStyle}>
       <div style={{ ...headStyle, color:"#ffd54f", opacity:.8 }}>🎬 Play-In Round</div>
       {piM.map((m,i) => {
         const w = m.winner;
+        const isUpset = w && w.seed > (w.seed===m[0].seed ? m[1] : m[0]).seed;
         return <div key={i} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background: ip&&i===0&&!w ? "rgba(255,215,0,.06)" : "transparent" }}>
-          <MN m={m[0]} w={w} r mob={mob}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob}/>
-          {w && <span style={{ fontSize:vsFs, color:"#ffd54f", opacity:.6, marginLeft:mob?2:4 }}>✓</span>}
+          <MN m={m[0]} w={w} r mob={mob} upset={isUpset&&w?.seed===m[0].seed}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob} upset={isUpset&&w?.seed===m[1].seed}/>
+          {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#ffd54f", opacity:.6, marginLeft:mob?2:4 }}>{isUpset?"⚡":"✓"}</span>}
         </div>;
       })}
     </div>
@@ -692,10 +697,12 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob }) {
           const aSeed = mu.a?.seed;
           const bSeed = mu.b?.seed;
           const isCurrentMatch = !ip && cr===0 && cm===regIdx*8+mi;
+          const isUpset = w && w.seed > (w.seed===aSeed ? bSeed : aSeed);
+          const winColor = isUpset ? "#ff8a65" : "#ffd54f";
           return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCurrentMatch?"rgba(255,215,0,.06)":"transparent" }}>
             <span style={{
               flex:1, textAlign:"right", ...ellipsis,
-              color: w?.seed===aSeed?"#ffd54f" : w&&w.seed!==aSeed?"#4a4a65" : p?"#8a8aa8":"#7a7a9e",
+              color: w?.seed===aSeed?winColor : w&&w.seed!==aSeed?"#4a4a65" : p?"#8a8aa8":"#7a7a9e",
               fontWeight: w?.seed===aSeed?700:400,
               textDecoration: w&&w.seed!==aSeed?"line-through":"none",
               opacity: w&&w.seed!==aSeed?.4:1,
@@ -704,13 +711,13 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob }) {
             <span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span>
             <span style={{
               flex:1, ...ellipsis,
-              color: w?.seed===bSeed?"#ffd54f" : w&&w.seed!==bSeed?"#4a4a65" : p?"#8a8aa8":"#7a7a9e",
+              color: w?.seed===bSeed?winColor : w&&w.seed!==bSeed?"#4a4a65" : p?"#8a8aa8":"#7a7a9e",
               fontWeight: w?.seed===bSeed?700:400,
               textDecoration: w&&w.seed!==bSeed?"line-through":"none",
               opacity: w&&w.seed!==bSeed?.4:1,
               fontStyle: !mu.b?"italic":"normal",
             }}>{bName}{!mob&&bSeed?` #${bSeed}`:""}</span>
-            {w && <span style={{ fontSize:vsFs, color:"#ffd54f", opacity:.6, marginLeft:2 }}>✓</span>}
+            {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#ffd54f", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
           </div>;
         })}
       </div>;
@@ -722,10 +729,11 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob }) {
         <div style={{ ...headStyle, color:"#b8b8d0" }}>{RND[roundNum]}</div>
         {rd.map((m, mi) => {
           const w = m.winner;
+          const isUpset = w && w.seed > (w.seed===m[0].seed ? m[1] : m[0]).seed;
           const isCur = !ip && cr===roundNum && cm===mi;
           return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCur?"rgba(255,215,0,.06)":"transparent" }}>
-            <MN m={m[0]} w={w} r mob={mob}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob}/>
-            {w && <span style={{ fontSize:vsFs, color:"#ffd54f", opacity:.6, marginLeft:2 }}>✓</span>}
+            <MN m={m[0]} w={w} r mob={mob} upset={isUpset&&w?.seed===m[0].seed}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob} upset={isUpset&&w?.seed===m[1].seed}/>
+            {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#ffd54f", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
           </div>;
         })}
       </div>;
