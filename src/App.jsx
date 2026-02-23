@@ -140,6 +140,11 @@ const CLR = {
 };
 
 const ALL_MOVIES = [...MAIN, ...PLAYIN];
+// Movies ordered by when they first appear in the bracket (play-in → R1 region order)
+const BRACKET_ORDER = [
+  ...PIP.flatMap(([a,b]) => [PLAYIN[a], PLAYIN[b]]),
+  ...R1.flatMap(([a,b]) => { const out=[]; if(a<58) out.push(MAIN[a]); if(b<58) out.push(MAIN[b]); return out; }),
+];
 
 const loadLS = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 const saveLS = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch { /* storage unavailable */ } };
@@ -519,7 +524,7 @@ function CardNotes({ seed, note, updateNote, ac, bg, mob }) {
 
 function NotesPanel({ notes, updateNote, mob }) {
   const [filter, setFilter] = useState("");
-  const filtered = ALL_MOVIES.filter(m => m.name.toLowerCase().includes(filter.toLowerCase()));
+  const filtered = BRACKET_ORDER.filter(m => m.name.toLowerCase().includes(filter.toLowerCase()));
   return <div style={{
     marginBottom:mob?20:24, padding:mob?16:20, background:"rgba(255,255,255,.03)", borderRadius:mob?14:16,
     border:"1px solid rgba(206,147,216,.15)", animation:"fi .3s",
