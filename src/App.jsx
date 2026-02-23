@@ -886,14 +886,25 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
   const panelW = mob ? 66 : 78;
   const rTop = showCardNotes ? (mob ? "14px 14px 0 0" : "16px 16px 0 0") : (mob ? 14 : 16);
 
-  return <div style={{ flex:mob?"1 1 100%":"1 1 320px", maxWidth:mob?undefined:560, width:mob?"100%":undefined }}>
+  const cardBg = h ? `linear-gradient(135deg,${c.bg} 0%,${c.ac}22 100%)` : `linear-gradient(135deg,${c.bg}f8 0%,${c.bg}dd 100%)`;
+  const cardBorder = h ? `1.5px solid ${c.ac}55` : "1.5px solid rgba(255,255,255,.06)";
+
+  return <div style={{
+    flex:mob?"1 1 100%":"1 1 320px", maxWidth:mob?undefined:560, width:mob?"100%":undefined,
+    // When notes open, outer wrapper becomes the visual container
+    background: showCardNotes ? cardBg : "transparent",
+    border: showCardNotes ? cardBorder : "none",
+    borderRadius: mob?14:16,
+    overflow: showCardNotes ? "hidden" : "visible",
+    transition:"border-color .18s",
+  }}>
     <button className={mob?"mob-card":""} onClick={()=>!d&&onC()}
       onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)}
       onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined}
       style={{
         width:"100%", padding:0, position:"relative", overflow:"hidden",
-        background: h?`linear-gradient(135deg,${c.bg} 0%,${c.ac}22 100%)`:`linear-gradient(135deg,${c.bg}f8 0%,${c.bg}dd 100%)`,
-        border: h?`1.5px solid ${c.ac}55`:"1.5px solid rgba(255,255,255,.06)",
+        background: showCardNotes ? "transparent" : cardBg,
+        border: showCardNotes ? "none" : cardBorder,
         borderRadius: rTop,
         cursor: d?"default":"pointer",
         transition:"all .18s cubic-bezier(.25,.8,.25,1)",
@@ -965,13 +976,13 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
       {h&&!mob&&!a && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1, opacity:.7 }}>Pick →</div>}
     </button>
 
-    <div style={{ textAlign:"center", marginTop:showCardNotes?0:mob?3:3 }}>
+    <div style={{ textAlign:"center", marginTop:showCardNotes?0:(mob?3:3) }}>
       <button onClick={e=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
         background:"transparent", border:"none", color:"#7a7a9e", fontSize:mob?11:10, cursor:"pointer",
         padding:mob?"5px 14px":"2px 8px", letterSpacing:.5, minHeight:mob?32:undefined,
       }}>{showCardNotes ? "hide notes ▲" : "notes ▼"}</button>
     </div>
-    {showCardNotes && <CardNotes seed={m.seed} note={note} updateNote={updateNote} ac={c.ac} bg={c.bg} mob={mob}/>}
+    {showCardNotes && <CardNotes seed={m.seed} note={note} updateNote={updateNote} ac={c.ac} bg={c.bg} mob={mob} transparent/>}
   </div>;
 }
 
@@ -1039,10 +1050,13 @@ function AuthModal({ onClose }) {
   </div>;
 }
 
-function CardNotes({ seed, note, updateNote, ac, bg, mob }) {
+function CardNotes({ seed, note, updateNote, ac, bg, mob, transparent }) {
   return <div style={{
-    background:`linear-gradient(155deg,${bg}ee,${bg}cc)`, border:`1px solid ${ac}22`, borderTop:"none",
-    borderRadius:"0 0 14px 14px", padding:mob?"10px 14px 14px":"10px 14px 12px",
+    background: transparent ? "transparent" : `linear-gradient(155deg,${bg}ee,${bg}cc)`,
+    border: transparent ? "none" : `1px solid ${ac}22`,
+    borderTop:"none",
+    borderRadius: transparent ? 0 : "0 0 14px 14px",
+    padding:mob?"10px 14px 14px":"10px 14px 12px",
   }}>
     <textarea
       value={note}
