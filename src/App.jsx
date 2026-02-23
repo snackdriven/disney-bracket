@@ -159,9 +159,9 @@ const desMatch = (ms) => ms.map(({ p, w }) => { const m = [p[0], p[1]]; if (w) m
 
 // Canvas PNG export constants — 1920×1080
 const CW = 1920, CH = 1080;
-const CSW = 148, CSH = 26, CGAP = 4, CMH = 56; // slot/match dims
-const CPW = 20, CPH = 24;                        // poster dims
-const CSTEP = 180;                               // column step (CSW + 32px gap)
+const CSW = 160, CSH = 26, CGAP = 4, CMH = 56; // slot/match dims
+const CPW = 22, CPH = 24;                        // poster dims
+const CSTEP = 185;                               // column step (CSW + 25px gap)
 const CBT = 60, CBH = 900;                      // bracket top Y, bracket height
 const clx = r => 10 + r * CSTEP;                // left column x at round r
 const crx = r => CW - 10 - CSW - r * CSTEP;    // right column x at round r
@@ -310,23 +310,9 @@ function cConnectors(ctx, side) {
       ctx.stroke();
     }
   }
-  // Final Four → champion connector
-  const ffY = cmty(4, 0) + CMH / 2;
-  const champMidX = CW / 2;
-  const champHalfW = 70; // champion box half-width (140px wide box)
-  ctx.strokeStyle = "rgba(255,213,79,0.18)";
-  ctx.lineWidth = 1.5;
-  if (side === "left") {
-    ctx.beginPath();
-    ctx.moveTo(clx(4) + CSW, ffY);
-    ctx.lineTo(champMidX - champHalfW, ffY);
-    ctx.stroke();
-  } else {
-    ctx.beginPath();
-    ctx.moveTo(crx(4), ffY);
-    ctx.lineTo(champMidX + champHalfW, ffY);
-    ctx.stroke();
-  }
+  // No FF→champion connector lines needed: with CSW=160 and CSTEP=185,
+  // clx(4)+CSW = 910 and crx(4) = 1010, so the champion box (910-1010)
+  // directly abuts the Final Four slots with zero gap.
 }
 
 function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
@@ -408,38 +394,39 @@ function cSide(ctx, side, rds, upsets, imgs) {
 
 function cChamp(ctx, ch, imgs) {
   const ffY = cmty(4, 0) + CMH / 2; // Final Four match center Y (same for both sides)
-  const bW = 140, bH = 80;
-  const bX = CW / 2 - bW / 2;
+  const bW = 100, bH = 80;  // exactly fills the 100px center gap
+  const bX = clx(4) + CSW;  // left edge = right edge of left Final Four col
   const bY = ffY - bH / 2;
   // Glow backing
   ctx.fillStyle = "rgba(255,213,79,0.06)";
   ctx.strokeStyle = "rgba(255,213,79,0.3)";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.roundRect(bX, bY, bW, bH, 8);
+  ctx.roundRect(bX, bY, bW, bH, 0); // square corners to blend with adjacent slots
   ctx.fill();
   ctx.stroke();
   // Crown
   ctx.textAlign = "center";
-  ctx.font = "18px Inter, sans-serif";
-  ctx.fillText("👑", CW / 2, bY + 22);
+  ctx.font = "15px Inter, sans-serif";
+  ctx.fillText("👑", bX + bW / 2, bY + 20);
   if (ch) {
     const img = imgs?.[ch.seed];
     if (img) {
       ctx.save();
       ctx.beginPath();
-      ctx.roundRect(CW / 2 - 14, bY + 26, 28, 38, 3);
+      ctx.roundRect(bX + bW / 2 - 13, bY + 24, 26, 36, 3);
       ctx.clip();
-      ctx.drawImage(img, CW / 2 - 14, bY + 26, 28, 38);
+      ctx.drawImage(img, bX + bW / 2 - 13, bY + 24, 26, 36);
       ctx.restore();
     }
     ctx.fillStyle = "#ffd54f";
-    ctx.font = "bold 9px Inter, sans-serif";
-    ctx.fillText(ch.name.length > 20 ? ch.name.slice(0, 18) + "…" : ch.name, CW / 2, bY + 72);
+    ctx.font = "bold 8px Inter, sans-serif";
+    const champName = ch.name.length > 14 ? ch.name.slice(0, 12) + "…" : ch.name;
+    ctx.fillText(champName, bX + bW / 2, bY + 72);
   } else {
     ctx.fillStyle = "#5a5a7e";
-    ctx.font = "9px Inter, sans-serif";
-    ctx.fillText("Champion", CW / 2, bY + 50);
+    ctx.font = "8px Inter, sans-serif";
+    ctx.fillText("Champion", bX + bW / 2, bY + 50);
   }
 }
 
