@@ -900,12 +900,15 @@ export default function App() {
               <Card mob m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
             </div>
           ) : (
-            <>
-              <div style={{ display:"flex", gap:14, flexWrap:"wrap", justifyContent:"center" }}>
-                {[mu[0],mu[1]].map(mv => <Card key={mv.seed} m={mv} h={hv===mv.seed} a={an===mv.seed} d={!!an} onH={setHv} onC={()=>pick(mv,ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>)}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:0 }}>
+              <Card key={mu[0].seed} m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
+              <div style={{ padding:"0 22px", flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
+                <div style={{ width:1, height:32, background:"linear-gradient(180deg,transparent,rgba(255,255,255,.1))" }}/>
+                <span style={{ fontSize:13, fontWeight:800, color:"#3a3a58", letterSpacing:4 }}>VS</span>
+                <div style={{ width:1, height:32, background:"linear-gradient(180deg,rgba(255,255,255,.1),transparent)" }}/>
               </div>
-              <div style={{ textAlign:"center", marginTop:14 }}><span style={{ fontSize:18, fontWeight:800, color:"#2a2a44", letterSpacing:4 }}>VS</span></div>
-            </>
+              <Card key={mu[1].seed} m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
+            </div>
           )}
           {upFlash && <div style={{ textAlign:"center", marginTop:12, animation:"uf 1.5s ease-out forwards" }}>
             <span style={{ display:"inline-block", padding:"4px 14px", borderRadius:20, background:"rgba(255,80,80,.12)", border:"1px solid rgba(255,80,80,.25)", fontSize:mob?12:11, fontWeight:700, color:"#ff7070", letterSpacing:2, textTransform:"uppercase" }}>🚨 Upset!</span>
