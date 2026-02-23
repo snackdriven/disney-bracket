@@ -361,21 +361,21 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
   }
   // Seed
   ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "#3a3a5e" : c.ac + "aa";
-  ctx.font = "bold 7px Inter, sans-serif";
+  ctx.font = "bold 9px Inter, sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(`#${movie.seed}`, textX, y + 10);
+  ctx.fillText(`#${movie.seed}`, textX, y + 11);
   // Name
   ctx.fillStyle = won ? "#f0f0ff" : lost ? "#3a3a5e" : "#c0c0e0";
-  ctx.font = `${won ? "bold " : ""}9px Inter, sans-serif`;
+  ctx.font = `${won ? "bold " : ""}11px Inter, sans-serif`;
   const maxW = CSW - (textX - x) - 4;
   let name = movie.name;
   while (name.length > 3 && ctx.measureText(name).width > maxW) name = name.slice(0, -1);
   if (name !== movie.name) name = name.trim() + "…";
-  ctx.fillText(name, textX, y + 21);
+  ctx.fillText(name, textX, y + 24);
   // Year
   ctx.fillStyle = lost ? "#2a2a40" : "#5a5a7e";
-  ctx.font = "7px Inter, sans-serif";
-  ctx.fillText(movie.year, textX, y + 31);
+  ctx.font = "9px Inter, sans-serif";
+  ctx.fillText(movie.year, textX, y + 34);
 }
 
 function cMatch(ctx, x, y, m, isUpset0, isUpset1, imgs) {
@@ -460,14 +460,23 @@ function cPlayin(ctx, piM, imgs) {
 
 function drawBracket(canvas, { rds, piM, ch, upsets, imgs }) {
   const ctx = canvas.getContext("2d");
+
+  // Synthesize R64 from R1 + MAIN if play-in isn't complete yet.
+  // Indices 0-57 are always MAIN movies; indices 58-63 are play-in winners (null if not picked).
+  let displayRds = rds;
+  if (!rds[0]) {
+    const arr = [...MAIN, ...(piM || []).map(m => m.winner || null)];
+    displayRds = [R1.map(([a, b]) => [arr[a] || null, arr[b] || null]), ...rds.slice(1)];
+  }
+
   cBg(ctx);
   cHeader(ctx);
   cRoundLabels(ctx);
   cRegionLabels(ctx);
   cConnectors(ctx, "left");
   cConnectors(ctx, "right");
-  cSide(ctx, "left", rds, upsets, imgs);
-  cSide(ctx, "right", rds, upsets, imgs);
+  cSide(ctx, "left", displayRds, upsets, imgs);
+  cSide(ctx, "right", displayRds, upsets, imgs);
   cChamp(ctx, ch, imgs);
   cPlayin(ctx, piM, imgs);
 }
