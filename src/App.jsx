@@ -1089,7 +1089,10 @@ function AuthModal({ onClose }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const sendLink = async () => {
-    const { error } = await supabase.auth.signInWithOtp({ email });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href },
+    });
     if (!error) setSent(true);
   };
   return <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
