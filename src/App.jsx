@@ -602,16 +602,20 @@ export default function App() {
     return () => window.removeEventListener("keydown", h);
   }, []);
 
-  // Auth init — runs once on mount
+  // Auth init — runs once on mount.
+  // onAuthStateChange fires INITIAL_SESSION after Supabase finishes its async
+  // URL-hash / localStorage init, so it's reliable where getSession() races.
   useEffect(() => {
-    // Subscribe before getSession so we don't miss a fast-firing SIGNED_IN event
+    let pulled = false;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSbUser(session?.user ?? null);
-      if (event === "SIGNED_IN") pullFromSupabase();
-    });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSbUser(session?.user ?? null);
-      if (session?.user) pullFromSupabase();
+      // Pull on first sign-in (magic link) or when a pre-existing session is
+      // detected after page load (INITIAL_SESSION with a user).
+      if (session?.user && !pulled && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
+        pulled = true;
+        pullFromSupabase();
+      }
+      if (event === "SIGNED_OUT") pulled = false;
     });
     return () => subscription.unsubscribe();
   }, []); // intentional: pullFromSupabase is stable, runs once
