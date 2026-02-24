@@ -595,6 +595,13 @@ export default function App() {
     setTimeout(() => setTmdbStatus(null), 3000);
   };
 
+  // Easter egg: press ? to open the repo
+  useEffect(() => {
+    const h = e => { if (e.key === "?" && !e.target.closest("input,textarea")) window.open("https://github.com/snackdriven/disney-bracket", "_blank"); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
   // Auth init — runs once on mount
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
