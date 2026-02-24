@@ -140,8 +140,8 @@ const DOTS = Array.from({length:80}, () => ({
 }));
 const REG = ["Legends & Legacies","Heart & Heartbreak","Magic & Mischief","Worlds Apart"];
 const CLR = {
-  Disney: { bg:"#0d1b3e", ac:"#4fc3f7", gl:"rgba(79,195,247,.25)", tx:"#7ec8f0" },
-  Pixar: { bg:"#3e1a0d", ac:"#ff8a65", gl:"rgba(255,138,101,.25)", tx:"#ffab91" },
+  Disney: { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
+  Pixar:  { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
 };
 
 const ALL_MOVIES = [...MAIN, ...PLAYIN];
@@ -235,7 +235,7 @@ function cHeader(ctx) {
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffd54f";
   ctx.font = "bold 18px Inter, sans-serif";
-  ctx.fillText("Disney × Pixar Bracket", CW / 2, 24);
+  ctx.fillText("Disney & Pixar: The Bracket", CW / 2, 24);
   ctx.fillStyle = "#6a6a8e";
   ctx.font = "10px Inter, sans-serif";
   ctx.fillText("70 movies · 69 matchups · 1 champion", CW / 2, 40);
@@ -670,7 +670,7 @@ export default function App() {
     drawBracket(canvas, { rds, piM, ch, upsets, imgs });
     const a = document.createElement("a");
     a.href = canvas.toDataURL("image/png");
-    a.download = "disney-pixar-bracket.png";
+    a.download = "disney-and-pixar-bracket.png";
     a.click();
     setPngStatus("done");
     setTimeout(() => setPngStatus(null), 2000);
@@ -751,7 +751,7 @@ export default function App() {
   };
 
   const exportBracket = () => {
-    const lines = ["🎬 Disney × Pixar Bracket Results", ""];
+    const lines = ["🎬 Disney & Pixar: The Bracket — My Results", ""];
     if (piM.some(m => m.winner)) {
       lines.push("PLAY-IN ROUND");
       piM.forEach(m => {
@@ -818,12 +818,12 @@ export default function App() {
       `}</style>
       <div style={{ position:"relative", zIndex:1, maxWidth:1200, margin:"0 auto", padding:mob?"16px 16px 32px":"20px 32px 40px" }}>
         <div style={{ textAlign:"center", marginBottom:mob?20:28 }}>
-          <div style={{ fontSize:mob?11:11, letterSpacing:mob?5:7, textTransform:"uppercase", color:"#6a6a8e", marginBottom:mob?4:6 }}>The Ultimate</div>
-          <h1 style={{ fontSize:"clamp(28px,5vw,42px)", fontWeight:800, margin:"0 0 4px", background:"linear-gradient(135deg,#4fc3f7,#ce93d8 35%,#ff8a65 65%,#ffd54f)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Disney × Pixar Bracket</h1>
+          <div style={{ fontSize:mob?11:11, letterSpacing:mob?5:7, textTransform:"uppercase", color:"#6a6a8e", marginBottom:mob?4:6 }}>Settle it once and for all</div>
+          <h1 style={{ fontSize:"clamp(28px,5vw,42px)", fontWeight:800, margin:"0 0 4px", background:"linear-gradient(135deg,#9d8fe0,#ce93d8 45%,#ffd54f)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Disney & Pixar: The Bracket</h1>
           <div style={{ fontSize:mob?13:13, color:"#7a7a9e" }}>{mob?"70 movies · 69 matchups · 1 champion":"70 movies · 6 play-in games · 69 matchups · 1 champion"}</div>
         </div>
         <div style={{ background:"rgba(255,255,255,.05)", borderRadius:20, height:mob?6:5, marginBottom:mob?6:6, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,#4fc3f7,#ce93d8,#ff8a65,#ffd54f)", borderRadius:20, transition:"width .5s" }}/>
+          <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,#9d8fe0,#ce93d8,#ffd54f)", borderRadius:20, transition:"width .5s" }}/>
         </div>
         <div style={{ display:"flex", justifyContent:"space-between", fontSize:mob?12:11, color:"#6a6a8e", marginBottom:mob?10:14 }}>
           <span>{hi.length}/69 decided</span><span>{rl}{rn?` · ${rn}`:""}</span>
