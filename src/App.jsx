@@ -601,8 +601,9 @@ export default function App() {
       setSbUser(session?.user ?? null);
       if (session?.user) pullFromSupabase();
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSbUser(session?.user ?? null);
+      if (event === "SIGNED_IN") pullFromSupabase();
     });
     return () => subscription.unsubscribe();
   }, []); // intentional: pullFromSupabase is stable, runs once
@@ -1088,12 +1089,18 @@ function TmdbModal({ onSave, onClose }) {
 function AuthModal({ onClose }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [err, setErr] = useState(null);
   const sendLink = async () => {
+    setErr(null);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: window.location.origin + window.location.pathname },
     });
-    if (!error) setSent(true);
+    if (error) {
+      setErr(error.status === 429 ? "Too many requests — wait a minute and try again." : error.message);
+    } else {
+      setSent(true);
+    }
   };
   return <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
     <div style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:380, width:"90%", animation:"su .2s" }}>
@@ -1103,6 +1110,7 @@ function AuthModal({ onClose }) {
       ) : (
         <>
           <p style={{ color:"#8a8aa8", fontSize:13, margin:"0 0 16px", lineHeight:1.6 }}>Enter your email — we'll send a link. Your bracket and notes sync automatically once you're signed in.</p>
+          {err && <p style={{ color:"#ff8a65", fontSize:13, margin:"0 0 12px", lineHeight:1.5 }}>{err}</p>}
           <input value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendLink()} type="email" placeholder="you@example.com"
             style={{ width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.3)", border:"1px solid rgba(255,255,255,.1)", borderRadius:8, padding:"10px 12px", color:"#e0e0f0", fontSize:14, outline:"none", marginBottom:16 }}/>
           <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
