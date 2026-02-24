@@ -143,6 +143,10 @@ const CLR = {
   Disney: { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
   Pixar:  { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
 };
+const BADGE_CLR = {
+  Disney: { bg:"#4fc3f722", tx:"#4fc3f7" },
+  Pixar:  { bg:"#ff8a6522", tx:"#ff8a65" },
+};
 
 const ALL_MOVIES = [...MAIN, ...PLAYIN];
 // Movies ordered by when they first appear in the bracket (play-in → R1 region order)
@@ -1020,7 +1024,7 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
         {/* Top row: seed (when poster) + studio + year + notes dot */}
         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
           {hasPoster && <span style={{ fontSize:9, fontWeight:800, color:c.ac, opacity:.5, letterSpacing:.5 }}>#{m.seed}</span>}
-          <span style={{ padding:"1px 7px", borderRadius:20, background:`${c.ac}18`, color:c.tx, fontSize:9, fontWeight:700, letterSpacing:.4 }}>{m.studio}</span>
+          <span style={{ padding:"1px 7px", borderRadius:20, background:BADGE_CLR[m.studio].bg, color:BADGE_CLR[m.studio].tx, fontSize:9, fontWeight:700, letterSpacing:.4 }}>{m.studio}</span>
           <span style={{ fontSize:10, color:"#52526a" }}>{m.year}</span>
           {note && !showCardNotes && <span style={{ width:5, height:5, borderRadius:"50%", background:"#ce93d8", flexShrink:0, marginLeft:2 }}/>}
         </div>
