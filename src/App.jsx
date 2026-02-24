@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SB_URL = "https://pynmkrcbkcfxifnztnrn.supabase.co";
 const SB_ANON = "sb_publishable_8VEm7zR0vqKjOZRwH6jimw_qIWt-RPp";
-const supabase = createClient(SB_URL, SB_ANON);
+const supabase = createClient(SB_URL, SB_ANON, { auth: { flowType: "implicit" } });
 
 function useIsMobile(breakpoint = 600) {
   const [mob, setMob] = useState(() => typeof window !== "undefined" && window.innerWidth <= breakpoint);
@@ -604,13 +604,14 @@ export default function App() {
 
   // Auth init — runs once on mount
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSbUser(session?.user ?? null);
-      if (session?.user) pullFromSupabase();
-    });
+    // Subscribe before getSession so we don't miss a fast-firing SIGNED_IN event
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSbUser(session?.user ?? null);
       if (event === "SIGNED_IN") pullFromSupabase();
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSbUser(session?.user ?? null);
+      if (session?.user) pullFromSupabase();
     });
     return () => subscription.unsubscribe();
   }, []); // intentional: pullFromSupabase is stable, runs once
