@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SB_URL = "https://pynmkrcbkcfxifnztnrn.supabase.co";
 const SB_ANON = "sb_publishable_8VEm7zR0vqKjOZRwH6jimw_qIWt-RPp";
-const supabase = createClient(SB_URL, SB_ANON, { auth: { flowType: "pkce" } });
+const supabase = createClient(SB_URL, SB_ANON, { auth: { flowType: "implicit" } });
 
 function useIsMobile(breakpoint = 600) {
   const [mob, setMob] = useState(() => typeof window !== "undefined" && window.innerWidth <= breakpoint);
@@ -606,6 +606,22 @@ export default function App() {
     const h = e => { if (e.key === "?" && !e.target.closest("input,textarea")) window.open("https://github.com/snackdriven/disney-bracket", "_blank"); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  // Token-hash exchange — handles magic link clicks (token_hash approach).
+  // The custom email template links to ?token_hash=...&type=email so the
+  // token survives email-client click trackers (which strip URL hashes).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokenHash = params.get("token_hash");
+    const type = params.get("type");
+    if (tokenHash && type === "email") {
+      // Clean up URL before exchanging so a reload doesn't re-attempt
+      const clean = window.location.pathname;
+      window.history.replaceState(null, "", clean);
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: "email" });
+      // onAuthStateChange will fire SIGNED_IN once the exchange completes
+    }
   }, []);
 
   // Auth init — runs once on mount.
