@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SB_URL = "https://pynmkrcbkcfxifnztnrn.supabase.co";
 const SB_ANON = "sb_publishable_8VEm7zR0vqKjOZRwH6jimw_qIWt-RPp";
-const supabase = createClient(SB_URL, SB_ANON, { auth: { flowType: "implicit" } });
+const supabase = createClient(SB_URL, SB_ANON, { auth: { flowType: "pkce" } });
 
 function useIsMobile(breakpoint = 600) {
   const [mob, setMob] = useState(() => typeof window !== "undefined" && window.innerWidth <= breakpoint);
@@ -181,7 +181,7 @@ const extractImdbId = url => url?.match(/tt\d+/)?.[0] ?? null;
 
 async function fetchMovieMeta(tmdbKey, omdbKey) {
   const cache = (() => { try { return JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}"); } catch { return {}; } })();
-  const missing = ALL_MOVIES.filter(m => !cache[m.seed]?.poster && extractImdbId(m.imdb));
+  const missing = ALL_MOVIES.filter(m => (!cache[m.seed]?.poster || !cache[m.seed]?.plot) && extractImdbId(m.imdb));
   const BATCH = 20;
   for (let i = 0; i < missing.length; i += BATCH) {
     await Promise.all(missing.slice(i, i + BATCH).map(async m => {
@@ -191,8 +191,9 @@ async function fetchMovieMeta(tmdbKey, omdbKey) {
         if (tmdbKey) {
           const r = await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${tmdbKey}&external_source=imdb_id`);
           const d = await r.json();
-          const path = d.movie_results?.[0]?.poster_path;
-          if (path) cache[m.seed].poster = `https://image.tmdb.org/t/p/w92${path}`;
+          const mov = d.movie_results?.[0];
+          if (mov?.poster_path) cache[m.seed].poster = `https://image.tmdb.org/t/p/w92${mov.poster_path}`;
+          if (mov?.overview) cache[m.seed].plot = cache[m.seed].plot || mov.overview;
         }
         if (omdbKey) {
           const r = await fetch(`https://www.omdbapi.com/?i=${id}&apikey=${omdbKey}`);
@@ -200,6 +201,7 @@ async function fetchMovieMeta(tmdbKey, omdbKey) {
           if (d.Runtime && d.Runtime !== "N/A") cache[m.seed].runtime = d.Runtime;
           if (d.imdbRating && d.imdbRating !== "N/A") cache[m.seed].rating = d.imdbRating;
           if (!cache[m.seed].poster && d.Poster && d.Poster !== "N/A") cache[m.seed].poster = d.Poster;
+          if (d.Plot && d.Plot !== "N/A") cache[m.seed].plot = d.Plot; // OMDB wins — shorter and cleaner
         }
       } catch { /* silent per-movie failure */ }
     }));
@@ -237,7 +239,7 @@ function cBg(ctx) {
 
 function cHeader(ctx) {
   ctx.textAlign = "center";
-  ctx.fillStyle = "#ffd54f";
+  ctx.fillStyle = "#4fc3f7";
   ctx.font = "bold 18px Inter, sans-serif";
   ctx.fillText("Disney & Pixar: The Bracket", CW / 2, 24);
   ctx.fillStyle = "#6a6a8e";
@@ -257,7 +259,7 @@ function cRoundLabels(ctx) {
 }
 
 function cRegionLabels(ctx) {
-  const colors = ["#4fc3f7", "#ce93d8", "#ff8a65", "#ffd54f"];
+  const colors = ["#4fc3f7", "#ce93d8", "#ff8a65", "#4fc3f7"];
   REG.forEach((name, ri) => {
     // Regions 0+1 on left side (top half, bottom half), regions 2+3 on right side
     const side = ri < 2 ? "left" : "right";
@@ -330,7 +332,7 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
   ctx.roundRect(x, y, CSW, CSH, 4);
   ctx.fill();
   // Border
-  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "rgba(255,255,255,0.04)" : `${c.ac}40`;
+  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#4fc3f7") : lost ? "rgba(255,255,255,0.04)" : `${c.ac}40`;
   ctx.lineWidth = won ? 1.5 : 1;
   ctx.stroke();
   if (!movie) {
@@ -353,7 +355,7 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
     textX = x + CPW + 5;
   }
   // Seed
-  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "#3a3a5e" : c.ac + "aa";
+  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#4fc3f7") : lost ? "#3a3a5e" : c.ac + "aa";
   ctx.font = "bold 7px Inter, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(`#${movie.seed}`, textX, y + 9);
@@ -423,7 +425,7 @@ function cChamp(ctx, ch, imgs) {
       ctx.drawImage(img, bX + bW / 2 - 13, bY + 24, 26, 36);
       ctx.restore();
     }
-    ctx.fillStyle = "#ffd54f";
+    ctx.fillStyle = "#4fc3f7";
     ctx.font = "bold 8px Inter, sans-serif";
     const champName = ch.name.length > 14 ? ch.name.slice(0, 12) + "…" : ch.name;
     ctx.fillText(champName, bX + bW / 2, bY + 72);
@@ -810,10 +812,10 @@ export default function App() {
         @keyframes tw{0%,100%{opacity:.2}50%{opacity:1}}
         @keyframes su{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
         @keyframes cb{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
-        @keyframes wg{0%,100%{text-shadow:0 0 20px rgba(255,215,0,.4)}50%{text-shadow:0 0 50px rgba(255,215,0,.8),0 0 80px rgba(255,215,0,.3)}}
+        @keyframes wg{0%,100%{text-shadow:0 0 20px rgba(79,195,247,.4)}50%{text-shadow:0 0 50px rgba(79,195,247,.8),0 0 80px rgba(79,195,247,.3)}}
         @keyframes ch{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(.98);opacity:.6}}
         @keyframes fi{from{opacity:0}to{opacity:1}}
-        @keyframes pp{0%,100%{border-color:rgba(255,215,0,.15)}50%{border-color:rgba(255,215,0,.4)}}
+        @keyframes pp{0%,100%{border-color:rgba(79,195,247,.15)}50%{border-color:rgba(79,195,247,.4)}}
         @keyframes uf{0%{opacity:0;transform:translateY(-8px) scale(.9)}20%{opacity:1;transform:translateY(0) scale(1)}80%{opacity:1}100%{opacity:0}}
         @media(max-width:600px){
           .mob-btn:active{opacity:.7!important;transform:scale(.97)!important}
@@ -823,11 +825,11 @@ export default function App() {
       <div style={{ position:"relative", zIndex:1, maxWidth:1200, margin:"0 auto", padding:mob?"16px 16px 32px":"20px 32px 40px" }}>
         <div style={{ textAlign:"center", marginBottom:mob?20:28 }}>
           <div style={{ fontSize:mob?11:11, letterSpacing:mob?5:7, textTransform:"uppercase", color:"#6a6a8e", marginBottom:mob?4:6 }}>Settle it once and for all</div>
-          <h1 style={{ fontSize:"clamp(28px,5vw,42px)", fontWeight:800, margin:"0 0 4px", background:"linear-gradient(135deg,#9d8fe0,#ce93d8 45%,#ffd54f)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Disney & Pixar: The Bracket</h1>
+          <h1 style={{ fontSize:"clamp(28px,5vw,42px)", fontWeight:800, margin:"0 0 4px", background:"linear-gradient(135deg,#9d8fe0,#ce93d8 45%,#4fc3f7)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Disney & Pixar: The Bracket</h1>
           <div style={{ fontSize:mob?13:13, color:"#7a7a9e" }}>{mob?"70 movies · 69 matchups · 1 champion":"70 movies · 6 play-in games · 69 matchups · 1 champion"}</div>
         </div>
         <div style={{ background:"rgba(255,255,255,.05)", borderRadius:20, height:mob?6:5, marginBottom:mob?6:6, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,#9d8fe0,#ce93d8,#ffd54f)", borderRadius:20, transition:"width .5s" }}/>
+          <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,#9d8fe0,#ce93d8,#4fc3f7)", borderRadius:20, transition:"width .5s" }}/>
         </div>
         <div style={{ display:"flex", justifyContent:"space-between", fontSize:mob?12:11, color:"#6a6a8e", marginBottom:mob?10:14 }}>
           <span>{hi.length}/69 decided</span><span>{rl}{rn?` · ${rn}`:""}</span>
@@ -855,9 +857,9 @@ export default function App() {
         {/* Full Bracket + Notes toggles */}
         <div style={{ textAlign:"center", marginBottom:mob?14:16, display:"flex", gap:mob?10:8, justifyContent:"center", flexWrap:"wrap" }}>
           <button className={mob?"mob-btn":""} onClick={()=>setFb(!fb)} style={{
-            background: fb?"rgba(255,215,0,.12)":"rgba(255,255,255,.04)",
-            border: fb?"1px solid rgba(255,215,0,.3)":"1px solid rgba(255,255,255,.08)",
-            color: fb?"#ffd54f":"#8a8aae", padding:mob?"10px 18px":"6px 18px", borderRadius:10,
+            background: fb?"rgba(79,195,247,.12)":"rgba(255,255,255,.04)",
+            border: fb?"1px solid rgba(79,195,247,.3)":"1px solid rgba(255,255,255,.08)",
+            color: fb?"#4fc3f7":"#8a8aae", padding:mob?"10px 18px":"6px 18px", borderRadius:10,
             fontSize:mob?13:12, fontWeight:600, cursor:"pointer", letterSpacing:.5,
             transition:"all .15s", minHeight:mob?48:undefined,
           }}>{fb ? "Hide Bracket" : "📋 Full Bracket"}</button>
@@ -877,13 +879,13 @@ export default function App() {
         {fb && <FullBracket mob={mob} piM={piM} rds={rds} m64={[...MAIN,...piM.map(m=>m.winner).filter(Boolean)]} cr={cr} cm={cm} ip={ip} upsets={upsets}/>}
 
         {ip && <div style={{ textAlign:"center", marginBottom:mob?16:20, animation:"fi .4s" }}>
-          <div style={{ display:"inline-block", padding:mob?"8px 16px":"6px 18px", borderRadius:20, background:"rgba(255,215,0,.08)", border:"1px solid rgba(255,215,0,.2)", animation:"pp 3s ease-in-out infinite", fontSize:mob?13:12, fontWeight:700, color:"#ffd54f", letterSpacing:mob?1:2, textTransform:"uppercase" }}>{mob?"🎬 Play-In Round":"🎬 Play-In — Bottom 12 fight for 6 spots"}</div>
+          <div style={{ display:"inline-block", padding:mob?"8px 16px":"6px 18px", borderRadius:20, background:"rgba(79,195,247,.08)", border:"1px solid rgba(79,195,247,.2)", animation:"pp 3s ease-in-out infinite", fontSize:mob?13:12, fontWeight:700, color:"#4fc3f7", letterSpacing:mob?1:2, textTransform:"uppercase" }}>{mob?"🎬 Play-In Round":"🎬 Play-In — Bottom 12 fight for 6 spots"}</div>
         </div>}
 
         {ch ? <div style={{ textAlign:"center", animation:"su .5s ease-out", padding:mob?"24px 12px":"40px 20px" }}>
           <div style={{ fontSize:mob?42:56, animation:"cb 2s ease-in-out infinite", marginBottom:mob?8:12 }}>👑</div>
-          <div style={{ fontSize:mob?12:11, letterSpacing:mob?4:6, textTransform:"uppercase", color:"#ffd54f", marginBottom:mob?8:10 }}>Your Champion</div>
-          <div style={{ fontSize:"clamp(28px,7vw,50px)", fontWeight:800, color:"#ffd54f", animation:"wg 2s ease-in-out infinite", marginBottom:6 }}>{ch.name}</div>
+          <div style={{ fontSize:mob?12:11, letterSpacing:mob?4:6, textTransform:"uppercase", color:"#4fc3f7", marginBottom:mob?8:10 }}>Your Champion</div>
+          <div style={{ fontSize:"clamp(28px,7vw,50px)", fontWeight:800, color:"#4fc3f7", animation:"wg 2s ease-in-out infinite", marginBottom:6 }}>{ch.name}</div>
           <div style={{ fontSize:mob?15:15, color:"#9a9abe" }}>{ch.studio} · {ch.year} · #{ch.seed} seed</div>
           {upsets.length > 0 && <div style={{ marginTop:16, fontSize:mob?13:13, color:"#6a6a8e" }}>
             <div>{upsets.length} upset{upsets.length !== 1 ? "s" : ""} picked</div>
@@ -1046,14 +1048,26 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
           {m.imdb && <a href={m.imdb} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ padding:"1px 5px", borderRadius:3, background:"#e5b80010", color:"#c49a00", fontSize:9, fontWeight:700, textDecoration:"none", border:"1px solid #e5b80018", letterSpacing:.3 }}>IMDb ↗</a>}
         </div>
 
+        {!mob && meta?.plot && (
+          <div style={{
+            fontSize:11, color:"#7a7a9e", lineHeight:1.5,
+            overflow:"hidden", display:"-webkit-box",
+            WebkitLineClamp:3, WebkitBoxOrient:"vertical",
+            maxHeight: h ? "54px" : "0px",
+            opacity: h ? 1 : 0,
+            transition:"opacity .2s, max-height .22s",
+            marginTop: h ? 3 : 0,
+          }}>{meta.plot}</div>
+        )}
+
         {mob && <div style={{ fontSize:9, color:c.ac, fontWeight:700, letterSpacing:1.8, textTransform:"uppercase", opacity:.4 }}>Tap to pick</div>}
       </div>
 
       {/* Hover: left accent bar */}
       <div style={{ position:"absolute", left:0, top:"15%", bottom:"15%", width:3, background:`linear-gradient(180deg,transparent,${c.ac}cc,transparent)`, borderRadius:2, opacity:h&&!mob?1:0, transition:"opacity .18s" }}/>
 
-      {/* Desktop pick hint */}
-      {h&&!mob&&!a && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1, opacity:.7 }}>Pick →</div>}
+      {/* Desktop pick hint — hidden when plot is showing to avoid overlap */}
+      {h&&!mob&&!a&&!meta?.plot && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1, opacity:.7 }}>Pick →</div>}
     </button>
 
     <div style={{ textAlign:"center", marginTop:showCardNotes?0:(mob?3:3) }}>
@@ -1267,10 +1281,10 @@ function BV({ pi, rds, cr, cm, mob }) {
 
 function RB({ t, ms, g, cr, cm, ri, mob }) {
   return <div style={{ marginBottom:mob?14:16 }}>
-    <div style={{ fontSize:mob?11:10, letterSpacing:mob?2:2.5, textTransform:"uppercase", color:g?"#ffd54f":"#6a6a8e", marginBottom:mob?6:6, fontWeight:700, opacity:g?.7:1 }}>{t}</div>
+    <div style={{ fontSize:mob?11:10, letterSpacing:mob?2:2.5, textTransform:"uppercase", color:g?"#4fc3f7":"#6a6a8e", marginBottom:mob?6:6, fontWeight:700, opacity:g?.7:1 }}>{t}</div>
     {ms.map((m,mi) => {
       const w=m.winner, cur=ri===cr&&mi===cm;
-      return <div key={mi} style={{ display:"flex", alignItems:"center", gap:mob?6:6, fontSize:mob?13:12, padding:mob?"5px 8px":"3px 8px", borderRadius:6, background:cur?"rgba(255,215,0,.08)":"transparent" }}>
+      return <div key={mi} style={{ display:"flex", alignItems:"center", gap:mob?6:6, fontSize:mob?13:12, padding:mob?"5px 8px":"3px 8px", borderRadius:6, background:cur?"rgba(79,195,247,.08)":"transparent" }}>
         <MN m={m[0]} w={w} r mob={mob}/><span style={{ color:"#3a3a55", fontSize:mob?10:9, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob}/>
       </div>;
     })}
@@ -1279,7 +1293,7 @@ function RB({ t, ms, g, cr, cm, ri, mob }) {
 
 function MN({ m, w, r, mob, upset }) {
   const won=w?.seed===m.seed, lost=w&&!won;
-  const winColor = upset ? "#ff8a65" : "#ffd54f";
+  const winColor = upset ? "#ff8a65" : "#4fc3f7";
   return <span style={{ color:won?winColor:lost?"#4a4a65":"#8a8aa8", fontWeight:won?700:400, flex:1, textAlign:r?"right":"left", textDecoration:lost?"line-through":"none", opacity:lost?.5:1, overflow:mob?"hidden":undefined, textOverflow:mob?"ellipsis":undefined, whiteSpace:mob?"nowrap":undefined }}>{m.name}</span>;
 }
 
@@ -1296,7 +1310,7 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
 
   const regionStyle = { marginBottom:mob?16:20 };
   const headStyle = { fontSize:mob?12:11, letterSpacing:mob?1.5:2, textTransform:"uppercase", fontWeight:700, marginBottom:mob?8:8, paddingBottom:mob?6:6, borderBottom:"1px solid rgba(255,255,255,.06)" };
-  const regColors = ["#4fc3f7","#ce93d8","#ff8a65","#ffd54f"];
+  const regColors = ["#4fc3f7","#ce93d8","#ff8a65","#4fc3f7"];
   const rowFs = mob ? 13 : 12;
   const rowPad = mob ? "5px 8px" : "4px 8px";
   const rowGap = mob ? 6 : 6;
@@ -1321,13 +1335,13 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
     <div style={{ fontSize:mob?13:12, color:"#7a7a9e", marginBottom:mob?16:20 }}>{mob?"4 regions · Final Four · Championship":"70 movies · 4 regions · Winners from each region meet in the Final Four"}</div>
 
     <div style={regionStyle}>
-      <div style={{ ...headStyle, color:"#ffd54f", opacity:.8 }}>🎬 Play-In Round</div>
+      <div style={{ ...headStyle, color:"#4fc3f7", opacity:.8 }}>🎬 Play-In Round</div>
       {piM.map((m,i) => {
         const w = m.winner;
         const isUpset = w && w.seed > (w.seed===m[0].seed ? m[1] : m[0]).seed;
-        return <div key={i} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background: ip&&i===0&&!w ? "rgba(255,215,0,.06)" : "transparent" }}>
+        return <div key={i} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background: ip&&i===0&&!w ? "rgba(79,195,247,.06)" : "transparent" }}>
           <MN m={m[0]} w={w} r mob={mob} upset={isUpset&&w?.seed===m[0].seed}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob} upset={isUpset&&w?.seed===m[1].seed}/>
-          {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#ffd54f", opacity:.6, marginLeft:mob?2:4 }}>{isUpset?"⚡":"✓"}</span>}
+          {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#4fc3f7", opacity:.6, marginLeft:mob?2:4 }}>{isUpset?"⚡":"✓"}</span>}
         </div>;
       })}
     </div>
@@ -1346,8 +1360,8 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
           const bSeed = mu.b?.seed;
           const isCurrentMatch = !ip && cr===0 && cm===regIdx*8+mi;
           const isUpset = w && w.seed > (w.seed===aSeed ? bSeed : aSeed);
-          const winColor = isUpset ? "#ff8a65" : "#ffd54f";
-          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCurrentMatch?"rgba(255,215,0,.06)":"transparent" }}>
+          const winColor = isUpset ? "#ff8a65" : "#4fc3f7";
+          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCurrentMatch?"rgba(79,195,247,.06)":"transparent" }}>
             <span style={{
               flex:1, textAlign:"right", ...ellipsis,
               color: w?.seed===aSeed?winColor : w&&w.seed!==aSeed?"#4a4a65" : p?"#8a8aa8":"#7a7a9e",
@@ -1365,7 +1379,7 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
               opacity: w&&w.seed!==bSeed?.4:1,
               fontStyle: !mu.b?"italic":"normal",
             }}>{bName}{!mob&&bSeed?` #${bSeed}`:""}</span>
-            {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#ffd54f", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
+            {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#4fc3f7", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
           </div>;
         })}
       </div>;
@@ -1379,9 +1393,9 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
           const w = m.winner;
           const isUpset = w && w.seed > (w.seed===m[0].seed ? m[1] : m[0]).seed;
           const isCur = !ip && cr===roundNum && cm===mi;
-          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCur?"rgba(255,215,0,.06)":"transparent" }}>
+          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCur?"rgba(79,195,247,.06)":"transparent" }}>
             <MN m={m[0]} w={w} r mob={mob} upset={isUpset&&w?.seed===m[0].seed}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob} upset={isUpset&&w?.seed===m[1].seed}/>
-            {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#ffd54f", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
+            {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#4fc3f7", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
           </div>;
         })}
       </div>;
