@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SB_URL = "https://pynmkrcbkcfxifnztnrn.supabase.co";
 const SB_ANON = "sb_publishable_8VEm7zR0vqKjOZRwH6jimw_qIWt-RPp";
-const supabase = createClient(SB_URL, SB_ANON, { auth: { flowType: "implicit" } });
+const supabase = createClient(SB_URL, SB_ANON, { auth: { flowType: "implicit", storageKey: "disney-bracket-auth" } });
 
 function useIsMobile(breakpoint = 600) {
   const [mob, setMob] = useState(() => typeof window !== "undefined" && window.innerWidth <= breakpoint);
@@ -541,11 +541,16 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState("idle"); // 'idle'|'syncing'|'synced'|'error'
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Persist bracket state to localStorage and URL hash
+  // Persist bracket state to localStorage and URL hash.
+  // Guard: don't overwrite the hash while Supabase auth tokens are still there.
+  // The navigator lock means _initialize() reads the hash as a platform task,
+  // which can fire AFTER React effects (MessageChannel). Overwriting wipes the
+  // access_token before the client reads it, so auth silently never fires.
   useEffect(() => {
     const serialized = { ph, piM: serMatch(piM), piI, rds: rds.map(r => serMatch(r)), cr, cm, ch, hi, upsets };
     saveLS("dbk-state", serialized);
-    if (hi.length > 0 || ch) {
+    const hashHasAuth = window.location.hash.includes("access_token") || window.location.hash.includes("token_hash");
+    if (!hashHasAuth && (hi.length > 0 || ch)) {
       try { window.history.replaceState(null, "", "#" + btoa(JSON.stringify({ _v: 1, ...serialized }))); } catch { /* btoa failure */ }
     }
   }, [ph, piM, piI, rds, cr, cm, ch, hi, upsets]);
