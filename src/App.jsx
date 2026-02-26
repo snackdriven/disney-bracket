@@ -45,6 +45,48 @@ const FACTS = {
   "Raya and the Last Dragon": "Before designing a single character, the production team traveled to Thailand, Laos, Cambodia, Vietnam, Indonesia, and the Philippines",
   "Turning Red": "The first Pixar feature set in Canada, and the first Pixar feature film directed solely by a woman of color",
   "Elemental": "Ember's fire effects required Pixar to build a new simulation system — water, fire, and air characters each needed their own physics engine",
+  "Hercules": "The five Muses were written as a modern take on the ancient Greek chorus — deliberately anachronistic, which is exactly why the directors loved the idea",
+  "Bambi": "Disney kept live deer on the studio lot for animators to study. The film took five years to produce and remains one of the few Disney features with no human villain",
+  "Wreck-It Ralph": "Required licensing deals with Capcom, Namco, Sega, and others to include real video game characters. The 'Game Central Station' power strip interior was the team's favorite concept to design",
+  "Tarzan": "Phil Collins recorded the entire soundtrack in multiple languages himself for international releases — not just the English version",
+  "The Jungle Book": "The last film Walt Disney personally supervised — he died in December 1966, eight months before its October 1967 release. He never saw the finished cut",
+  "Brave": "The first Pixar film with a female protagonist, and the first set in a real historical period and culture rather than a fantasy world",
+  "Toy Story 2": "A production assistant accidentally deleted 90% of the finished film by running a system cleanup script. It was only restored from a backup on the technical director's home computer",
+  "Toy Story 4": "Bo Peep was deliberately written out of Toy Story 3 so she could return here. Woody is separated from the ensemble for most of the runtime — a first for the series",
+  "Lady and the Tramp": "The first Disney animated film in CinemaScope widescreen, and the first set in a contemporary American neighborhood rather than a fairy tale world",
+  "101 Dalmatians": "The first Disney film to use xerography — photocopying animation drawings instead of hand-inking — which made animating 101 spotted dogs without losing the animators actually possible",
+  "Peter Pan": "Hans Conried voiced both Captain Hook and Mr. Darling — a deliberate echo of the stage tradition where one actor plays both roles",
+  "The Hunchback of Notre Dame": "Frollo's 'Hellfire' is one of the most adult songs in Disney history — about lust, sin, and burning a city. Internal research showed it was the most emotionally intense Disney film to date",
+  "Snow White": "The industry called it 'Disney's Folly' before release and assumed it would fail. Disney mortgaged his house to fund production when it ran over budget",
+  "Big Hero 6": "Based on a little-known Marvel Comics property — the only Disney animated feature built on Marvel IP. San Fransokyo required an entirely new rendering technique to generate a city of that scale",
+  "Cars": "John Lasseter wrote the story after a cross-country road trip with his family — he took it specifically to reconnect with them after years of overworking",
+  "Pinocchio": "Many animators consider it the technical peak of Disney's golden age — the special effects animation for fire, water, and smoke used techniques that weren't surpassed for decades",
+  "Fantasia": "Premiered with 'Fantasound,' a custom multi-speaker audio system that predated modern surround sound by decades — most theaters couldn't install it, limiting its initial run",
+  "Luca": "Director Enrico Casarosa based it on his own childhood summers along the Italian Riviera and a friendship with a boy from a very different background",
+  "Pocahontas": "Disney's first film based on a real historical person. The production consulted with the Pamunkey Nation, though the film still drew criticism for taking significant liberties with history",
+  "Alice in Wonderland": "Disney had been developing Alice since the late 1930s — nearly fifteen years passed between early story work and the 1951 release",
+  "Inside Out 2": "Broke Pixar's opening weekend record and became the highest-grossing animated film of 2024, the first film to cross $1 billion globally in several years",
+  "The Princess and the Frog": "Disney's first Black princess, and the studio's deliberate return to hand-drawn 2D animation after years of CGI-only features",
+  "A Bug's Life": "DreamWorks rushed Antz into theaters two months earlier to win the 'bug movie' race — both projects were in development simultaneously, and Katzenberg had learned about A Bug's Life through his time at Pixar",
+  "Dumbo": "At 64 minutes, one of Disney's shortest features — made quickly and cheaply specifically to recover losses from Fantasia and Bambi's underperformance",
+  "Robin Hood": "Reused animation from multiple earlier films — Maid Marian's dance movements are traced from Snow White, and crowd scenes recycle Jungle Book footage",
+  "Monsters University": "Pixar's first prequel. The team designed over 120 distinct monster species for the university setting, each requiring its own simulation rig for fur, slime, or appendages",
+  "Treasure Planet": "One of Disney's biggest box office failures, losing an estimated $70 million — it directly contributed to the closure of Disney's Florida animation studio",
+  "Atlantis: The Lost Empire": "Linguist Marc Okrand — creator of the Klingon language for Star Trek — was hired to build a complete Atlantean language with real grammar and vocabulary",
+  "The Great Mouse Detective": "Often credited as the film that saved Disney Animation — its success under extreme budget constraints convinced the studio to greenlight The Little Mermaid",
+  "The Rescuers Down Under": "The first Disney animated sequel, and the first Disney feature to use the CAPS digital paint pipeline throughout — no hand-painted cels at all",
+  "The Sword in the Stone": "Based on T.H. White's Arthurian novel, one of Disney's personal favorites. Among the last films to closely reflect his own creative direction before his death in 1966",
+  "The Aristocats": "The first film greenlighted after Walt Disney's death — he had approved the concept just days before he died in December 1966",
+  "Bolt": "John Lasseter's first film to oversee as head of Disney Animation after Pixar's acquisition by Disney. He had the story restructured to make Bolt's delusion more sympathetic",
+  "Meet the Robinsons": "The film's motto 'Keep Moving Forward' was taken from a real Walt Disney quote. Lasseter reportedly showed the team the quote when he took over and said it applied to them too",
+  "Brother Bear": "Phil Collins returned to score the film — his second Disney soundtrack after Tarzan. It was the last production from Disney's Florida studio before it closed in 2004",
+  "The Rescuers": "Based on a series of children's books by Margery Sharp. The first Disney animated film successful enough to spawn a direct sequel",
+  "Oliver & Company": "Set in contemporary New York City with Billy Joel, Bette Midler, and Cheech Marin in the voice cast — the first Disney animated film to receive a wide opening-weekend theatrical release",
+  "Onward": "Director Dan Scanlon wrote it to process losing his father when he was very young — he and his brother had only a single voicemail recording of their father's voice, and the film grew from that",
+  "Chicken Little": "Disney's first fully CGI animated feature, produced independently after the Pixar partnership temporarily dissolved",
+  "Incredibles 2": "Picked up exactly where the first film ended — fourteen years later in real life, five minutes later in the story. Earned $182 million opening weekend, shattering Pixar's record",
+  "Ralph Breaks the Internet": "The Disney Princess scene alone required years of legal clearances — Disney had to negotiate rights for every princess separately, including properties from their own studio",
+  "The Good Dinosaur": "Pixar's most troubled production — the original director, story, and nearly all characters were replaced mid-production. It released the same year as Inside Out, making 2015 Pixar's strangest year",
 };
 
 const MAIN = [
@@ -809,10 +851,6 @@ export default function App() {
     setHi(h => [...h, { p: pi?"pi":"m", i: pi?piI:cm, r: cr, wasUpset: isUpset }]);
     setTimeout(() => {
       setAn(null);
-      if (FACTS[w.name]) {
-        setFact(FACTS[w.name]);
-        setTimeout(() => setFact(null), 4000);
-      }
       if (pi) {
         const nm = piM.map((m,i) => { if(i!==piI) return m; const c=[...m]; c.winner=w; return c; });
         setPiM(nm);
@@ -1038,9 +1076,6 @@ export default function App() {
           )}
           {upFlash && <div style={{ textAlign:"center", marginTop:12, animation:"uf 1.5s ease-out forwards" }}>
             <span style={{ display:"inline-block", padding:"4px 14px", borderRadius:20, background:"rgba(255,80,80,.12)", border:"1px solid rgba(255,80,80,.25)", fontSize:mob?12:11, fontWeight:700, color:"#ff7070", letterSpacing:2, textTransform:"uppercase" }}>🚨 Upset!</span>
-          </div>}
-          {fact && <div style={{ margin:mob?"14px 0 0":"14px auto 0", maxWidth:mob?undefined:560, padding:"12px 18px", background:"rgba(255,255,255,.04)", borderRadius:12, border:"1px solid rgba(255,255,255,.07)", fontSize:mob?13:13, color:"#9898b8", fontStyle:"italic", lineHeight:1.6, animation:"su .3s ease-out" }}>
-            💡 {fact}
           </div>}
           <div style={{ display:"flex", justifyContent:"center", gap:mob?10:10, marginTop:mob?18:22 }}>
             {hi.length>0 && <Btn mob={mob} s onClick={undo}>← Undo</Btn>}
