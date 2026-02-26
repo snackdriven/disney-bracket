@@ -1,4 +1,4 @@
-# 🎬 Disney × Pixar Bracket
+# Disney × Pixar Bracket
 
 At some point you're going to have to put **Beauty and the Beast** against **The Emperor's New Groove**.
 
@@ -10,39 +10,39 @@ I'm sorry. There was no other way to build this.
 
 ---
 
-## The Setup 🏆
+## The setup
 
-**70 movies. 1937 to 2024.**
+70 movies. 1937 to 2024.
 
-12 fight through a play-in round — yes, even the play-in matters, you will feel things during the play-in — and then 64 go at it across four seeded regions through **six brutal rounds**. Someone is going to knock out your #1 in the Sweet 16. It happens to everyone. You will be okay. Probably.
+12 fight through a play-in round (yes, even the play-in matters, you will feel things during the play-in) and then 64 go at it across four seeded regions through six brutal rounds. Someone is going to knock out your #1 in the Sweet 16. It happens to everyone. You will be okay. Probably.
 
 Regions: **Legends & Legacies** · **Heart & Heartbreak** · **Magic & Mischief** · **Worlds Apart**
 
 ---
 
-## What's on the Cards 🎴
+## What's on the cards
 
 Every card has the poster, IMDb rating, runtime, and a plot refresher for the ones you thought you remembered until you were staring down a matchup at midnight and realized you couldn't recall a single thing about Atlantis.
 
-There's also **production trivia on all 70 movies**, because what this experience needs is more information to complicate your decisions.
+There's also production trivia on all 70 movies, because what this experience needs is more information to complicate your decisions.
 
 Did you know Toy Story 2 was almost entirely deleted by accident and only survived because someone had a backup on their home computer? Now you do. You can't un-know that now.
 
 ---
 
-## Features 🛠️
+## Features
 
-- 📝 **Notes** on any movie — document your reasoning, confront it later
-- ⚡ **Upset tracking** — counts every time you pick the lower seed and judges you for it
-- ↩️ **Undo** any pick, reset the whole bracket, no judgment
-- 🔗 **Shareable link** with your full bracket encoded in the URL
-- 🖼️ **PNG export** — 1920×1080 with all the poster art, when you're done
+- Notes on any movie. Write down your reasoning, confront it later.
+- Upset tracking. Counts every time you pick the lower seed and judges you for it.
+- Undo any pick. Reset the whole bracket. No judgment.
+- Shareable link with your full bracket encoded in the URL.
+- PNG export at 1920×1080 with all the poster art, when you're done.
 
 ---
 
-## Sync ☁️
+## Sync
 
-Sign in with a magic link and your bracket and notes follow you across devices — because **this is not a one-session experience**, and anyone who tells you they finished it in one sitting is lying or didn't think hard enough.
+Sign in with a magic link and your bracket and notes follow you across devices, because **this is not a one-session experience**, and anyone who tells you they finished it in one sitting is lying or didn't think hard enough.
 
 Or stay in the browser. Your bracket lives in local storage until you clear it.
 
