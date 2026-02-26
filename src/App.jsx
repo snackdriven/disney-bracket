@@ -1184,8 +1184,8 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta, spark }
 
       {/* Desktop pick hint — hidden when plot is showing to avoid overlap */}
       {h&&!mob&&!a&&!meta?.plot && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1, opacity:.7 }}>Pick →</div>}
-      {spark && <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden", borderRadius:"inherit" }}>
-        <div style={{ position:"absolute", width:"200%", aspectRatio:"1", top:"50%", left:"50%", transform:"translate(-50%,-50%)", background:`conic-gradient(from 0deg, transparent 352deg, rgba(255,255,255,0.55) 357deg, rgba(255,255,255,0.2) 360deg)`, animation:"spark-spin 2.8s linear infinite" }}/>
+      {spark && <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden", borderRadius:"inherit", WebkitMask:"radial-gradient(ellipse calc(50% - 8px) calc(50% - 8px) at center, transparent 99%, black 100%)", mask:"radial-gradient(ellipse calc(50% - 8px) calc(50% - 8px) at center, transparent 99%, black 100%)" }}>
+        <div style={{ position:"absolute", width:"200%", aspectRatio:"1", top:"50%", left:"50%", transform:"translate(-50%,-50%)", background:"conic-gradient(from 0deg, transparent 350deg, rgba(255,255,255,0.75) 357deg, rgba(255,255,255,0.25) 360deg)", animation:"spark-spin 2.8s linear infinite" }}/>
       </div>}
     </button>
 
