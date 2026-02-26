@@ -1,38 +1,36 @@
-# Disney & Pixar: The Bracket
+# Disney × Pixar Bracket
 
-You know the argument. Someone says Ratatouille is better than The Lion King and suddenly it's a whole thing. This settles it.
+Everyone's got a take. "Up is overrated." "Encanto is better than Frozen." "Cars shouldn't even be in this conversation." Cool. Prove it.
 
-70 Disney and Pixar movies. 69 head-to-head matchups. Pick your favorite in each one until there's a champion. It's March Madness but the stakes are whether WALL-E could beat Coco (he can't, but you do you).
+70 movies. 69 head-to-head matchups. One winner. **[Play it here.](https://snackdriven.github.io/disney-bracket/)**
 
-**[Play it live](https://snackdriven.github.io/disney-bracket/)**
+---
 
-## What You Get
+## How it works
 
-- **Play-in round** — the bottom 12 seeds fight for 6 spots in the main bracket. Sorry, Chicken Little.
-- **64-movie main bracket** across 6 rounds: Round of 64 → Round of 32 → Sweet 16 → Elite 8 → Final Four → Championship
-- **4 regions**: Legends & Legacies, Heart & Heartbreak, Magic & Mischief, Worlds Apart
-- **Movie cards** with poster art, IMDb rating, runtime, and a short plot reminder so you don't accidentally vote against a movie you forgot you loved
-- **Fun facts** — production trivia for all 70 movies. Did you know Toy Story 2 was accidentally deleted mid-production and rescued from a backup on someone's home computer?
-- **Upset tracker** that flags when you pick the lower seed. It keeps a running count and calls out your biggest upset.
-- **Notes** on any movie, so you can write "this one made me cry at age 30" and revisit it later
-- **Shareable URLs** — your bracket state is encoded right in the link
-- **PNG export** — download a full 1920x1080 image of your completed bracket, posters and all
-- **Undo & reset** whenever you want. No judgment.
+12 play-in movies fight for the last 6 spots, then 64 go at it across four regions — Legends & Legacies, Heart & Heartbreak, Magic & Mischief, and Worlds Apart. Six rounds total. The whole thing.
 
-## Sync Across Devices
+Each card has the movie poster, IMDb rating, runtime, and a plot blurb for the ones you half-remember. There's also production trivia on all 70 — like the fact that someone on the Toy Story 2 team accidentally ran a cleanup script and deleted 90% of the finished film, and it was only recovered because the technical director had a backup on her home computer.
 
-Click **☁ Sync across devices**, enter your email, and you'll get a magic link. Your bracket and notes follow you after that.
+Other stuff:
+- Notes on any movie so you can explain your picks to yourself later
+- Upset tracking (it counts how many times you picked the underdog and roasts you for it)
+- Shareable links with your bracket in the URL
+- PNG export of your completed bracket — 1920×1080, posters and all
+- Undo whenever, reset if you need to start over and pretend this didn't happen
 
-## Development
+Sign in with a magic link and your bracket syncs across devices. Skip it and everything just lives in your browser.
+
+---
+
+## Dev
 
 ```bash
 npm install
 npm run dev
 ```
 
-React 19, Vite, no backend required. Supabase handles auth and sync if you sign in, but everything works offline too.
-
-If you want to run your own Supabase instance, here's the table:
+React 19 + Vite. Supabase handles auth and sync (one table):
 
 ```sql
 CREATE TABLE disney_bracket (
