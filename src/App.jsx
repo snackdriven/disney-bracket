@@ -1040,7 +1040,6 @@ export default function App() {
           <div style={{ display:"flex", justifyContent:"center", gap:mob?10:10, marginTop:mob?18:22 }}>
             {hi.length>0 && <Btn mob={mob} s onClick={undo}>← Undo</Btn>}
             <Btn mob={mob} s mu onClick={reset}>Reset</Btn>
-            {!ip && <Btn mob={mob} s mu onClick={()=>setBk(!bk)}>{bk?"Hide":"Bracket"}</Btn>}
             {hi.length>0 && <Btn mob={mob} s mu onClick={copyLink}>{copiedLink ? "✓!" : "🔗 Share"}</Btn>}
             {hi.length>0 && <Btn mob={mob} s mu onClick={handleDownloadPng}>
               {pngStatus&&pngStatus!=="done"?"⏳":pngStatus==="done"?"✓!":"⬇ PNG"}
