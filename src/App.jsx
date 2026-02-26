@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SB_URL = "https://pynmkrcbkcfxifnztnrn.supabase.co";
 const SB_ANON = "sb_publishable_8VEm7zR0vqKjOZRwH6jimw_qIWt-RPp";
-const supabase = createClient(SB_URL, SB_ANON);
+const supabase = createClient(SB_URL, SB_ANON, { auth: { flowType: "implicit", storageKey: "disney-bracket-auth" } });
 
 function useIsMobile(breakpoint = 600) {
   const [mob, setMob] = useState(() => typeof window !== "undefined" && window.innerWidth <= breakpoint);
@@ -45,6 +45,48 @@ const FACTS = {
   "Raya and the Last Dragon": "Before designing a single character, the production team traveled to Thailand, Laos, Cambodia, Vietnam, Indonesia, and the Philippines",
   "Turning Red": "The first Pixar feature set in Canada, and the first Pixar feature film directed solely by a woman of color",
   "Elemental": "Ember's fire effects required Pixar to build a new simulation system — water, fire, and air characters each needed their own physics engine",
+  "Hercules": "The five Muses were written as a modern take on the ancient Greek chorus — deliberately anachronistic, which is exactly why the directors loved the idea",
+  "Bambi": "Disney kept live deer on the studio lot for animators to study. The film took five years to produce and remains one of the few Disney features with no human villain",
+  "Wreck-It Ralph": "Required licensing deals with Capcom, Namco, Sega, and others to include real video game characters. The 'Game Central Station' power strip interior was the team's favorite concept to design",
+  "Tarzan": "Phil Collins recorded the entire soundtrack in multiple languages himself for international releases — not just the English version",
+  "The Jungle Book": "The last film Walt Disney personally supervised — he died in December 1966, eight months before its October 1967 release. He never saw the finished cut",
+  "Brave": "The first Pixar film with a female protagonist, and the first set in a real historical period and culture rather than a fantasy world",
+  "Toy Story 2": "A production assistant accidentally deleted 90% of the finished film by running a system cleanup script. It was only restored from a backup on the technical director's home computer",
+  "Toy Story 4": "Bo Peep was deliberately written out of Toy Story 3 so she could return here. Woody is separated from the ensemble for most of the runtime — a first for the series",
+  "Lady and the Tramp": "The first Disney animated film in CinemaScope widescreen, and the first set in a contemporary American neighborhood rather than a fairy tale world",
+  "101 Dalmatians": "The first Disney film to use xerography — photocopying animation drawings instead of hand-inking — which made animating 101 spotted dogs without losing the animators actually possible",
+  "Peter Pan": "Hans Conried voiced both Captain Hook and Mr. Darling — a deliberate echo of the stage tradition where one actor plays both roles",
+  "The Hunchback of Notre Dame": "Frollo's 'Hellfire' is one of the most adult songs in Disney history — about lust, sin, and burning a city. Internal research showed it was the most emotionally intense Disney film to date",
+  "Snow White": "The industry called it 'Disney's Folly' before release and assumed it would fail. Disney mortgaged his house to fund production when it ran over budget",
+  "Big Hero 6": "Based on a little-known Marvel Comics property — the only Disney animated feature built on Marvel IP. San Fransokyo required an entirely new rendering technique to generate a city of that scale",
+  "Cars": "John Lasseter wrote the story after a cross-country road trip with his family — he took it specifically to reconnect with them after years of overworking",
+  "Pinocchio": "Many animators consider it the technical peak of Disney's golden age — the special effects animation for fire, water, and smoke used techniques that weren't surpassed for decades",
+  "Fantasia": "Premiered with 'Fantasound,' a custom multi-speaker audio system that predated modern surround sound by decades — most theaters couldn't install it, limiting its initial run",
+  "Luca": "Director Enrico Casarosa based it on his own childhood summers along the Italian Riviera and a friendship with a boy from a very different background",
+  "Pocahontas": "Disney's first film based on a real historical person. The production consulted with the Pamunkey Nation, though the film still drew criticism for taking significant liberties with history",
+  "Alice in Wonderland": "Disney had been developing Alice since the late 1930s — nearly fifteen years passed between early story work and the 1951 release",
+  "Inside Out 2": "Broke Pixar's opening weekend record and became the highest-grossing animated film of 2024, the first film to cross $1 billion globally in several years",
+  "The Princess and the Frog": "Disney's first Black princess, and the studio's deliberate return to hand-drawn 2D animation after years of CGI-only features",
+  "A Bug's Life": "DreamWorks rushed Antz into theaters two months earlier to win the 'bug movie' race — both projects were in development simultaneously, and Katzenberg had learned about A Bug's Life through his time at Pixar",
+  "Dumbo": "At 64 minutes, one of Disney's shortest features — made quickly and cheaply specifically to recover losses from Fantasia and Bambi's underperformance",
+  "Robin Hood": "Reused animation from multiple earlier films — Maid Marian's dance movements are traced from Snow White, and crowd scenes recycle Jungle Book footage",
+  "Monsters University": "Pixar's first prequel. The team designed over 120 distinct monster species for the university setting, each requiring its own simulation rig for fur, slime, or appendages",
+  "Treasure Planet": "One of Disney's biggest box office failures, losing an estimated $70 million — it directly contributed to the closure of Disney's Florida animation studio",
+  "Atlantis: The Lost Empire": "Linguist Marc Okrand — creator of the Klingon language for Star Trek — was hired to build a complete Atlantean language with real grammar and vocabulary",
+  "The Great Mouse Detective": "Often credited as the film that saved Disney Animation — its success under extreme budget constraints convinced the studio to greenlight The Little Mermaid",
+  "The Rescuers Down Under": "The first Disney animated sequel, and the first Disney feature to use the CAPS digital paint pipeline throughout — no hand-painted cels at all",
+  "The Sword in the Stone": "Based on T.H. White's Arthurian novel, one of Disney's personal favorites. Among the last films to closely reflect his own creative direction before his death in 1966",
+  "The Aristocats": "The first film greenlighted after Walt Disney's death — he had approved the concept just days before he died in December 1966",
+  "Bolt": "John Lasseter's first film to oversee as head of Disney Animation after Pixar's acquisition by Disney. He had the story restructured to make Bolt's delusion more sympathetic",
+  "Meet the Robinsons": "The film's motto 'Keep Moving Forward' was taken from a real Walt Disney quote. Lasseter reportedly showed the team the quote when he took over and said it applied to them too",
+  "Brother Bear": "Phil Collins returned to score the film — his second Disney soundtrack after Tarzan. It was the last production from Disney's Florida studio before it closed in 2004",
+  "The Rescuers": "Based on a series of children's books by Margery Sharp. The first Disney animated film successful enough to spawn a direct sequel",
+  "Oliver & Company": "Set in contemporary New York City with Billy Joel, Bette Midler, and Cheech Marin in the voice cast — the first Disney animated film to receive a wide opening-weekend theatrical release",
+  "Onward": "Director Dan Scanlon wrote it to process losing his father when he was very young — he and his brother had only a single voicemail recording of their father's voice, and the film grew from that",
+  "Chicken Little": "Disney's first fully CGI animated feature, produced independently after the Pixar partnership temporarily dissolved",
+  "Incredibles 2": "Picked up exactly where the first film ended — fourteen years later in real life, five minutes later in the story. Earned $182 million opening weekend, shattering Pixar's record",
+  "Ralph Breaks the Internet": "The Disney Princess scene alone required years of legal clearances — Disney had to negotiate rights for every princess separately, including properties from their own studio",
+  "The Good Dinosaur": "Pixar's most troubled production — the original director, story, and nearly all characters were replaced mid-production. It released the same year as Inside Out, making 2015 Pixar's strangest year",
 };
 
 const MAIN = [
@@ -133,15 +175,22 @@ const R1 = [
 ];
 
 const RND = ["Round of 64","Round of 32","Sweet 16","Elite 8","Final Four","Championship"];
-const DOTS = Array.from({length:80}, () => ({
-  w: Math.random()*2.5+.5, h: Math.random()*2.5+.5,
-  op: Math.random()*.5+.15, l: Math.random()*100, t: Math.random()*100,
-  dur: Math.random()*4+2, del: Math.random()*4,
+const DOT_COLORS = ['255,255,255','255,255,255','255,255,255','249,168,212','206,147,216'];
+const DOTS = Array.from({length:110}, () => ({
+  w: Math.random()*3+.5, h: Math.random()*3+.5,
+  op: Math.random()*.6+.1, l: Math.random()*100, t: Math.random()*100,
+  dur: Math.random()*3+1.2, del: Math.random()*5,
+  col: DOT_COLORS[Math.floor(Math.random()*DOT_COLORS.length)],
+  er: Math.random() > 0.65,
 }));
 const REG = ["Legends & Legacies","Heart & Heartbreak","Magic & Mischief","Worlds Apart"];
 const CLR = {
-  Disney: { bg:"#0d1b3e", ac:"#4fc3f7", gl:"rgba(79,195,247,.25)", tx:"#7ec8f0" },
-  Pixar: { bg:"#3e1a0d", ac:"#ff8a65", gl:"rgba(255,138,101,.25)", tx:"#ffab91" },
+  Disney: { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
+  Pixar:  { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
+};
+const BADGE_CLR = {
+  Disney: { bg:"#4fc3f722", tx:"#4fc3f7" },
+  Pixar:  { bg:"#ff8a6522", tx:"#ff8a65" },
 };
 
 const ALL_MOVIES = [...MAIN, ...PLAYIN];
@@ -171,13 +220,88 @@ const cmty = (r, i) => {                         // match top Y: round r, positi
   return Math.round(CBT + sp * (i + 0.5) - CMH / 2);
 };
 
+// ---- Static movie metadata (runtime, rating, plot) ----
+
+const STATIC_META = {
+  1:  { runtime:"88 min",  rating:"8.5", plot:"Lion prince Simba and his father are targeted by his bitter uncle, who wants to ascend the throne himself.", poster:"https://image.tmdb.org/t/p/w185/sKCr78MXSLixwmZ8DyJLrpMsd15.jpg" },
+  2:  { runtime:"81 min",  rating:"8.3", plot:"A cowboy doll is profoundly jealous when a new spaceman action figure supplants him as the top toy in a boy's bedroom. When circumstances separate them from their owner, the duo have to put aside their differences to return to him.", poster:"https://image.tmdb.org/t/p/w185/uXDfjJbdP4ijW5hWSBrPrlKpxab.jpg" },
+  3:  { runtime:"100 min", rating:"8.2", plot:"After his son is captured in the Great Barrier Reef and taken to Sydney, a timid clownfish sets out on a journey to bring him home.", poster:"https://image.tmdb.org/t/p/w185/eHuGQ10FUzK1mdOY69wF5pGgEf5.jpg" },
+  4:  { runtime:"84 min",  rating:"8.0", plot:"A prince cursed to spend his days as a hideous monster sets out to regain his humanity by earning a young woman's love.", poster:"https://image.tmdb.org/t/p/w185/hUJ0UvQ5tgE2Z9WpfuduVSdiCiU.jpg" },
+  5:  { runtime:"83 min",  rating:"7.6", plot:"A mermaid princess makes a Faustian bargain in an attempt to become human and win a prince's love.", poster:"https://image.tmdb.org/t/p/w185/plcZXvI310FkbwIptvd6rqk63LP.jpg" },
+  6:  { runtime:"96 min",  rating:"8.3", plot:"78-year-old Carl Fredricksen travels to South America in his house equipped with balloons, inadvertently taking a young stowaway.", poster:"https://image.tmdb.org/t/p/w185/mFvoEwSfLqbcWwFsDjQebn9bzFe.jpg" },
+  7:  { runtime:"90 min",  rating:"8.0", plot:"A kind-hearted street urchin and a power-hungry Grand Vizier vie for a magic lamp that has the power to make their deepest wishes come true.", poster:"https://image.tmdb.org/t/p/w185/eLFfl7vS8dkeG1hKp5mwbm37V83.jpg" },
+  8:  { runtime:"95 min",  rating:"8.1", plot:"After young Riley is uprooted from her Midwest life and moved to San Francisco, her emotions, Joy, Fear, Anger, Disgust, and Sadness, conflict on how best to navigate a new city, house, and school.", poster:"https://image.tmdb.org/t/p/w185/2H1TmgdfNtsKlU9jKdeNyYL5y8T.jpg" },
+  9:  { runtime:"105 min", rating:"8.4", plot:"Aspiring musician Miguel, confronted with his family's ancestral ban on music, enters the Land of the Dead to find his great-great-grandfather, a legendary singer.", poster:"https://image.tmdb.org/t/p/w185/6Ryitt95xrO8KXuqRGm1fUuNwqF.jpg" },
+  10: { runtime:"102 min", rating:"7.4", plot:"Fearless optimist Anna teams up with rugged mountain man Kristoff and his loyal reindeer Sven in an epic journey to find Anna's sister Elsa, whose icy powers have trapped the kingdom of Arendelle in eternal winter.", poster:"https://image.tmdb.org/t/p/w185/kgwjIb2JDHRhNk13lmSxiClFjVk.jpg" },
+  11: { runtime:"115 min", rating:"8.0", plot:"While trying to lead a quiet suburban life, a family of undercover superheroes are forced into action to save the world.", poster:"https://image.tmdb.org/t/p/w185/2LqaLgk4Z226KkgPJuiOQ58wvrm.jpg" },
+  12: { runtime:"98 min",  rating:"8.4", plot:"A robot who is responsible for cleaning a waste-covered Earth meets another robot and falls in love with her. Together, they set out on a journey that will alter the fate of mankind.", poster:"https://image.tmdb.org/t/p/w185/hbhFnRzzg6ZDmm8YAmxBnQpQIPh.jpg" },
+  13: { runtime:"87 min",  rating:"7.7", plot:"To save her father from death in the army, a young maiden secretly goes in his place and becomes one of China's greatest heroines in the process.", poster:"https://image.tmdb.org/t/p/w185/jAbexAtB0aSfP5Ay4TpWHARyVnG.jpg" },
+  14: { runtime:"100 min", rating:"7.7", plot:"The magically long-haired Rapunzel has spent her entire life in a tower, but now that a runaway thief has stumbled upon her, she is about to discover the world for the first time, and who she really is.", poster:"https://image.tmdb.org/t/p/w185/ym7Kst6a4uodryxqbGOxmewF235.jpg" },
+  15: { runtime:"92 min",  rating:"8.1", plot:"In order to power the city, monsters have to scare children so that they scream. However, the children are toxic to the monsters, and after a child gets through, two monsters realize things may not be what they think.", poster:"https://image.tmdb.org/t/p/w185/wFSpyMsp7H0ttERbxY7Trlv8xry.jpg" },
+  16: { runtime:"107 min", rating:"7.6", plot:"In ancient Polynesia, when a terrible curse incurred by the demigod Maui reaches Moana's island, she answers the Ocean's call to seek out Maui to set things right.", poster:"https://image.tmdb.org/t/p/w185/9tzN8sPbyod2dsa0lwuvrwBDWra.jpg" },
+  17: { runtime:"111 min", rating:"8.1", plot:"A rat who can cook makes an unusual alliance with a young kitchen worker at a famous Paris restaurant.", poster:"https://image.tmdb.org/t/p/w185/t3vaWRPSf6WjDSamIkKDs1iQWna.jpg" },
+  18: { runtime:"103 min", rating:"8.3", plot:"The toys are mistakenly delivered to a day-care center instead of the attic right before Andy leaves for college, and it's up to Woody to convince the other toys that they weren't abandoned and to return home.", poster:"https://image.tmdb.org/t/p/w185/AbbXspMOwdvwWZgVN0nabZq03Ec.jpg" },
+  19: { runtime:"85 min",  rating:"7.4", plot:"A young and parentless girl adopts a 'dog' from the local pound, completely unaware that it's supposedly a dangerous scientific experiment that's taken refuge on Earth and is now hiding from its creator and those who see it as a m...", poster:"https://image.tmdb.org/t/p/w185/d73UqZWyw3MUMpeaFcENgLZ2kWS.jpg" },
+  20: { runtime:"78 min",  rating:"7.4", plot:"Emperor Kuzco is turned into a llama by his ex-administrator Yzma, and must now regain his throne and his human form with the help of Pacha, a gentle llama herder.", poster:"https://image.tmdb.org/t/p/w185/isA0acj3ONKBLp1pKadUNzxEPFv.jpg" },
+  21: { runtime:"74 min",  rating:"7.3", plot:"When Cinderella's cruel stepmother prevents her from attending the Royal Ball, she gets some unexpected help from the lovable mice Gus and Jaq and from her Fairy Godmother.", poster:"https://image.tmdb.org/t/p/w185/4nssBcQUBadCTBjrAkX46mVEKts.jpg" },
+  22: { runtime:"93 min",  rating:"7.3", plot:"The son of Zeus and Hera is stripped of his immortality as an infant and must become a true hero in order to reclaim it.", poster:"https://image.tmdb.org/t/p/w185/dK9rNoC97tgX3xXg5zdxFisdfcp.jpg" },
+  23: { runtime:"75 min",  rating:"7.2", plot:"After being snubbed by the royal family, a malevolent fairy places a curse on a princess which only a prince can break, along with the help of three good fairies.", poster:"https://image.tmdb.org/t/p/w185/n3pxoMDDxp10c1smgbDzW4bwlzq.jpg" },
+  24: { runtime:"102 min",  rating:"7.2", plot:"An extraordinary family, the Madrigals, live hidden in the mountains of Colombia, in a magical house called an Encanto. The magic of the Encanto has blessed every child in the family with a unique gift - every child except one, Mi...", poster:"https://image.tmdb.org/t/p/w185/4j0PNHkMr5ax3IA8tjtxcmPU3QT.jpg" },
+  25: { runtime:"100 min", rating:"8.0", plot:"Joe is a middle-school band teacher whose life hasn't quite gone the way he expected. His true passion is jazz. But when he travels to another realm to help someone find their passion, he soon discovers what it means to have soul.", poster:"https://image.tmdb.org/t/p/w185/6jmppcaubzLF8wkXM36ganVISCo.jpg" },
+  26: { runtime:"108 min", rating:"8.0", plot:"In a city of anthropomorphic animals, a rookie bunny cop and a cynical con artist fox must work together to uncover a conspiracy.", poster:"https://image.tmdb.org/t/p/w185/hlK0e0wAQ3VLuJcsfIYPvb4JVud.jpg" },
+  27: { runtime:"69 min",  rating:"7.3", plot:"The story of a young deer growing up in the forest.", poster:"https://image.tmdb.org/t/p/w185/wV9e2y4myJ4KMFsyFfWYcUOawyK.jpg" },
+  28: { runtime:"101 min", rating:"7.7", plot:"Ralph is tired of playing the role of a bad guy and embarks on a journey to become a video game hero. But he accidentally lets loose a deadly enemy that threatens the entire arcade.", poster:"https://image.tmdb.org/t/p/w185/zWoIgZ7mgmPkaZjG0102BSKFIqQ.jpg" },
+  29: { runtime:"88 min",  rating:"7.3", plot:"A man raised by gorillas must decide where he really belongs when he discovers he is a human.", poster:"https://image.tmdb.org/t/p/w185/bTvHlcqiOjGa3lFtbrTLTM3zasY.jpg" },
+  30: { runtime:"78 min",  rating:"7.6", plot:"Bagheera the Panther and Baloo the Bear have a difficult time trying to convince a boy to leave the jungle for human civilization.", poster:"https://image.tmdb.org/t/p/w185/yN1kuupnPTLUprgfvC5WapgrxG4.jpg" },
+  31: { runtime:"93 min",  rating:"7.1", plot:"Determined to make her own path in life, Princess Merida defies a custom that brings chaos to her kingdom. Granted one wish, Merida must rely on her bravery and her archery skills to undo a beastly curse.", poster:"https://image.tmdb.org/t/p/w185/1XAuDtMWpL0sYSFK0R6EZate2Ux.jpg" },
+  32: { runtime:"92 min",  rating:"7.9", plot:"When Woody is stolen by a toy collector, Buzz and his friends set out on a rescue mission to save Woody before he becomes a museum toy property with his roundup gang Jessie, Prospector, and Bullseye.", poster:"https://image.tmdb.org/t/p/w185/yFWQkz2ynjwsazT6xQiIXEUsyuh.jpg" },
+  33: { runtime:"100 min", rating:"7.6", plot:"When Woody, Buzz, and the gang join Bonnie on a road trip with her new craft project turned toy, Forky, the innocent little spork's antics launch Woody on a wild quest.", poster:"https://image.tmdb.org/t/p/w185/w9kR8qbmQ01HwnvK4alvnQ2ca0L.jpg" },
+  34: { runtime:"76 min",  rating:"7.3", plot:"The romantic tale of a sheltered uptown Cocker Spaniel dog and a streetwise downtown Mutt.", poster:"https://image.tmdb.org/t/p/w185/340NcWz9SQXWQyf4oicMxjbrLOb.jpg" },
+  35: { runtime:"79 min",  rating:"7.3", plot:"When a litter of Dalmatian puppies are abducted by the minions of Cruella De Vil, the owners must find them before she uses them for a diabolical fashion statement.", poster:"https://image.tmdb.org/t/p/w185/kSlYq6FrBUviGSEh8v4L9nrSnBT.jpg" },
+  36: { runtime:"77 min",  rating:"7.3", plot:"Wendy and her brothers are whisked away to the magical world of Neverland with the hero of their stories, Peter Pan.", poster:"https://image.tmdb.org/t/p/w185/fJJOs1iyrhKfZceANxoPxPwNGF1.jpg" },
+  37: { runtime:"91 min",  rating:"7.0", plot:"A deformed bell-ringer must assert his independence from a vicious government minister in order to help his friend, a gypsy dancer.", poster:"https://image.tmdb.org/t/p/w185/hImMgT9B27evYSRmfztqdDtX6qi.jpg" },
+  38: { runtime:"83 min",  rating:"7.6", plot:"Exiled into the dangerous forest by her wicked stepmother, a princess is rescued by seven dwarf miners who make her part of their household.", poster:"https://image.tmdb.org/t/p/w185/3VAHfuNb6Z7UiW12iYKANSPBl8m.jpg" },
+  39: { runtime:"102 min", rating:"7.8", plot:"A special bond develops between plus-sized inflatable robot Baymax and prodigy Hiro Hamada, who together team up with a group of friends to form a band of high-tech heroes.", poster:"https://image.tmdb.org/t/p/w185/2mxS4wUimwlLmI1xp6QW6NSU361.jpg" },
+  40: { runtime:"107 min", rating:"7.3", plot:"In a realm known as Kumandra, a re-imagined Earth inhabited by an ancient civilization, a warrior named Raya is determined to find the last dragon.", poster:"https://image.tmdb.org/t/p/w185/5nVhgCzxKbK47OLIKxCR1syulOn.jpg" },
+  41: { runtime:"116 min", rating:"7.3", plot:"On the way to the biggest race of his life, a hotshot rookie race car gets stranded in a rundown town and learns that winning isn't everything in life.", poster:"https://image.tmdb.org/t/p/w185/2Touk3m5gzsqr1VsvxypdyHY5ci.jpg" },
+  42: { runtime:"88 min",  rating:"7.5", plot:"A living puppet, with the help of a cricket as his conscience, must prove himself worthy to become a real boy.", poster:"https://image.tmdb.org/t/p/w185/bnZJrLRnoQHpzEJdka1KYfsAF3N.jpg" },
+  43: { runtime:"124 min", rating:"7.7", plot:"A series of eight famous pieces of classical music, conducted by Leopold Stokowski and interpreted in animation by Walt Disney's team of artists.", poster:"https://image.tmdb.org/t/p/w185/5m9njnidjR0syG2gpVPVgcEMB2X.jpg" },
+  44: { runtime:"95 min",  rating:"7.4", plot:"On the Italian Riviera, an unlikely but strong friendship grows between a human being and a sea monster disguised as a human.", poster:"https://image.tmdb.org/t/p/w185/9x4i9uKGXt8IiiIF5Ey0DIoY738.jpg" },
+  45: { runtime:"81 min",  rating:"6.7", plot:"An English soldier and the daughter of an Algonquin chief share a romance when English colonists invade seventeenth century Virginia.", poster:"https://image.tmdb.org/t/p/w185/kZ1ft0QZ4e3zDUPMBftEkwI9ftd.jpg" },
+  46: { runtime:"75 min",  rating:"7.3", plot:"Alice stumbles into the world of Wonderland. Will she get home? Not if the Queen of Hearts has her way.", poster:"https://image.tmdb.org/t/p/w185/20cvfwfaFqNbe9Fc3VEHJuPRxmn.jpg" },
+  47: { runtime:"96 min", rating:"7.5", plot:"A sequel that features Riley entering puberty and experiencing brand new, more complex emotions as a result. As Riley tries to adapt to her teenage years, her old emotions try to adapt to the possibility of being replaced.", poster:"https://image.tmdb.org/t/p/w185/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg" },
+  48: { runtime:"97 min",  rating:"7.2", plot:"A waitress desperate to fulfill her dreams as a restaurant owner is set on a journey to turn a frog prince back into a human, but she has to face the same problem after she kisses him.", poster:"https://image.tmdb.org/t/p/w185/v6nAUs62OJ4DXmnnmPFeVmMz8H9.jpg" },
+  49: { runtime:"95 min",  rating:"7.2", plot:"A misfit ant, looking for \"warriors\" to save his colony from greedy grasshoppers, recruits a group of bugs that turn out to be an inept circus troupe.", poster:"https://image.tmdb.org/t/p/w185/Ah3J9OJVc2CNCuH2zMydXy9fmIC.jpg" },
+  50: { runtime:"64 min",  rating:"7.2", plot:"Ridiculed because of his enormous ears, a young circus elephant is assisted by a mouse to achieve his full potential.", poster:"https://image.tmdb.org/t/p/w185/4x9FmvdJ464Fg7A9XcbYSmxfVw3.jpg" },
+  51: { runtime:"83 min",  rating:"7.5", plot:"The story of the legendary British outlaw portrayed with the characters as anthropomorphic animals.", poster:"https://image.tmdb.org/t/p/w185/x9AvkYek0bGdxQSZ8W3lAjGrREm.jpg" },
+  52: { runtime:"104 min", rating:"7.2", plot:"A look at the relationship between Mike Wazowski and James P. \"Sully\" Sullivan during their days at Monsters University, when they weren't necessarily the best of friends.", poster:"https://image.tmdb.org/t/p/w185/y7thwJ7z5Bplv6vwl6RI0yteaDD.jpg" },
+  53: { runtime:"95 min",  rating:"7.2", plot:"Jim Hawkins is a teenager who finds the map of a great treasure hidden by a space pirate. Together with some friends, he sets off in a large spaceship, shaped like a caravel, on his quest.", poster:"https://image.tmdb.org/t/p/w185/kNhZkR3UNbXfvESQo7mJpOi4tGd.jpg" },
+  54: { runtime:"83 min",  rating:"6.4", plot:"A clueless boss has no idea what to do with his mundane office worker whose refusal of duties only gets worse each passing minute.", poster:"https://image.tmdb.org/t/p/w185/swYfLGplXAle5CenmWVYpRSomCp.jpg" },
+  55: { runtime:"74 min",  rating:"7.1", plot:"Basil, the rodent Sherlock Holmes, investigates the kidnapping of a toy maker and uncovers its link to his archenemy, Professor Ratigan.", poster:"https://image.tmdb.org/t/p/w185/9uDr7vfjCFr39KGCcqrk44Cg7fQ.jpg" },
+  56: { runtime:"77 min",  rating:"6.8", plot:"R.A.S. agents Miss Bianca and Bernard race to Australia to save a little boy and a rare golden eagle from a murderous poacher.", poster:"https://image.tmdb.org/t/p/w185/5koTDBmMAkJOgAe4PL4163UKjvG.jpg" },
+  57: { runtime:"79 min",  rating:"7.1", plot:"A poor boy named Arthur learns the power of love, kindness, knowledge and bravery with the help of a wizard called Merlin in the path to become one of the most beloved kings in English history.", poster:"https://image.tmdb.org/t/p/w185/7lyeeuhGAJSNXYEW34S8mJ1bwI8.jpg" },
+  58: { runtime:"78 min",  rating:"7.1", plot:"With the help of a smooth talking tomcat, a family of Parisian felines set to inherit a fortune from their owner try to make it back home after a jealous butler kidnaps them and leaves them in the country.", poster:"https://image.tmdb.org/t/p/w185/1BVOSmQUhphMgnTxnXyfQ9tL1Sc.jpg" },
+  59: { runtime:"96 min",  rating:"6.8", plot:"The canine star of a fictional sci-fi/action show that believes his powers are real embarks on a cross country trek to save his co-star from a threat he believes is just as real.", poster:"https://image.tmdb.org/t/p/w185/v5aC4nrzXFGJDWY4JO1eengXzqk.jpg" },
+  60: { runtime:"95 min",  rating:"6.8", plot:"Lewis is a brilliant inventor who meets mysterious stranger named Wilbur Robinson, whisking Lewis away in a time machine and together they team up to track down Bowler Hat Guy in a showdown that ends with an unexpected twist of fate.", poster:"https://image.tmdb.org/t/p/w185/naya0zF4kT401Sx15AtwB9vpcJr.jpg" },
+  61: { runtime:"85 min",  rating:"6.9", plot:"When a young Inuit hunter needlessly kills a bear, he is magically changed into a bear himself as punishment with a talkative cub being his only guide to changing back.", poster:"https://image.tmdb.org/t/p/w185/otptPbEY0vBostmo95xwiiumMJm.jpg" },
+  62: { runtime:"77 min",  rating:"6.9", plot:"Two mice of the Rescue Aid Society search for a little girl kidnapped by unscrupulous treasure hunters.", poster:"https://image.tmdb.org/t/p/w185/9jpDjrRyvv9Nw0piXOpHHQTfxw9.jpg" },
+  63: { runtime:"74 min",  rating:"6.6", plot:"A lost and alone kitten joins a gang of dogs engaged in petty larceny in New York City.", poster:"https://image.tmdb.org/t/p/w185/x8XqdiZ0Oxu5iXF9SiFub9Lae8J.jpg" },
+  64: { runtime:"101 min", rating:"7.0", plot:"Follow Ember and Wade, in a city where fire, water, earth and air live together.", poster:"https://image.tmdb.org/t/p/w185/4Y1WNkd88JXmGfhtWR7dmDAo1T2.jpg" },
+  65: { runtime:"100 min", rating:"6.9", plot:"A thirteen-year-old girl named Mei Lee is torn between staying her mother's dutiful daughter and the changes of adolescence. And as if the challenges were not enough, whenever she gets overly excited Mei transforms into a giant re...", poster:"https://image.tmdb.org/t/p/w185/qsdjk9oAKSQMWs0Vt5Pyfh6O4GZ.jpg" },
+  66: { runtime:"102 min", rating:"7.4", plot:"Teenage elf brothers Ian and Barley embark on a magical quest to spend one more day with their late father. Like any good adventure, their journey is filled with cryptic maps, impossible obstacles and unimaginable discoveries.", poster:"https://image.tmdb.org/t/p/w185/f4aul3FyD3jv3v4bul1IrkWZvzq.jpg" },
+  67: { runtime:"81 min",  rating:"5.7", plot:"After ruining his reputation with the town, a courageous chicken must come to the rescue of his fellow citizens when aliens start an invasion.", poster:"https://image.tmdb.org/t/p/w185/87FpA4b90eTaw3U6zmCNikoPLir.jpg" },
+  68: { runtime:"118 min", rating:"7.5", plot:"The Incredibles family takes on a new mission which involves a change in family roles: Bob Parr (Mr. Incredible) must manage the house while his wife Helen (Elastigirl) goes out to save the world.", poster:"https://image.tmdb.org/t/p/w185/9lFKBtaVIhP7E2Pk0IY1CwTKTMZ.jpg" },
+  69: { runtime:"112 min", rating:"7.0", plot:"On a quest to save the video game 'Sugar Rush' and to find a replacement, Ralph and his best friend Vanellope travel to the World Wide Web through a Wi-Fi router they find at the arcade.", poster:"https://image.tmdb.org/t/p/w185/iVCrhBcpDaHGvv7CLYbK6PuXZo1.jpg" },
+  70: { runtime:"93 min",  rating:"6.7", plot:"In a world where dinosaurs and humans live side-by-side, an Apatosaurus named Arlo makes an unlikely human friend.", poster:"https://image.tmdb.org/t/p/w185/8RSkxOO80btfKjyiC5ZiTaCHIT8.jpg" },
+};
+
 // ---- TMDB / OMDB helpers ----
 
 const extractImdbId = url => url?.match(/tt\d+/)?.[0] ?? null;
 
 async function fetchMovieMeta(tmdbKey, omdbKey) {
   const cache = (() => { try { return JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}"); } catch { return {}; } })();
-  const missing = ALL_MOVIES.filter(m => !cache[m.seed]?.poster && extractImdbId(m.imdb));
+  const missing = ALL_MOVIES.filter(m => (!cache[m.seed]?.poster || !cache[m.seed]?.plot) && extractImdbId(m.imdb));
   const BATCH = 20;
   for (let i = 0; i < missing.length; i += BATCH) {
     await Promise.all(missing.slice(i, i + BATCH).map(async m => {
@@ -187,8 +311,9 @@ async function fetchMovieMeta(tmdbKey, omdbKey) {
         if (tmdbKey) {
           const r = await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${tmdbKey}&external_source=imdb_id`);
           const d = await r.json();
-          const path = d.movie_results?.[0]?.poster_path;
-          if (path) cache[m.seed].poster = `https://image.tmdb.org/t/p/w92${path}`;
+          const mov = d.movie_results?.[0];
+          if (mov?.poster_path) cache[m.seed].poster = `https://image.tmdb.org/t/p/w92${mov.poster_path}`;
+          if (mov?.overview) cache[m.seed].plot = cache[m.seed].plot || mov.overview;
         }
         if (omdbKey) {
           const r = await fetch(`https://www.omdbapi.com/?i=${id}&apikey=${omdbKey}`);
@@ -196,6 +321,7 @@ async function fetchMovieMeta(tmdbKey, omdbKey) {
           if (d.Runtime && d.Runtime !== "N/A") cache[m.seed].runtime = d.Runtime;
           if (d.imdbRating && d.imdbRating !== "N/A") cache[m.seed].rating = d.imdbRating;
           if (!cache[m.seed].poster && d.Poster && d.Poster !== "N/A") cache[m.seed].poster = d.Poster;
+          if (d.Plot && d.Plot !== "N/A") cache[m.seed].plot = d.Plot; // OMDB wins — shorter and cleaner
         }
       } catch { /* silent per-movie failure */ }
     }));
@@ -233,9 +359,9 @@ function cBg(ctx) {
 
 function cHeader(ctx) {
   ctx.textAlign = "center";
-  ctx.fillStyle = "#ffd54f";
+  ctx.fillStyle = "#4fc3f7";
   ctx.font = "bold 18px Inter, sans-serif";
-  ctx.fillText("Disney × Pixar Bracket", CW / 2, 24);
+  ctx.fillText("Disney & Pixar: The Bracket", CW / 2, 24);
   ctx.fillStyle = "#6a6a8e";
   ctx.font = "10px Inter, sans-serif";
   ctx.fillText("70 movies · 69 matchups · 1 champion", CW / 2, 40);
@@ -253,7 +379,7 @@ function cRoundLabels(ctx) {
 }
 
 function cRegionLabels(ctx) {
-  const colors = ["#4fc3f7", "#ce93d8", "#ff8a65", "#ffd54f"];
+  const colors = ["#4fc3f7", "#ce93d8", "#ff8a65", "#4fc3f7"];
   REG.forEach((name, ri) => {
     // Regions 0+1 on left side (top half, bottom half), regions 2+3 on right side
     const side = ri < 2 ? "left" : "right";
@@ -326,7 +452,7 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
   ctx.roundRect(x, y, CSW, CSH, 4);
   ctx.fill();
   // Border
-  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "rgba(255,255,255,0.04)" : `${c.ac}40`;
+  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#4fc3f7") : lost ? "rgba(255,255,255,0.04)" : `${c.ac}40`;
   ctx.lineWidth = won ? 1.5 : 1;
   ctx.stroke();
   if (!movie) {
@@ -349,7 +475,7 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
     textX = x + CPW + 5;
   }
   // Seed
-  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#ffd54f") : lost ? "#3a3a5e" : c.ac + "aa";
+  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#4fc3f7") : lost ? "#3a3a5e" : c.ac + "aa";
   ctx.font = "bold 7px Inter, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(`#${movie.seed}`, textX, y + 9);
@@ -419,7 +545,7 @@ function cChamp(ctx, ch, imgs) {
       ctx.drawImage(img, bX + bW / 2 - 13, bY + 24, 26, 36);
       ctx.restore();
     }
-    ctx.fillStyle = "#ffd54f";
+    ctx.fillStyle = "#4fc3f7";
     ctx.font = "bold 8px Inter, sans-serif";
     const champName = ch.name.length > 14 ? ch.name.slice(0, 12) + "…" : ch.name;
     ctx.fillText(champName, bX + bW / 2, bY + 72);
@@ -503,7 +629,11 @@ export default function App() {
     } catch { /* ignore malformed hash */ }
     const s = loadLS("dbk-state", null);
     if (!s) return null;
-    return { ...s, piM: desMatch(s.piM), rds: s.rds.map(r => desMatch(r)) };
+    try {
+      return { ...s, piM: desMatch(s.piM), rds: s.rds.map(r => desMatch(r)) };
+    } catch {
+      return null;
+    }
   });
 
   const [ph, setPh] = useState(() => init?.ph || "pi");
@@ -520,12 +650,16 @@ export default function App() {
   const [hi, setHi] = useState(() => init?.hi || []);
   const [upsets, setUpsets] = useState(() => init?.upsets ?? []);
   const [upFlash, setUpFlash] = useState(false);
-  const [fact, setFact] = useState(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedBracket, setCopiedBracket] = useState(false);
 
-  // Movie meta (posters, runtime, rating)
-  const [movieMeta, setMovieMeta] = useState(() => loadLS("tmdb-meta-v1", {}));
+  // Movie meta (posters, runtime, rating) — static baseline merged with API cache (cache wins per-field)
+  const [movieMeta, setMovieMeta] = useState(() => {
+    const fromLS = loadLS("tmdb-meta-v1", {});
+    const merged = {};
+    ALL_MOVIES.forEach(m => { merged[m.seed] = { ...STATIC_META[m.seed], ...fromLS[m.seed] }; });
+    return merged;
+  });
   const [tmdbStatus, setTmdbStatus] = useState(null); // null|'fetching'|'done'|'error'
   const [showTmdbModal, setShowTmdbModal] = useState(false);
   const [pngStatus, setPngStatus] = useState(null); // null|'fetching'|'drawing'|'done'
@@ -535,11 +669,16 @@ export default function App() {
   const [syncStatus, setSyncStatus] = useState("idle"); // 'idle'|'syncing'|'synced'|'error'
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Persist bracket state to localStorage and URL hash
+  // Persist bracket state to localStorage and URL hash.
+  // Guard: don't overwrite the hash while Supabase auth tokens are still there.
+  // The navigator lock means _initialize() reads the hash as a platform task,
+  // which can fire AFTER React effects (MessageChannel). Overwriting wipes the
+  // access_token before the client reads it, so auth silently never fires.
   useEffect(() => {
     const serialized = { ph, piM: serMatch(piM), piI, rds: rds.map(r => serMatch(r)), cr, cm, ch, hi, upsets };
     saveLS("dbk-state", serialized);
-    if (hi.length > 0 || ch) {
+    const hashHasAuth = window.location.hash.includes("access_token") || window.location.hash.includes("token_hash");
+    if (!hashHasAuth && (hi.length > 0 || ch)) {
       try { window.history.replaceState(null, "", "#" + btoa(JSON.stringify({ _v: 1, ...serialized }))); } catch { /* btoa failure */ }
     }
   }, [ph, piM, piI, rds, cr, cm, ch, hi, upsets]);
@@ -595,14 +734,43 @@ export default function App() {
     setTimeout(() => setTmdbStatus(null), 3000);
   };
 
-  // Auth init — runs once on mount
+  // Easter egg: press ? to open the repo
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const h = e => { if (e.key === "?" && !e.target.closest("input,textarea")) window.open("https://github.com/snackdriven/disney-bracket", "_blank", "noopener,noreferrer"); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  // Token-hash exchange — handles magic link clicks (token_hash approach).
+  // The custom email template links to ?token_hash=...&type=email so the
+  // token survives email-client click trackers (which strip URL hashes).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tokenHash = params.get("token_hash");
+    const type = params.get("type");
+    if (tokenHash && type === "email") {
+      // Clean up URL before exchanging so a reload doesn't re-attempt
+      const clean = window.location.pathname;
+      window.history.replaceState(null, "", clean);
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: "email" });
+      // onAuthStateChange will fire SIGNED_IN once the exchange completes
+    }
+  }, []);
+
+  // Auth init — runs once on mount.
+  // onAuthStateChange fires INITIAL_SESSION after Supabase finishes its async
+  // URL-hash / localStorage init, so it's reliable where getSession() races.
+  useEffect(() => {
+    let pulled = false;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSbUser(session?.user ?? null);
-      if (session?.user) pullFromSupabase();
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setSbUser(session?.user ?? null);
+      // Pull on first sign-in (magic link) or when a pre-existing session is
+      // detected after page load (INITIAL_SESSION with a user).
+      if (session?.user && !pulled && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) {
+        pulled = true;
+        pullFromSupabase();
+      }
+      if (event === "SIGNED_OUT") pulled = false;
     });
     return () => subscription.unsubscribe();
   }, []); // intentional: pullFromSupabase is stable, runs once
@@ -621,6 +789,7 @@ export default function App() {
       setSyncStatus(error ? "error" : "synced");
       setTimeout(() => setSyncStatus("idle"), 3000);
     }, 2000);
+    return () => clearTimeout(syncTimerRef.current);
   }, [ph, piM, piI, rds, cr, cm, ch, hi, upsets, notes, sbUser]);
 
   // Auto-fetch movie meta on mount if keys exist — reads cache from localStorage directly
@@ -657,7 +826,7 @@ export default function App() {
     drawBracket(canvas, { rds, piM, ch, upsets, imgs });
     const a = document.createElement("a");
     a.href = canvas.toDataURL("image/png");
-    a.download = "disney-pixar-bracket.png";
+    a.download = "disney-and-pixar-bracket.png";
     a.click();
     setPngStatus("done");
     setTimeout(() => setPngStatus(null), 2000);
@@ -686,10 +855,6 @@ export default function App() {
     setHi(h => [...h, { p: pi?"pi":"m", i: pi?piI:cm, r: cr, wasUpset: isUpset }]);
     setTimeout(() => {
       setAn(null);
-      if (FACTS[w.name]) {
-        setFact(FACTS[w.name]);
-        setTimeout(() => setFact(null), 4000);
-      }
       if (pi) {
         const nm = piM.map((m,i) => { if(i!==piI) return m; const c=[...m]; c.winner=w; return c; });
         setPiM(nm);
@@ -715,7 +880,6 @@ export default function App() {
     if(!hi.length) return;
     const l = hi[hi.length-1];
     setHi(hi.slice(0,-1));
-    setFact(null);
     if (l.wasUpset) setUpsets(u => u.slice(0,-1));
     if(ch) setCh(null);
     if(l.p==="pi") {
@@ -732,13 +896,13 @@ export default function App() {
   const reset = () => {
     setPh("pi"); setPiM(PIP.map(([a,b])=>[PLAYIN[a],PLAYIN[b]])); setPiI(0);
     setRds([]); setCr(0); setCm(0); setCh(null); setHi([]); setBk(false); setFb(false);
-    setUpsets([]); setUpFlash(false); setFact(null); setCopiedLink(false); setCopiedBracket(false);
+    setUpsets([]); setUpFlash(false); setCopiedLink(false); setCopiedBracket(false);
     saveLS("dbk-state", null);
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
   };
 
   const exportBracket = () => {
-    const lines = ["🎬 Disney × Pixar Bracket Results", ""];
+    const lines = ["🎬 Disney & Pixar: The Bracket — My Results", ""];
     if (piM.some(m => m.winner)) {
       lines.push("PLAY-IN ROUND");
       piM.forEach(m => {
@@ -772,31 +936,49 @@ export default function App() {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 1500);
-    }).catch(() => {});
+    }).catch(() => {
+      const el = document.createElement("textarea");
+      el.value = window.location.href;
+      el.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(el);
+      el.select();
+      try { document.execCommand("copy"); setCopiedLink(true); setTimeout(() => setCopiedLink(false), 1500); } catch { /* give up */ }
+      document.body.removeChild(el);
+    });
   };
 
   const copyBracket = () => {
     navigator.clipboard.writeText(exportBracket()).then(() => {
       setCopiedBracket(true);
       setTimeout(() => setCopiedBracket(false), 1500);
-    }).catch(() => {});
+    }).catch(() => {
+      const el = document.createElement("textarea");
+      el.value = exportBracket();
+      el.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(el);
+      el.select();
+      try { document.execCommand("copy"); setCopiedBracket(true); setTimeout(() => setCopiedBracket(false), 1500); } catch { /* give up */ }
+      document.body.removeChild(el);
+    });
   };
 
   const metaCount = Object.values(movieMeta).filter(m => m?.poster || m?.rating).length;
 
   return (
-    <div style={{ minHeight:"100vh", background:"linear-gradient(155deg,#06060f,#0e0e24 30%,#180a20 60%,#06060f)", fontFamily:"'Inter',sans-serif", color:"#e0e0f0" }}>
+    <div style={{ minHeight:"100vh", position:"relative", zIndex:9999, fontFamily:"'Inter',sans-serif", color:"#e0e0f0" }}>
       {showTmdbModal && <TmdbModal onSave={(t,o)=>{ setShowTmdbModal(false); handleFetchMeta(t,o); }} onClose={()=>setShowTmdbModal(false)}/>}
       {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)}/>}
       <Dots mob={mob}/>
       <style>{`
-        @keyframes tw{0%,100%{opacity:.2}50%{opacity:1}}
+        @keyframes tw{0%,100%{opacity:.05}50%{opacity:1}}
+        @keyframes tw2{0%,100%{opacity:.05}20%{opacity:.9}35%{opacity:.15}55%{opacity:.8}70%{opacity:.05}85%{opacity:.6}}
+        @keyframes mote-rise{0%{transform:translateY(0);opacity:0}8%{opacity:1}92%{opacity:1}100%{transform:translateY(-110vh);opacity:0}}
         @keyframes su{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
         @keyframes cb{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
-        @keyframes wg{0%,100%{text-shadow:0 0 20px rgba(255,215,0,.4)}50%{text-shadow:0 0 50px rgba(255,215,0,.8),0 0 80px rgba(255,215,0,.3)}}
+        @keyframes wg{0%,100%{text-shadow:0 0 20px rgba(79,195,247,.4)}50%{text-shadow:0 0 50px rgba(79,195,247,.8),0 0 80px rgba(79,195,247,.3)}}
         @keyframes ch{0%{transform:scale(1)}40%{transform:scale(1.04)}100%{transform:scale(.98);opacity:.6}}
         @keyframes fi{from{opacity:0}to{opacity:1}}
-        @keyframes pp{0%,100%{border-color:rgba(255,215,0,.15)}50%{border-color:rgba(255,215,0,.4)}}
+        @keyframes pp{0%,100%{border-color:rgba(79,195,247,.15)}50%{border-color:rgba(79,195,247,.4)}}
         @keyframes uf{0%{opacity:0;transform:translateY(-8px) scale(.9)}20%{opacity:1;transform:translateY(0) scale(1)}80%{opacity:1}100%{opacity:0}}
         @media(max-width:600px){
           .mob-btn:active{opacity:.7!important;transform:scale(.97)!important}
@@ -805,12 +987,12 @@ export default function App() {
       `}</style>
       <div style={{ position:"relative", zIndex:1, maxWidth:1200, margin:"0 auto", padding:mob?"16px 16px 32px":"20px 32px 40px" }}>
         <div style={{ textAlign:"center", marginBottom:mob?20:28 }}>
-          <div style={{ fontSize:mob?11:11, letterSpacing:mob?5:7, textTransform:"uppercase", color:"#6a6a8e", marginBottom:mob?4:6 }}>The Ultimate</div>
-          <h1 style={{ fontSize:"clamp(28px,5vw,42px)", fontWeight:800, margin:"0 0 4px", background:"linear-gradient(135deg,#4fc3f7,#ce93d8 35%,#ff8a65 65%,#ffd54f)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Disney × Pixar Bracket</h1>
+          <div style={{ fontSize:mob?11:11, letterSpacing:mob?5:7, textTransform:"uppercase", color:"#6a6a8e", marginBottom:mob?4:6 }}>Settle it once and for all</div>
+          <h1 style={{ fontSize:"clamp(28px,5vw,42px)", fontWeight:800, margin:"0 0 4px", fontFamily:"'Outfit',sans-serif", background:"linear-gradient(135deg,#9d8fe0,#ce93d8 45%,#4fc3f7)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Disney & Pixar: The Bracket</h1>
           <div style={{ fontSize:mob?13:13, color:"#7a7a9e" }}>{mob?"70 movies · 69 matchups · 1 champion":"70 movies · 6 play-in games · 69 matchups · 1 champion"}</div>
         </div>
-        <div style={{ background:"rgba(255,255,255,.05)", borderRadius:20, height:mob?6:5, marginBottom:mob?6:6, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,#4fc3f7,#ce93d8,#ff8a65,#ffd54f)", borderRadius:20, transition:"width .5s" }}/>
+        <div role="progressbar" aria-valuenow={Math.round(prog)} aria-valuemin={0} aria-valuemax={100} aria-label="Bracket completion" style={{ background:"rgba(255,255,255,.05)", borderRadius:20, height:mob?6:5, marginBottom:mob?6:6, overflow:"hidden" }}>
+          <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,#9d8fe0,#ce93d8,#4fc3f7)", borderRadius:20, transition:"width .5s" }}/>
         </div>
         <div style={{ display:"flex", justifyContent:"space-between", fontSize:mob?12:11, color:"#6a6a8e", marginBottom:mob?10:14 }}>
           <span>{hi.length}/69 decided</span><span>{rl}{rn?` · ${rn}`:""}</span>
@@ -829,6 +1011,7 @@ export default function App() {
           ) : (
             <button onClick={()=>setShowAuthModal(true)} style={{ background:"none", border:"none", color:"#6a6a8e", fontSize:mob?12:11, cursor:"pointer", letterSpacing:.5 }}>☁ Sync across devices</button>
           )}
+          <a href="https://snackdriven.github.io/bad-movie-bracket/" target="_blank" rel="noopener noreferrer" title="something worse this way comes" style={{ color:"#3a3a52", fontSize:mob?12:11, textDecoration:"none", opacity:.5 }}>💀</a>
           <span style={{ color:"#4a4a65" }}>·</span>
           <button onClick={()=>{ if(tmdbStatus==="fetching") return; if(!localStorage.getItem("tmdb-key")) setShowTmdbModal(true); else handleFetchMeta(); }} style={{ background:"none", border:"none", color:metaCount>0?"#6a6a8e":"#4fc3f7", fontSize:mob?12:11, cursor:"pointer" }}>
             {tmdbStatus==="fetching"?"⏳ Fetching..." : metaCount>0 ? `🎬 ${metaCount} movies loaded` : "🎬 Add posters & ratings"}
@@ -837,14 +1020,14 @@ export default function App() {
 
         {/* Full Bracket + Notes toggles */}
         <div style={{ textAlign:"center", marginBottom:mob?14:16, display:"flex", gap:mob?10:8, justifyContent:"center", flexWrap:"wrap" }}>
-          <button className={mob?"mob-btn":""} onClick={()=>setFb(!fb)} style={{
-            background: fb?"rgba(255,215,0,.12)":"rgba(255,255,255,.04)",
-            border: fb?"1px solid rgba(255,215,0,.3)":"1px solid rgba(255,255,255,.08)",
-            color: fb?"#ffd54f":"#8a8aae", padding:mob?"10px 18px":"6px 18px", borderRadius:10,
+          <button aria-expanded={fb} className={mob?"mob-btn":""} onClick={()=>setFb(!fb)} style={{
+            background: fb?"rgba(79,195,247,.12)":"rgba(255,255,255,.04)",
+            border: fb?"1px solid rgba(79,195,247,.3)":"1px solid rgba(255,255,255,.08)",
+            color: fb?"#4fc3f7":"#8a8aae", padding:mob?"10px 18px":"6px 18px", borderRadius:10,
             fontSize:mob?13:12, fontWeight:600, cursor:"pointer", letterSpacing:.5,
             transition:"all .15s", minHeight:mob?48:undefined,
           }}>{fb ? "Hide Bracket" : "📋 Full Bracket"}</button>
-          <button className={mob?"mob-btn":""} onClick={()=>setShowNotes(!showNotes)} style={{
+          <button aria-expanded={showNotes} className={mob?"mob-btn":""} onClick={()=>setShowNotes(!showNotes)} style={{
             background: showNotes?"rgba(206,147,216,.12)":"rgba(255,255,255,.04)",
             border: showNotes?"1px solid rgba(206,147,216,.3)":"1px solid rgba(255,255,255,.08)",
             color: showNotes?"#ce93d8":"#8a8aae", padding:mob?"10px 18px":"6px 18px", borderRadius:10,
@@ -860,13 +1043,13 @@ export default function App() {
         {fb && <FullBracket mob={mob} piM={piM} rds={rds} m64={[...MAIN,...piM.map(m=>m.winner).filter(Boolean)]} cr={cr} cm={cm} ip={ip} upsets={upsets}/>}
 
         {ip && <div style={{ textAlign:"center", marginBottom:mob?16:20, animation:"fi .4s" }}>
-          <div style={{ display:"inline-block", padding:mob?"8px 16px":"6px 18px", borderRadius:20, background:"rgba(255,215,0,.08)", border:"1px solid rgba(255,215,0,.2)", animation:"pp 3s ease-in-out infinite", fontSize:mob?13:12, fontWeight:700, color:"#ffd54f", letterSpacing:mob?1:2, textTransform:"uppercase" }}>{mob?"🎬 Play-In Round":"🎬 Play-In — Bottom 12 fight for 6 spots"}</div>
+          <div style={{ display:"inline-block", padding:mob?"8px 16px":"6px 18px", borderRadius:20, background:"rgba(79,195,247,.08)", border:"1px solid rgba(79,195,247,.2)", animation:"pp 3s ease-in-out infinite", fontSize:mob?13:12, fontWeight:700, color:"#4fc3f7", letterSpacing:mob?1:2, textTransform:"uppercase" }}>{mob?"🎬 Play-In Round":"🎬 Play-In — Bottom 12 fight for 6 spots"}</div>
         </div>}
 
         {ch ? <div style={{ textAlign:"center", animation:"su .5s ease-out", padding:mob?"24px 12px":"40px 20px" }}>
           <div style={{ fontSize:mob?42:56, animation:"cb 2s ease-in-out infinite", marginBottom:mob?8:12 }}>👑</div>
-          <div style={{ fontSize:mob?12:11, letterSpacing:mob?4:6, textTransform:"uppercase", color:"#ffd54f", marginBottom:mob?8:10 }}>Your Champion</div>
-          <div style={{ fontSize:"clamp(28px,7vw,50px)", fontWeight:800, color:"#ffd54f", animation:"wg 2s ease-in-out infinite", marginBottom:6 }}>{ch.name}</div>
+          <div style={{ fontSize:mob?12:11, letterSpacing:mob?4:6, textTransform:"uppercase", color:"#4fc3f7", marginBottom:mob?8:10 }}>Your Champion</div>
+          <div style={{ fontSize:"clamp(28px,7vw,50px)", fontWeight:800, color:"#4fc3f7", animation:"wg 2s ease-in-out infinite", marginBottom:6 }}>{ch.name}</div>
           <div style={{ fontSize:mob?15:15, color:"#9a9abe" }}>{ch.studio} · {ch.year} · #{ch.seed} seed</div>
           {upsets.length > 0 && <div style={{ marginTop:16, fontSize:mob?13:13, color:"#6a6a8e" }}>
             <div>{upsets.length} upset{upsets.length !== 1 ? "s" : ""} picked</div>
@@ -913,13 +1096,9 @@ export default function App() {
           {upFlash && <div style={{ textAlign:"center", marginTop:12, animation:"uf 1.5s ease-out forwards" }}>
             <span style={{ display:"inline-block", padding:"4px 14px", borderRadius:20, background:"rgba(255,80,80,.12)", border:"1px solid rgba(255,80,80,.25)", fontSize:mob?12:11, fontWeight:700, color:"#ff7070", letterSpacing:2, textTransform:"uppercase" }}>🚨 Upset!</span>
           </div>}
-          {fact && <div style={{ margin:mob?"14px 0 0":"14px auto 0", maxWidth:mob?undefined:560, padding:"12px 18px", background:"rgba(255,255,255,.04)", borderRadius:12, border:"1px solid rgba(255,255,255,.07)", fontSize:mob?13:13, color:"#9898b8", fontStyle:"italic", lineHeight:1.6, animation:"su .3s ease-out" }}>
-            💡 {fact}
-          </div>}
           <div style={{ display:"flex", justifyContent:"center", gap:mob?10:10, marginTop:mob?18:22 }}>
             {hi.length>0 && <Btn mob={mob} s onClick={undo}>← Undo</Btn>}
             <Btn mob={mob} s mu onClick={reset}>Reset</Btn>
-            {!ip && <Btn mob={mob} s mu onClick={()=>setBk(!bk)}>{bk?"Hide":"Bracket"}</Btn>}
             {hi.length>0 && <Btn mob={mob} s mu onClick={copyLink}>{copiedLink ? "✓!" : "🔗 Share"}</Btn>}
             {hi.length>0 && <Btn mob={mob} s mu onClick={handleDownloadPng}>
               {pngStatus&&pngStatus!=="done"?"⏳":pngStatus==="done"?"✓!":"⬇ PNG"}
@@ -949,30 +1128,42 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
   const panelW = mob ? 66 : 78;
   const rTop = showCardNotes ? (mob ? "14px 14px 0 0" : "16px 16px 0 0") : (mob ? 14 : 16);
 
-  const cardBg = h ? `linear-gradient(135deg,${c.bg} 0%,${c.ac}22 100%)` : `linear-gradient(135deg,${c.bg}f8 0%,${c.bg}dd 100%)`;
+  const cardBg = `linear-gradient(135deg,${c.bg}f8 0%,${c.bg}dd 100%)`;
   const cardBorder = h ? `1.5px solid ${c.ac}55` : "1.5px solid rgba(255,255,255,.06)";
+  const sparkling = !showCardNotes && !d && h;
+  const cardBgOpaque = `linear-gradient(135deg,#0e0e21 0%,#0c0c1c 100%)`;
 
   return <div style={{
     flex:mob?"1 1 100%":"1 1 320px", maxWidth:mob?undefined:560, width:mob?"100%":undefined,
-    // When notes open, outer wrapper becomes the visual container
     background: showCardNotes ? cardBg : "transparent",
     border: showCardNotes ? cardBorder : "none",
     borderRadius: mob?14:16,
     overflow: showCardNotes ? "hidden" : "visible",
     transition:"border-color .18s",
   }}>
+    {/* Spark wrapper: 2px animated conic ring. Handles hover lift + shadow so overflow:hidden doesn't clip them. */}
+    <div style={sparkling ? {
+      padding:"2px", borderRadius:mob?14:16, overflow:"hidden",
+      background:`conic-gradient(from var(--spark-angle), #0a0a18 0%, #0a0a18 60%, rgba(157,143,224,.04) 68%, rgba(206,147,216,.13) 80%, rgba(249,168,212,.25) 89%, rgba(255,255,255,.35) 94%, #0a0a18 96%)`,
+      animation:"spark-rotate 8s linear infinite",
+      transform: h&&!a&&!mob?"translateY(-4px)":"none",
+      boxShadow: h?`0 ${mob?14:22}px ${mob?36:54}px rgba(0,0,0,.5)`:`0 4px ${mob?14:18}px rgba(0,0,0,.35)`,
+      transition:"transform .18s cubic-bezier(.25,.8,.25,1), box-shadow .18s",
+    } : { display:"contents" }}>
     <button className={mob?"mob-card":""} onClick={()=>!d&&onC()}
       onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)}
       onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined}
       style={{
         width:"100%", padding:0, position:"relative", overflow:"hidden",
-        background: showCardNotes ? "transparent" : cardBg,
-        border: showCardNotes ? "none" : cardBorder,
-        borderRadius: rTop,
+        background: showCardNotes ? "transparent" : (sparkling ? cardBgOpaque : cardBg),
+        border: showCardNotes ? "none" : (sparkling ? "none" : cardBorder),
+        borderRadius: sparkling ? (mob?12:14) : rTop,
         cursor: d?"default":"pointer",
-        transition:"all .18s cubic-bezier(.25,.8,.25,1)",
-        transform: h&&!a&&!mob?"translateY(-4px)":"none",
-        boxShadow: h?`0 ${mob?14:22}px ${mob?36:54}px ${c.gl},inset 0 1px 0 ${c.ac}18`:`0 4px ${mob?14:18}px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04)`,
+        transition:"background .18s, box-shadow .18s",
+        transform: sparkling ? "none" : (h&&!a&&!mob?"translateY(-4px)":"none"),
+        boxShadow: sparkling
+          ? (h?`inset 0 1px 0 ${c.ac}18`:`inset 0 1px 0 rgba(255,255,255,.04)`)
+          : (h?`0 ${mob?14:22}px ${mob?36:54}px rgba(0,0,0,.5),inset 0 1px 0 ${c.ac}18`:`0 4px ${mob?14:18}px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04)`),
         animation: a?"ch .35s ease forwards":"none",
         display:"flex", flexDirection:"row", alignItems:"stretch",
         minHeight: mob?90:108, textAlign:"left",
@@ -987,7 +1178,7 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
         {hasPoster ? <>
           <img src={meta.poster} alt="" style={{
             width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top",
-            display:"block", opacity:a?.45:1,
+            display:"block", opacity:a ? 0.45 : 1,
             transition:"opacity .3s, transform .2s",
             transform: h&&!mob?"scale(1.05)":"scale(1)",
           }}/>
@@ -1007,7 +1198,7 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
         {/* Top row: seed (when poster) + studio + year + notes dot */}
         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
           {hasPoster && <span style={{ fontSize:9, fontWeight:800, color:c.ac, opacity:.5, letterSpacing:.5 }}>#{m.seed}</span>}
-          <span style={{ padding:"1px 7px", borderRadius:20, background:`${c.ac}18`, color:c.tx, fontSize:9, fontWeight:700, letterSpacing:.4 }}>{m.studio}</span>
+          <span style={{ padding:"1px 7px", borderRadius:20, background:BADGE_CLR[m.studio].bg, color:BADGE_CLR[m.studio].tx, fontSize:9, fontWeight:700, letterSpacing:.4 }}>{m.studio}</span>
           <span style={{ fontSize:10, color:"#52526a" }}>{m.year}</span>
           {note && !showCardNotes && <span style={{ width:5, height:5, borderRadius:"50%", background:"#ce93d8", flexShrink:0, marginLeft:2 }}/>}
         </div>
@@ -1029,18 +1220,40 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
           {m.imdb && <a href={m.imdb} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ padding:"1px 5px", borderRadius:3, background:"#e5b80010", color:"#c49a00", fontSize:9, fontWeight:700, textDecoration:"none", border:"1px solid #e5b80018", letterSpacing:.3 }}>IMDb ↗</a>}
         </div>
 
+        {/* Plot — desktop hover only (hidden when notes open) */}
+        {!mob && !showCardNotes && meta?.plot && (
+          <div style={{
+            fontSize:11, color:"#7a7a9e", lineHeight:1.5,
+            overflow:"hidden", display:"-webkit-box",
+            WebkitLineClamp:3, WebkitBoxOrient:"vertical",
+            maxHeight: h ? "54px" : "0px",
+            opacity: h ? 1 : 0,
+            transition:"opacity .2s, max-height .22s",
+            marginTop: h ? 3 : 0,
+          }}>{meta.plot}</div>
+        )}
+
+        {/* Trivia — only when notes are open */}
+        {showCardNotes && FACTS[m.name] && (
+          <div style={{
+            fontSize:11, color:"#7a7a9e", lineHeight:1.55,
+            marginTop:2,
+          }}>{FACTS[m.name]}</div>
+        )}
+
         {mob && <div style={{ fontSize:9, color:c.ac, fontWeight:700, letterSpacing:1.8, textTransform:"uppercase", opacity:.4 }}>Tap to pick</div>}
       </div>
 
       {/* Hover: left accent bar */}
       <div style={{ position:"absolute", left:0, top:"15%", bottom:"15%", width:3, background:`linear-gradient(180deg,transparent,${c.ac}cc,transparent)`, borderRadius:2, opacity:h&&!mob?1:0, transition:"opacity .18s" }}/>
 
-      {/* Desktop pick hint */}
-      {h&&!mob&&!a && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1, opacity:.7 }}>Pick →</div>}
+      {/* Desktop pick hint — hidden when plot is showing to avoid overlap */}
+      {h&&!mob&&!a&&!meta?.plot && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1, opacity:.7 }}>Pick →</div>}
     </button>
+    </div>{/* end spark wrapper */}
 
     <div style={{ textAlign:"center", marginTop:showCardNotes?0:(mob?3:3) }}>
-      <button onClick={e=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
+      <button aria-expanded={showCardNotes} aria-label={showCardNotes ? `Hide notes for ${m.name}` : `Add notes for ${m.name}`} onClick={e=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
         background:"transparent", border:"none", color:"#7a7a9e", fontSize:mob?11:10, cursor:"pointer",
         padding:mob?"5px 14px":"2px 8px", letterSpacing:.5, minHeight:mob?32:undefined,
       }}>{showCardNotes ? "hide notes ▲" : "notes ▼"}</button>
@@ -1052,14 +1265,21 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
 function TmdbModal({ onSave, onClose }) {
   const [tmdb, setTmdb] = useState(localStorage.getItem("tmdb-key") || "");
   const [omdb, setOmdb] = useState(localStorage.getItem("omdb-key") || "548162f0");
+  const dialogRef = useRef(null);
+  useEffect(() => {
+    dialogRef.current?.focus();
+    const h = e => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
   const save = () => {
     if (tmdb.trim()) localStorage.setItem("tmdb-key", tmdb.trim());
     if (omdb.trim()) localStorage.setItem("omdb-key", omdb.trim());
     onSave(tmdb.trim(), omdb.trim());
   };
-  return <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
-    <div style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:440, width:"90%", animation:"su .2s" }}>
-      <h3 style={{ color:"#f0f0ff", margin:"0 0 6px", fontSize:18 }}>Movie Posters, Ratings & Runtimes</h3>
+  return <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="tmdb-modal-title" tabIndex={-1} onClick={e=>e.stopPropagation()} style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:440, width:"90%", animation:"su .2s", outline:"none" }}>
+      <h3 id="tmdb-modal-title" style={{ color:"#f0f0ff", margin:"0 0 6px", fontSize:18 }}>Movie Posters, Ratings & Runtimes</h3>
       <p style={{ color:"#8a8aa8", fontSize:12, margin:"0 0 18px", lineHeight:1.6 }}>Keys stored locally, never sent anywhere else. Both are free.</p>
 
       <label style={{ display:"block", color:"#9898b8", fontSize:11, marginBottom:4, letterSpacing:.5 }}>
@@ -1088,18 +1308,35 @@ function TmdbModal({ onSave, onClose }) {
 function AuthModal({ onClose }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [err, setErr] = useState(null);
+  const dialogRef = useRef(null);
+  useEffect(() => {
+    dialogRef.current?.focus();
+    const h = e => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
   const sendLink = async () => {
-    const { error } = await supabase.auth.signInWithOtp({ email });
-    if (!error) setSent(true);
+    setErr(null);
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + window.location.pathname },
+    });
+    if (error) {
+      setErr(error.status === 429 ? "Too many requests — wait a minute and try again." : error.message);
+    } else {
+      setSent(true);
+    }
   };
-  return <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
-    <div style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:380, width:"90%", animation:"su .2s" }}>
-      <h3 style={{ color:"#f0f0ff", margin:"0 0 8px", fontSize:18 }}>Sync Across Devices</h3>
+  return <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" tabIndex={-1} onClick={e=>e.stopPropagation()} style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:380, width:"90%", animation:"su .2s", outline:"none" }}>
+      <h3 id="auth-modal-title" style={{ color:"#f0f0ff", margin:"0 0 8px", fontSize:18 }}>Sync Across Devices</h3>
       {sent ? (
         <p style={{ color:"#8a8aa8", fontSize:14, lineHeight:1.6 }}>Check your email for a magic link. Close this when you're signed in.</p>
       ) : (
         <>
           <p style={{ color:"#8a8aa8", fontSize:13, margin:"0 0 16px", lineHeight:1.6 }}>Enter your email — we'll send a link. Your bracket and notes sync automatically once you're signed in.</p>
+          {err && <p style={{ color:"#ff8a65", fontSize:13, margin:"0 0 12px", lineHeight:1.5 }}>{err}</p>}
           <input value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendLink()} type="email" placeholder="you@example.com"
             style={{ width:"100%", boxSizing:"border-box", background:"rgba(0,0,0,.3)", border:"1px solid rgba(255,255,255,.1)", borderRadius:8, padding:"10px 12px", color:"#e0e0f0", fontSize:14, outline:"none", marginBottom:16 }}/>
           <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
@@ -1209,15 +1446,16 @@ function NoteRow({ m, note, c, updateNote, mob }) {
 
 function Dots({ mob }) {
   const dots = mob ? DOTS.slice(0, 40) : DOTS;
-  return <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}>
+  return <div aria-hidden="true" style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}>
     {dots.map((d,i) => <div key={i} style={{
       position:"absolute", width:d.w, height:d.h,
-      background:`rgba(255,255,255,${d.op})`, borderRadius:"50%",
+      background:`rgba(${d.col},${d.op})`, borderRadius:"50%",
       left:`${d.l}%`, top:`${d.t}%`,
-      animation:`tw ${d.dur}s ease-in-out infinite`, animationDelay:`${d.del}s`,
+      animation:`${d.er?"tw2":"tw"} ${d.dur}s ${d.er?"linear":"ease-in-out"} infinite`, animationDelay:`${d.del}s`,
     }}/>)}
   </div>;
 }
+
 
 function Btn({ children, onClick, p, s, mu, mob }) {
   return <button className={mob?"mob-btn":""} onClick={onClick} style={{
@@ -1240,10 +1478,10 @@ function BV({ pi, rds, cr, cm, mob }) {
 
 function RB({ t, ms, g, cr, cm, ri, mob }) {
   return <div style={{ marginBottom:mob?14:16 }}>
-    <div style={{ fontSize:mob?11:10, letterSpacing:mob?2:2.5, textTransform:"uppercase", color:g?"#ffd54f":"#6a6a8e", marginBottom:mob?6:6, fontWeight:700, opacity:g?.7:1 }}>{t}</div>
+    <div style={{ fontSize:mob?11:10, letterSpacing:mob?2:2.5, textTransform:"uppercase", color:g?"#4fc3f7":"#6a6a8e", marginBottom:mob?6:6, fontWeight:700, opacity:g?.7:1 }}>{t}</div>
     {ms.map((m,mi) => {
       const w=m.winner, cur=ri===cr&&mi===cm;
-      return <div key={mi} style={{ display:"flex", alignItems:"center", gap:mob?6:6, fontSize:mob?13:12, padding:mob?"5px 8px":"3px 8px", borderRadius:6, background:cur?"rgba(255,215,0,.08)":"transparent" }}>
+      return <div key={mi} style={{ display:"flex", alignItems:"center", gap:mob?6:6, fontSize:mob?13:12, padding:mob?"5px 8px":"3px 8px", borderRadius:6, background:cur?"rgba(79,195,247,.08)":"transparent" }}>
         <MN m={m[0]} w={w} r mob={mob}/><span style={{ color:"#3a3a55", fontSize:mob?10:9, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob}/>
       </div>;
     })}
@@ -1252,7 +1490,7 @@ function RB({ t, ms, g, cr, cm, ri, mob }) {
 
 function MN({ m, w, r, mob, upset }) {
   const won=w?.seed===m.seed, lost=w&&!won;
-  const winColor = upset ? "#ff8a65" : "#ffd54f";
+  const winColor = upset ? "#ff8a65" : "#4fc3f7";
   return <span style={{ color:won?winColor:lost?"#4a4a65":"#8a8aa8", fontWeight:won?700:400, flex:1, textAlign:r?"right":"left", textDecoration:lost?"line-through":"none", opacity:lost?.5:1, overflow:mob?"hidden":undefined, textOverflow:mob?"ellipsis":undefined, whiteSpace:mob?"nowrap":undefined }}>{m.name}</span>;
 }
 
@@ -1269,7 +1507,7 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
 
   const regionStyle = { marginBottom:mob?16:20 };
   const headStyle = { fontSize:mob?12:11, letterSpacing:mob?1.5:2, textTransform:"uppercase", fontWeight:700, marginBottom:mob?8:8, paddingBottom:mob?6:6, borderBottom:"1px solid rgba(255,255,255,.06)" };
-  const regColors = ["#4fc3f7","#ce93d8","#ff8a65","#ffd54f"];
+  const regColors = ["#4fc3f7","#ce93d8","#ff8a65","#4fc3f7"];
   const rowFs = mob ? 13 : 12;
   const rowPad = mob ? "5px 8px" : "4px 8px";
   const rowGap = mob ? 6 : 6;
@@ -1294,13 +1532,13 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
     <div style={{ fontSize:mob?13:12, color:"#7a7a9e", marginBottom:mob?16:20 }}>{mob?"4 regions · Final Four · Championship":"70 movies · 4 regions · Winners from each region meet in the Final Four"}</div>
 
     <div style={regionStyle}>
-      <div style={{ ...headStyle, color:"#ffd54f", opacity:.8 }}>🎬 Play-In Round</div>
+      <div style={{ ...headStyle, color:"#4fc3f7", opacity:.8 }}>🎬 Play-In Round</div>
       {piM.map((m,i) => {
         const w = m.winner;
         const isUpset = w && w.seed > (w.seed===m[0].seed ? m[1] : m[0]).seed;
-        return <div key={i} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background: ip&&i===0&&!w ? "rgba(255,215,0,.06)" : "transparent" }}>
+        return <div key={i} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background: ip&&i===0&&!w ? "rgba(79,195,247,.06)" : "transparent" }}>
           <MN m={m[0]} w={w} r mob={mob} upset={isUpset&&w?.seed===m[0].seed}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob} upset={isUpset&&w?.seed===m[1].seed}/>
-          {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#ffd54f", opacity:.6, marginLeft:mob?2:4 }}>{isUpset?"⚡":"✓"}</span>}
+          {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#4fc3f7", opacity:.6, marginLeft:mob?2:4 }}>{isUpset?"⚡":"✓"}</span>}
         </div>;
       })}
     </div>
@@ -1319,8 +1557,8 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
           const bSeed = mu.b?.seed;
           const isCurrentMatch = !ip && cr===0 && cm===regIdx*8+mi;
           const isUpset = w && w.seed > (w.seed===aSeed ? bSeed : aSeed);
-          const winColor = isUpset ? "#ff8a65" : "#ffd54f";
-          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCurrentMatch?"rgba(255,215,0,.06)":"transparent" }}>
+          const winColor = isUpset ? "#ff8a65" : "#4fc3f7";
+          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCurrentMatch?"rgba(79,195,247,.06)":"transparent" }}>
             <span style={{
               flex:1, textAlign:"right", ...ellipsis,
               color: w?.seed===aSeed?winColor : w&&w.seed!==aSeed?"#4a4a65" : p?"#8a8aa8":"#7a7a9e",
@@ -1338,7 +1576,7 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
               opacity: w&&w.seed!==bSeed?.4:1,
               fontStyle: !mu.b?"italic":"normal",
             }}>{bName}{!mob&&bSeed?` #${bSeed}`:""}</span>
-            {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#ffd54f", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
+            {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#4fc3f7", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
           </div>;
         })}
       </div>;
@@ -1352,9 +1590,9 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
           const w = m.winner;
           const isUpset = w && w.seed > (w.seed===m[0].seed ? m[1] : m[0]).seed;
           const isCur = !ip && cr===roundNum && cm===mi;
-          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCur?"rgba(255,215,0,.06)":"transparent" }}>
+          return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCur?"rgba(79,195,247,.06)":"transparent" }}>
             <MN m={m[0]} w={w} r mob={mob} upset={isUpset&&w?.seed===m[0].seed}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob} upset={isUpset&&w?.seed===m[1].seed}/>
-            {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#ffd54f", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
+            {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#4fc3f7", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
           </div>;
         })}
       </div>;
