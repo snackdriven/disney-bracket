@@ -1,18 +1,50 @@
-# Disney × Pixar Bracket
+# 🎬 Disney × Pixar Bracket
 
-At some point you're going to have to put Beauty and the Beast against The Emperor's New Groove. There's no path around it. You're going to sit there and have to choose between the film that was nominated for Best Picture and the one that has no business being as funny as it is, and whatever you pick, you'll spend the next three days wondering if you actually know yourself at all. I'm sorry. There was no other way to build this.
+At some point you're going to have to put **Beauty and the Beast** against **The Emperor's New Groove**.
 
-**[Enter if you're ready](https://snackdriven.github.io/disney-bracket/)**
+There's no path around it. You're going to sit there and have to choose between the film that was nominated for Best Picture and the one that has no business being as funny as it is, and whatever you pick, you'll spend the next three days wondering if you actually know yourself at all.
 
-70 movies. 1937 to 2024. 12 fight through a play-in round — yes, even the play-in matters, you will feel things during the play-in — and then 64 go at it across four seeded regions through six brutal rounds. Someone is going to knock out your #1 in the Sweet 16. It happens to everyone. You will be okay. Probably.
+I'm sorry. There was no other way to build this.
 
-Every card has the poster, rating, runtime, and a plot refresher for the ones you thought you remembered until you were staring down a matchup at midnight and realized you couldn't recall a single thing about Atlantis. There's also production trivia on all 70, because what this experience needs is more information to complicate your decisions. Did you know Toy Story 2 was almost entirely deleted by accident and only survived because someone had a backup on their home computer? Now you do. That's going in the notes somewhere between round two and your complete unraveling in the Elite 8.
+**[Enter if you're ready →](https://snackdriven.github.io/disney-bracket/)**
 
-Notes on every movie so you can document your reasoning and later confront what you were thinking. Upset tracking because your bracket will go off the rails and you deserve to know by how much. Undo whenever you need it — no shame, we've all been there. Shareable link so you can send your bracket to someone and have a real conversation about it. 1920×1080 PNG export to preserve the evidence.
+---
 
-Sign in with a magic link to sync across devices, because this is not a one-session experience and anyone who tells you they finished it in one sitting is lying or didn't think hard enough. Or stay in the browser. Take as long as you need. Some people are still thinking about round three.
+## The Setup 🏆
 
-React 19 + Vite + Supabase. The tech is fine. It's everything else that's going to get you.
+**70 movies. 1937 to 2024.**
+
+12 fight through a play-in round — yes, even the play-in matters, you will feel things during the play-in — and then 64 go at it across four seeded regions through **six brutal rounds**. Someone is going to knock out your #1 in the Sweet 16. It happens to everyone. You will be okay. Probably.
+
+Regions: **Legends & Legacies** · **Heart & Heartbreak** · **Magic & Mischief** · **Worlds Apart**
+
+---
+
+## What's on the Cards 🎴
+
+Every card has the poster, IMDb rating, runtime, and a plot refresher for the ones you thought you remembered until you were staring down a matchup at midnight and realized you couldn't recall a single thing about Atlantis.
+
+There's also **production trivia on all 70 movies**, because what this experience needs is more information to complicate your decisions.
+
+Did you know Toy Story 2 was almost entirely deleted by accident and only survived because someone had a backup on their home computer? Now you do. That's going in the notes somewhere between round two and your complete unraveling in the Elite 8.
+
+---
+
+## Features 🛠️
+
+- 📝 **Notes** on any movie — document your reasoning, confront it later
+- ⚡ **Upset tracking** — counts every time you pick the lower seed and judges you for it
+- ↩️ **Undo** any pick, reset the whole bracket, no judgment
+- 🔗 **Shareable link** with your full bracket encoded in the URL
+- 🖼️ **PNG export** — 1920×1080 with all the poster art, when you're done
+
+---
+
+## Sync ☁️
+
+Sign in with a magic link and your bracket and notes follow you across devices — because **this is not a one-session experience**, and anyone who tells you they finished it in one sitting is lying or didn't think hard enough.
+
+Or stay in the browser. Your bracket lives in local storage until you clear it.
 
 ---
 
@@ -22,6 +54,8 @@ React 19 + Vite + Supabase. The tech is fine. It's everything else that's going 
 npm install
 npm run dev
 ```
+
+React 19 + Vite. Supabase for auth and sync.
 
 ```sql
 CREATE TABLE disney_bracket (
