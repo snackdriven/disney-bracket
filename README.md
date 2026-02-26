@@ -1,25 +1,18 @@
 # Disney × Pixar Bracket
 
-Everyone's got a take. "Up is overrated." "Encanto is better than Frozen." "Cars shouldn't even be in this conversation." Cool. Prove it.
+At some point you're going to have to put Beauty and the Beast against The Emperor's New Groove. There's no path around it. You're going to sit there and have to choose between the film that was nominated for Best Picture and the one that has no business being as funny as it is, and whatever you pick, you'll spend the next three days wondering if you actually know yourself at all. I'm sorry. There was no other way to build this.
 
-70 movies. 69 head-to-head matchups. One winner. **[Play it here.](https://snackdriven.github.io/disney-bracket/)**
+**[Enter if you're ready](https://snackdriven.github.io/disney-bracket/)**
 
----
+70 movies. 1937 to 2024. 12 fight through a play-in round — yes, even the play-in matters, you will feel things during the play-in — and then 64 go at it across four seeded regions through six brutal rounds. Someone is going to knock out your #1 in the Sweet 16. It happens to everyone. You will be okay. Probably.
 
-## How it works
+Every card has the poster, rating, runtime, and a plot refresher for the ones you thought you remembered until you were staring down a matchup at midnight and realized you couldn't recall a single thing about Atlantis. There's also production trivia on all 70, because what this experience needs is more information to complicate your decisions. Did you know Toy Story 2 was almost entirely deleted by accident and only survived because someone had a backup on their home computer? Now you do. That's going in the notes somewhere between round two and your complete unraveling in the Elite 8.
 
-12 play-in movies fight for the last 6 spots, then 64 go at it across four regions — Legends & Legacies, Heart & Heartbreak, Magic & Mischief, and Worlds Apart. Six rounds total. The whole thing.
+Notes on every movie so you can document your reasoning and later confront what you were thinking. Upset tracking because your bracket will go off the rails and you deserve to know by how much. Undo whenever you need it — no shame, we've all been there. Shareable link so you can send your bracket to someone and have a real conversation about it. 1920×1080 PNG export to preserve the evidence.
 
-Each card has the movie poster, IMDb rating, runtime, and a plot blurb for the ones you half-remember. There's also production trivia on all 70 — like the fact that someone on the Toy Story 2 team accidentally ran a cleanup script and deleted 90% of the finished film, and it was only recovered because the technical director had a backup on her home computer.
+Sign in with a magic link to sync across devices, because this is not a one-session experience and anyone who tells you they finished it in one sitting is lying or didn't think hard enough. Or stay in the browser. Take as long as you need. Some people are still thinking about round three.
 
-Other stuff:
-- Notes on any movie so you can explain your picks to yourself later
-- Upset tracking (it counts how many times you picked the underdog and roasts you for it)
-- Shareable links with your bracket in the URL
-- PNG export of your completed bracket — 1920×1080, posters and all
-- Undo whenever, reset if you need to start over and pretend this didn't happen
-
-Sign in with a magic link and your bracket syncs across devices. Skip it and everything just lives in your browser.
+React 19 + Vite + Supabase. The tech is fine. It's everything else that's going to get you.
 
 ---
 
@@ -29,8 +22,6 @@ Sign in with a magic link and your bracket syncs across devices. Skip it and eve
 npm install
 npm run dev
 ```
-
-React 19 + Vite. Supabase handles auth and sync (one table):
 
 ```sql
 CREATE TABLE disney_bracket (
