@@ -1074,6 +1074,7 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta, spark }
   const hasPoster = !!meta?.poster;
   const panelW = mob ? 66 : 78;
   const rTop = showCardNotes ? (mob ? "14px 14px 0 0" : "16px 16px 0 0") : (mob ? 14 : 16);
+  const innerR = spark && typeof rTop === 'number' ? rTop - 1.5 : rTop;
 
   const cardBg = h ? `linear-gradient(135deg,${c.bg} 0%,${c.ac}22 100%)` : `linear-gradient(135deg,${c.bg}f8 0%,${c.bg}dd 100%)`;
   const cardBorder = h ? `1.5px solid ${c.ac}55` : "1.5px solid rgba(255,255,255,.06)";
@@ -1087,6 +1088,14 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta, spark }
     overflow: showCardNotes ? "hidden" : "visible",
     transition:"border-color .18s",
   }}>
+    {/* Spark border wrapper — padding creates the thin gap where the rotating gradient shows */}
+    <div style={{
+      position:"relative", borderRadius: rTop, overflow:"hidden",
+      padding: spark ? "1.5px" : 0,
+      transform: h&&!a&&!mob?"translateY(-4px)":"none",
+      transition:"transform .18s cubic-bezier(.25,.8,.25,1)",
+    }}>
+    {spark && <div style={{ position:"absolute", inset:0, background:"conic-gradient(from 0deg, transparent 0 338deg, rgba(255,255,255,0.18) 350deg, rgba(255,255,255,0.65) 360deg)", animation:"spark-spin 3.5s linear infinite" }}/>}
     <button className={mob?"mob-card":""} onClick={()=>!d&&onC()}
       onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)}
       onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined}
@@ -1094,10 +1103,10 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta, spark }
         width:"100%", padding:0, position:"relative", overflow:"hidden",
         background: showCardNotes ? "transparent" : cardBg,
         border: showCardNotes ? "none" : cardBorder,
-        borderRadius: rTop,
+        borderRadius: innerR,
         cursor: d?"default":"pointer",
         transition:"all .18s cubic-bezier(.25,.8,.25,1)",
-        transform: h&&!a&&!mob?"translateY(-4px)":"none",
+        transform:"none",
         boxShadow: h?`0 ${mob?14:22}px ${mob?36:54}px ${c.gl},inset 0 1px 0 ${c.ac}18`:`0 4px ${mob?14:18}px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04)`,
         animation: a?"ch .35s ease forwards":"none",
         display:"flex", flexDirection:"row", alignItems:"stretch",
@@ -1184,10 +1193,8 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta, spark }
 
       {/* Desktop pick hint — hidden when plot is showing to avoid overlap */}
       {h&&!mob&&!a&&!meta?.plot && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1, opacity:.7 }}>Pick →</div>}
-      {spark && <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden", borderRadius:"inherit", WebkitMask:"radial-gradient(ellipse calc(50% - 8px) calc(50% - 8px) at center, transparent 99%, black 100%)", mask:"radial-gradient(ellipse calc(50% - 8px) calc(50% - 8px) at center, transparent 99%, black 100%)" }}>
-        <div style={{ position:"absolute", width:"200%", aspectRatio:"1", top:"50%", left:"50%", transform:"translate(-50%,-50%)", background:"conic-gradient(from 0deg, transparent 0deg 338deg, rgba(255,255,255,0.18) 350deg, rgba(255,255,255,0.65) 360deg)", animation:"spark-spin 3.5s linear infinite" }}/>
-      </div>}
     </button>
+    </div>{/* end spark wrapper */}
 
     <div style={{ textAlign:"center", marginTop:showCardNotes?0:(mob?3:3) }}>
       <button onClick={e=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
