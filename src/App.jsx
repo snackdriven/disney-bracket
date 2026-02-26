@@ -629,7 +629,11 @@ export default function App() {
     } catch { /* ignore malformed hash */ }
     const s = loadLS("dbk-state", null);
     if (!s) return null;
-    return { ...s, piM: desMatch(s.piM), rds: s.rds.map(r => desMatch(r)) };
+    try {
+      return { ...s, piM: desMatch(s.piM), rds: s.rds.map(r => desMatch(r)) };
+    } catch {
+      return null;
+    }
   });
 
   const [ph, setPh] = useState(() => init?.ph || "pi");
@@ -646,7 +650,6 @@ export default function App() {
   const [hi, setHi] = useState(() => init?.hi || []);
   const [upsets, setUpsets] = useState(() => init?.upsets ?? []);
   const [upFlash, setUpFlash] = useState(false);
-  const [fact, setFact] = useState(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedBracket, setCopiedBracket] = useState(false);
 
@@ -733,7 +736,7 @@ export default function App() {
 
   // Easter egg: press ? to open the repo
   useEffect(() => {
-    const h = e => { if (e.key === "?" && !e.target.closest("input,textarea")) window.open("https://github.com/snackdriven/disney-bracket", "_blank"); };
+    const h = e => { if (e.key === "?" && !e.target.closest("input,textarea")) window.open("https://github.com/snackdriven/disney-bracket", "_blank", "noopener,noreferrer"); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, []);
@@ -786,6 +789,7 @@ export default function App() {
       setSyncStatus(error ? "error" : "synced");
       setTimeout(() => setSyncStatus("idle"), 3000);
     }, 2000);
+    return () => clearTimeout(syncTimerRef.current);
   }, [ph, piM, piI, rds, cr, cm, ch, hi, upsets, notes, sbUser]);
 
   // Auto-fetch movie meta on mount if keys exist — reads cache from localStorage directly
@@ -876,7 +880,6 @@ export default function App() {
     if(!hi.length) return;
     const l = hi[hi.length-1];
     setHi(hi.slice(0,-1));
-    setFact(null);
     if (l.wasUpset) setUpsets(u => u.slice(0,-1));
     if(ch) setCh(null);
     if(l.p==="pi") {
@@ -893,7 +896,7 @@ export default function App() {
   const reset = () => {
     setPh("pi"); setPiM(PIP.map(([a,b])=>[PLAYIN[a],PLAYIN[b]])); setPiI(0);
     setRds([]); setCr(0); setCm(0); setCh(null); setHi([]); setBk(false); setFb(false);
-    setUpsets([]); setUpFlash(false); setFact(null); setCopiedLink(false); setCopiedBracket(false);
+    setUpsets([]); setUpFlash(false); setCopiedLink(false); setCopiedBracket(false);
     saveLS("dbk-state", null);
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
   };
@@ -933,14 +936,30 @@ export default function App() {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 1500);
-    }).catch(() => {});
+    }).catch(() => {
+      const el = document.createElement("textarea");
+      el.value = window.location.href;
+      el.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(el);
+      el.select();
+      try { document.execCommand("copy"); setCopiedLink(true); setTimeout(() => setCopiedLink(false), 1500); } catch { /* give up */ }
+      document.body.removeChild(el);
+    });
   };
 
   const copyBracket = () => {
     navigator.clipboard.writeText(exportBracket()).then(() => {
       setCopiedBracket(true);
       setTimeout(() => setCopiedBracket(false), 1500);
-    }).catch(() => {});
+    }).catch(() => {
+      const el = document.createElement("textarea");
+      el.value = exportBracket();
+      el.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(el);
+      el.select();
+      try { document.execCommand("copy"); setCopiedBracket(true); setTimeout(() => setCopiedBracket(false), 1500); } catch { /* give up */ }
+      document.body.removeChild(el);
+    });
   };
 
   const metaCount = Object.values(movieMeta).filter(m => m?.poster || m?.rating).length;
@@ -972,7 +991,7 @@ export default function App() {
           <h1 style={{ fontSize:"clamp(28px,5vw,42px)", fontWeight:800, margin:"0 0 4px", fontFamily:"'Outfit',sans-serif", background:"linear-gradient(135deg,#9d8fe0,#ce93d8 45%,#4fc3f7)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Disney & Pixar: The Bracket</h1>
           <div style={{ fontSize:mob?13:13, color:"#7a7a9e" }}>{mob?"70 movies · 69 matchups · 1 champion":"70 movies · 6 play-in games · 69 matchups · 1 champion"}</div>
         </div>
-        <div style={{ background:"rgba(255,255,255,.05)", borderRadius:20, height:mob?6:5, marginBottom:mob?6:6, overflow:"hidden" }}>
+        <div role="progressbar" aria-valuenow={Math.round(prog)} aria-valuemin={0} aria-valuemax={100} aria-label="Bracket completion" style={{ background:"rgba(255,255,255,.05)", borderRadius:20, height:mob?6:5, marginBottom:mob?6:6, overflow:"hidden" }}>
           <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,#9d8fe0,#ce93d8,#4fc3f7)", borderRadius:20, transition:"width .5s" }}/>
         </div>
         <div style={{ display:"flex", justifyContent:"space-between", fontSize:mob?12:11, color:"#6a6a8e", marginBottom:mob?10:14 }}>
@@ -1001,14 +1020,14 @@ export default function App() {
 
         {/* Full Bracket + Notes toggles */}
         <div style={{ textAlign:"center", marginBottom:mob?14:16, display:"flex", gap:mob?10:8, justifyContent:"center", flexWrap:"wrap" }}>
-          <button className={mob?"mob-btn":""} onClick={()=>setFb(!fb)} style={{
+          <button aria-expanded={fb} className={mob?"mob-btn":""} onClick={()=>setFb(!fb)} style={{
             background: fb?"rgba(79,195,247,.12)":"rgba(255,255,255,.04)",
             border: fb?"1px solid rgba(79,195,247,.3)":"1px solid rgba(255,255,255,.08)",
             color: fb?"#4fc3f7":"#8a8aae", padding:mob?"10px 18px":"6px 18px", borderRadius:10,
             fontSize:mob?13:12, fontWeight:600, cursor:"pointer", letterSpacing:.5,
             transition:"all .15s", minHeight:mob?48:undefined,
           }}>{fb ? "Hide Bracket" : "📋 Full Bracket"}</button>
-          <button className={mob?"mob-btn":""} onClick={()=>setShowNotes(!showNotes)} style={{
+          <button aria-expanded={showNotes} className={mob?"mob-btn":""} onClick={()=>setShowNotes(!showNotes)} style={{
             background: showNotes?"rgba(206,147,216,.12)":"rgba(255,255,255,.04)",
             border: showNotes?"1px solid rgba(206,147,216,.3)":"1px solid rgba(255,255,255,.08)",
             color: showNotes?"#ce93d8":"#8a8aae", padding:mob?"10px 18px":"6px 18px", borderRadius:10,
@@ -1159,7 +1178,7 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
         {hasPoster ? <>
           <img src={meta.poster} alt="" style={{
             width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top",
-            display:"block", opacity:a?.45:1,
+            display:"block", opacity:a ? 0.45 : 1,
             transition:"opacity .3s, transform .2s",
             transform: h&&!mob?"scale(1.05)":"scale(1)",
           }}/>
@@ -1234,7 +1253,7 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
     </div>{/* end spark wrapper */}
 
     <div style={{ textAlign:"center", marginTop:showCardNotes?0:(mob?3:3) }}>
-      <button onClick={e=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
+      <button aria-expanded={showCardNotes} aria-label={showCardNotes ? `Hide notes for ${m.name}` : `Add notes for ${m.name}`} onClick={e=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
         background:"transparent", border:"none", color:"#7a7a9e", fontSize:mob?11:10, cursor:"pointer",
         padding:mob?"5px 14px":"2px 8px", letterSpacing:.5, minHeight:mob?32:undefined,
       }}>{showCardNotes ? "hide notes ▲" : "notes ▼"}</button>
@@ -1246,14 +1265,21 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
 function TmdbModal({ onSave, onClose }) {
   const [tmdb, setTmdb] = useState(localStorage.getItem("tmdb-key") || "");
   const [omdb, setOmdb] = useState(localStorage.getItem("omdb-key") || "548162f0");
+  const dialogRef = useRef(null);
+  useEffect(() => {
+    dialogRef.current?.focus();
+    const h = e => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
   const save = () => {
     if (tmdb.trim()) localStorage.setItem("tmdb-key", tmdb.trim());
     if (omdb.trim()) localStorage.setItem("omdb-key", omdb.trim());
     onSave(tmdb.trim(), omdb.trim());
   };
-  return <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
-    <div style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:440, width:"90%", animation:"su .2s" }}>
-      <h3 style={{ color:"#f0f0ff", margin:"0 0 6px", fontSize:18 }}>Movie Posters, Ratings & Runtimes</h3>
+  return <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.75)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="tmdb-modal-title" tabIndex={-1} onClick={e=>e.stopPropagation()} style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:440, width:"90%", animation:"su .2s", outline:"none" }}>
+      <h3 id="tmdb-modal-title" style={{ color:"#f0f0ff", margin:"0 0 6px", fontSize:18 }}>Movie Posters, Ratings & Runtimes</h3>
       <p style={{ color:"#8a8aa8", fontSize:12, margin:"0 0 18px", lineHeight:1.6 }}>Keys stored locally, never sent anywhere else. Both are free.</p>
 
       <label style={{ display:"block", color:"#9898b8", fontSize:11, marginBottom:4, letterSpacing:.5 }}>
@@ -1283,6 +1309,13 @@ function AuthModal({ onClose }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState(null);
+  const dialogRef = useRef(null);
+  useEffect(() => {
+    dialogRef.current?.focus();
+    const h = e => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
   const sendLink = async () => {
     setErr(null);
     const { error } = await supabase.auth.signInWithOtp({
@@ -1295,9 +1328,9 @@ function AuthModal({ onClose }) {
       setSent(true);
     }
   };
-  return <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
-    <div style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:380, width:"90%", animation:"su .2s" }}>
-      <h3 style={{ color:"#f0f0ff", margin:"0 0 8px", fontSize:18 }}>Sync Across Devices</h3>
+  return <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.7)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center" }}>
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" tabIndex={-1} onClick={e=>e.stopPropagation()} style={{ background:"#12122a", border:"1px solid rgba(255,255,255,.1)", borderRadius:16, padding:"28px 24px", maxWidth:380, width:"90%", animation:"su .2s", outline:"none" }}>
+      <h3 id="auth-modal-title" style={{ color:"#f0f0ff", margin:"0 0 8px", fontSize:18 }}>Sync Across Devices</h3>
       {sent ? (
         <p style={{ color:"#8a8aa8", fontSize:14, lineHeight:1.6 }}>Check your email for a magic link. Close this when you're signed in.</p>
       ) : (
@@ -1413,7 +1446,7 @@ function NoteRow({ m, note, c, updateNote, mob }) {
 
 function Dots({ mob }) {
   const dots = mob ? DOTS.slice(0, 40) : DOTS;
-  return <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}>
+  return <div aria-hidden="true" style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}>
     {dots.map((d,i) => <div key={i} style={{
       position:"absolute", width:d.w, height:d.h,
       background:`rgba(${d.col},${d.op})`, borderRadius:"50%",
