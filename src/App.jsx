@@ -1074,30 +1074,42 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
   const panelW = mob ? 66 : 78;
   const rTop = showCardNotes ? (mob ? "14px 14px 0 0" : "16px 16px 0 0") : (mob ? 14 : 16);
 
-  const cardBg = h ? `linear-gradient(135deg,${c.bg} 0%,${c.ac}22 100%)` : `linear-gradient(135deg,${c.bg}f8 0%,${c.bg}dd 100%)`;
+  const cardBg = `linear-gradient(135deg,${c.bg}f8 0%,${c.bg}dd 100%)`;
   const cardBorder = h ? `1.5px solid ${c.ac}55` : "1.5px solid rgba(255,255,255,.06)";
+  const sparkling = !showCardNotes && !d && h;
+  const cardBgOpaque = `linear-gradient(135deg,#0e0e21 0%,#0c0c1c 100%)`;
 
   return <div style={{
     flex:mob?"1 1 100%":"1 1 320px", maxWidth:mob?undefined:560, width:mob?"100%":undefined,
-    // When notes open, outer wrapper becomes the visual container
     background: showCardNotes ? cardBg : "transparent",
     border: showCardNotes ? cardBorder : "none",
     borderRadius: mob?14:16,
     overflow: showCardNotes ? "hidden" : "visible",
     transition:"border-color .18s",
   }}>
+    {/* Spark wrapper: 2px animated conic ring. Handles hover lift + shadow so overflow:hidden doesn't clip them. */}
+    <div style={sparkling ? {
+      padding:"2px", borderRadius:mob?14:16, overflow:"hidden",
+      background:`conic-gradient(from var(--spark-angle), #0a0a18 0%, #0a0a18 60%, rgba(157,143,224,.04) 68%, rgba(206,147,216,.13) 80%, rgba(249,168,212,.25) 89%, rgba(255,255,255,.35) 94%, #0a0a18 96%)`,
+      animation:"spark-rotate 8s linear infinite",
+      transform: h&&!a&&!mob?"translateY(-4px)":"none",
+      boxShadow: h?`0 ${mob?14:22}px ${mob?36:54}px rgba(0,0,0,.5)`:`0 4px ${mob?14:18}px rgba(0,0,0,.35)`,
+      transition:"transform .18s cubic-bezier(.25,.8,.25,1), box-shadow .18s",
+    } : { display:"contents" }}>
     <button className={mob?"mob-card":""} onClick={()=>!d&&onC()}
       onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)}
       onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined}
       style={{
         width:"100%", padding:0, position:"relative", overflow:"hidden",
-        background: showCardNotes ? "transparent" : cardBg,
-        border: showCardNotes ? "none" : cardBorder,
-        borderRadius: rTop,
+        background: showCardNotes ? "transparent" : (sparkling ? cardBgOpaque : cardBg),
+        border: showCardNotes ? "none" : (sparkling ? "none" : cardBorder),
+        borderRadius: sparkling ? (mob?12:14) : rTop,
         cursor: d?"default":"pointer",
-        transition:"all .18s cubic-bezier(.25,.8,.25,1)",
-        transform: h&&!a&&!mob?"translateY(-4px)":"none",
-        boxShadow: h?`0 ${mob?14:22}px ${mob?36:54}px ${c.gl},inset 0 1px 0 ${c.ac}18`:`0 4px ${mob?14:18}px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04)`,
+        transition:"background .18s, box-shadow .18s",
+        transform: sparkling ? "none" : (h&&!a&&!mob?"translateY(-4px)":"none"),
+        boxShadow: sparkling
+          ? (h?`inset 0 1px 0 ${c.ac}18`:`inset 0 1px 0 rgba(255,255,255,.04)`)
+          : (h?`0 ${mob?14:22}px ${mob?36:54}px rgba(0,0,0,.5),inset 0 1px 0 ${c.ac}18`:`0 4px ${mob?14:18}px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04)`),
         animation: a?"ch .35s ease forwards":"none",
         display:"flex", flexDirection:"row", alignItems:"stretch",
         minHeight: mob?90:108, textAlign:"left",
@@ -1184,6 +1196,7 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
       {/* Desktop pick hint — hidden when plot is showing to avoid overlap */}
       {h&&!mob&&!a&&!meta?.plot && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1, opacity:.7 }}>Pick →</div>}
     </button>
+    </div>{/* end spark wrapper */}
 
     <div style={{ textAlign:"center", marginTop:showCardNotes?0:(mob?3:3) }}>
       <button onClick={e=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{

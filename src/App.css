@@ -1,3 +1,13 @@
+@property --spark-angle {
+  syntax: '<angle>';
+  initial-value: 0turn;
+  inherits: false;
+}
+
+@keyframes spark-rotate {
+  to { --spark-angle: 1turn; }
+}
+
 body {
   background: linear-gradient(155deg, #06060f, #0e0e24 30%, #180a20 60%, #06060f);
   min-height: 100vh;
