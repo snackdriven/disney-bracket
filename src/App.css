@@ -1,11 +1,4 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-/* Cinema curtain texture — subtle vertical weave */
+/* Cinema curtain texture — very subtle vertical weave */
 body::after {
   content: '';
   position: fixed;
@@ -13,9 +6,9 @@ body::after {
   z-index: 9998;
   pointer-events: none;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    linear-gradient(to right, rgba(255, 255, 255, 0.010) 1px, transparent 1px),
-    linear-gradient(to right, rgba(255, 255, 255, 0.006) 1px, transparent 1px);
+    linear-gradient(to right, rgba(255, 255, 255, 0.007) 1px, transparent 1px),
+    linear-gradient(to right, rgba(255, 255, 255, 0.004) 1px, transparent 1px),
+    linear-gradient(to right, rgba(255, 255, 255, 0.002) 1px, transparent 1px);
   background-size: 4px 100%, 9px 100%, 19px 100%;
 }
 

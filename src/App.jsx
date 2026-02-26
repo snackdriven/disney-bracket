@@ -138,10 +138,10 @@ const DOTS = Array.from({length:80}, () => ({
   op: Math.random()*.5+.15, l: Math.random()*100, t: Math.random()*100,
   dur: Math.random()*4+2, del: Math.random()*4,
 }));
-const MOTES = Array.from({length:45}, () => ({
+const MOTES = Array.from({length:30}, () => ({
   l: Math.random()*100, t: 10+Math.random()*90,
-  sz: 0.8+Math.random()*2.2, dur: 22+Math.random()*28,
-  del: -(Math.random()*40), op: 0.08+Math.random()*0.22,
+  sz: 0.6+Math.random()*1.4, dur: 25+Math.random()*30,
+  del: -(Math.random()*40), op: 0.04+Math.random()*0.10,
 }));
 const REG = ["Legends & Legacies","Heart & Heartbreak","Magic & Mischief","Worlds Apart"];
 const CLR = {
