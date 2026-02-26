@@ -133,15 +133,10 @@ const R1 = [
 ];
 
 const RND = ["Round of 64","Round of 32","Sweet 16","Elite 8","Final Four","Championship"];
-const DOTS = Array.from({length:80}, () => ({
-  w: Math.random()*2.5+.5, h: Math.random()*2.5+.5,
-  op: Math.random()*.5+.15, l: Math.random()*100, t: Math.random()*100,
-  dur: Math.random()*4+2, del: Math.random()*4,
-}));
-const MOTES = Array.from({length:40}, () => ({
-  l: Math.random()*100, t: 10+Math.random()*90,
-  sz: 0.6+Math.random()*1.4, dur: 25+Math.random()*30,
-  del: -(Math.random()*40), op: 0.04+Math.random()*0.10,
+const DOTS = Array.from({length:110}, () => ({
+  w: Math.random()*3+.5, h: Math.random()*3+.5,
+  op: Math.random()*.6+.1, l: Math.random()*100, t: Math.random()*100,
+  dur: Math.random()*3+1.2, del: Math.random()*5,
 }));
 const REG = ["Legends & Legacies","Heart & Heartbreak","Magic & Mischief","Worlds Apart"];
 const CLR = {
@@ -914,9 +909,8 @@ export default function App() {
       {showTmdbModal && <TmdbModal onSave={(t,o)=>{ setShowTmdbModal(false); handleFetchMeta(t,o); }} onClose={()=>setShowTmdbModal(false)}/>}
       {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)}/>}
       <Dots mob={mob}/>
-      <Motes mob={mob}/>
       <style>{`
-        @keyframes tw{0%,100%{opacity:.2}50%{opacity:1}}
+        @keyframes tw{0%,100%{opacity:.05}50%{opacity:1}}
         @keyframes mote-rise{0%{transform:translateY(0);opacity:0}8%{opacity:1}92%{opacity:1}100%{transform:translateY(-110vh);opacity:0}}
         @keyframes su{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
         @keyframes cb{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
@@ -1377,17 +1371,6 @@ function Dots({ mob }) {
   </div>;
 }
 
-function Motes({ mob }) {
-  const motes = mob ? MOTES.slice(0, 18) : MOTES;
-  return <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:1, overflow:"hidden" }}>
-    {motes.map((m,i) => <div key={i} style={{
-      position:"absolute", width:m.sz, height:m.sz,
-      background:`rgba(255,255,255,${m.op})`, borderRadius:"50%",
-      left:`${m.l}%`, top:`${m.t}%`,
-      animation:`mote-rise ${m.dur}s ease-in-out infinite`, animationDelay:`${m.del}s`,
-    }}/>)}
-  </div>;
-}
 
 function Btn({ children, onClick, p, s, mu, mob }) {
   return <button className={mob?"mob-btn":""} onClick={onClick} style={{
