@@ -48,6 +48,10 @@ Or stay in the browser. Your bracket lives in local storage until you clear it.
 
 ---
 
+If 70 movies of genuine heartfelt cinema is too much and you need a palate cleanser, there's also a [Worst Movie Tournament](https://snackdriven.github.io/bad-movie-bracket/) where nobody cries (on purpose).
+
+---
+
 ## Dev
 
 ```bash
