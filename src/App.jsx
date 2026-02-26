@@ -915,7 +915,6 @@ export default function App() {
       <style>{`
         @keyframes tw{0%,100%{opacity:.05}50%{opacity:1}}
         @keyframes tw2{0%,100%{opacity:.05}20%{opacity:.9}35%{opacity:.15}55%{opacity:.8}70%{opacity:.05}85%{opacity:.6}}
-        @keyframes spark-spin{to{transform:rotate(360deg)}}
         @keyframes mote-rise{0%{transform:translateY(0);opacity:0}8%{opacity:1}92%{opacity:1}100%{transform:translateY(-110vh);opacity:0}}
         @keyframes su{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
         @keyframes cb{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
@@ -1018,23 +1017,23 @@ export default function App() {
           <div style={{ textAlign:"center", marginBottom:mob?12:16, fontSize:mob?14:13, color:"#8080a0" }}>Match {mn} of {mt}</div>
           {mob ? (
             <div style={{ display:"flex", flexDirection:"column", gap:0, alignItems:"center" }}>
-              <Card mob m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta} spark/>
+              <Card mob m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:12, padding:"10px 0", width:"100%" }}>
                 <div style={{ flex:1, height:1, background:"linear-gradient(90deg,transparent,rgba(255,255,255,.12))" }}/>
                 <span style={{ fontSize:14, fontWeight:800, color:"#5a5a7e", letterSpacing:3 }}>VS</span>
                 <div style={{ flex:1, height:1, background:"linear-gradient(90deg,rgba(255,255,255,.12),transparent)" }}/>
               </div>
-              <Card mob m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta} spark/>
+              <Card mob m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
             </div>
           ) : (
             <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:0 }}>
-              <Card key={mu[0].seed} m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta} spark/>
+              <Card key={mu[0].seed} m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
               <div style={{ padding:"0 22px", flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
                 <div style={{ width:1, height:32, background:"linear-gradient(180deg,transparent,rgba(255,255,255,.1))" }}/>
                 <span style={{ fontSize:13, fontWeight:800, color:"#3a3a58", letterSpacing:4 }}>VS</span>
                 <div style={{ width:1, height:32, background:"linear-gradient(180deg,rgba(255,255,255,.1),transparent)" }}/>
               </div>
-              <Card key={mu[1].seed} m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta} spark/>
+              <Card key={mu[1].seed} m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1],ip)} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
             </div>
           )}
           {upFlash && <div style={{ textAlign:"center", marginTop:12, animation:"uf 1.5s ease-out forwards" }}>
@@ -1066,7 +1065,7 @@ export default function App() {
   );
 }
 
-function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta, spark }) {
+function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
   const c = CLR[m.studio];
   const [showCardNotes, setShowCardNotes] = useState(false);
   const note = notes?.[m.seed] || "";
@@ -1074,7 +1073,6 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta, spark }
   const hasPoster = !!meta?.poster;
   const panelW = mob ? 66 : 78;
   const rTop = showCardNotes ? (mob ? "14px 14px 0 0" : "16px 16px 0 0") : (mob ? 14 : 16);
-  const innerR = spark && typeof rTop === 'number' ? rTop - 1.5 : rTop;
 
   const cardBg = h ? `linear-gradient(135deg,${c.bg} 0%,${c.ac}22 100%)` : `linear-gradient(135deg,${c.bg}f8 0%,${c.bg}dd 100%)`;
   const cardBorder = h ? `1.5px solid ${c.ac}55` : "1.5px solid rgba(255,255,255,.06)";
@@ -1088,14 +1086,6 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta, spark }
     overflow: showCardNotes ? "hidden" : "visible",
     transition:"border-color .18s",
   }}>
-    {/* Spark border wrapper — padding creates the thin gap where the rotating gradient shows */}
-    <div style={{
-      position:"relative", borderRadius: rTop, overflow:"hidden",
-      padding: spark ? "1.5px" : 0,
-      transform: h&&!a&&!mob?"translateY(-4px)":"none",
-      transition:"transform .18s cubic-bezier(.25,.8,.25,1)",
-    }}>
-    {spark && <div style={{ position:"absolute", inset:0, background:"conic-gradient(from 0deg, transparent 0 338deg, rgba(255,255,255,0.18) 350deg, rgba(255,255,255,0.65) 360deg)", animation:"spark-spin 3.5s linear infinite" }}/>}
     <button className={mob?"mob-card":""} onClick={()=>!d&&onC()}
       onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)}
       onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined}
@@ -1103,10 +1093,10 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta, spark }
         width:"100%", padding:0, position:"relative", overflow:"hidden",
         background: showCardNotes ? "transparent" : cardBg,
         border: showCardNotes ? "none" : cardBorder,
-        borderRadius: innerR,
+        borderRadius: rTop,
         cursor: d?"default":"pointer",
         transition:"all .18s cubic-bezier(.25,.8,.25,1)",
-        transform:"none",
+        transform: h&&!a&&!mob?"translateY(-4px)":"none",
         boxShadow: h?`0 ${mob?14:22}px ${mob?36:54}px ${c.gl},inset 0 1px 0 ${c.ac}18`:`0 4px ${mob?14:18}px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.04)`,
         animation: a?"ch .35s ease forwards":"none",
         display:"flex", flexDirection:"row", alignItems:"stretch",
@@ -1194,7 +1184,6 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta, spark }
       {/* Desktop pick hint — hidden when plot is showing to avoid overlap */}
       {h&&!mob&&!a&&!meta?.plot && <div style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%)", fontSize:11, color:c.ac, fontWeight:700, letterSpacing:1, opacity:.7 }}>Pick →</div>}
     </button>
-    </div>{/* end spark wrapper */}
 
     <div style={{ textAlign:"center", marginTop:showCardNotes?0:(mob?3:3) }}>
       <button onClick={e=>{e.stopPropagation();setShowCardNotes(!showCardNotes);}} style={{
