@@ -26,7 +26,7 @@ Every card has the poster, IMDb rating, runtime, and a plot refresher for the on
 
 There's also **production trivia on all 70 movies**, because what this experience needs is more information to complicate your decisions.
 
-Did you know Toy Story 2 was almost entirely deleted by accident and only survived because someone had a backup on their home computer? Now you do. That's going in the notes somewhere between round two and your complete unraveling in the Elite 8.
+Did you know Toy Story 2 was almost entirely deleted by accident and only survived because someone had a backup on their home computer? Now you do. You can't un-know that now.
 
 ---
 
