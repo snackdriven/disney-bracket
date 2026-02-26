@@ -138,7 +138,7 @@ const DOTS = Array.from({length:80}, () => ({
   op: Math.random()*.5+.15, l: Math.random()*100, t: Math.random()*100,
   dur: Math.random()*4+2, del: Math.random()*4,
 }));
-const MOTES = Array.from({length:30}, () => ({
+const MOTES = Array.from({length:40}, () => ({
   l: Math.random()*100, t: 10+Math.random()*90,
   sz: 0.6+Math.random()*1.4, dur: 25+Math.random()*30,
   del: -(Math.random()*40), op: 0.04+Math.random()*0.10,
@@ -910,7 +910,7 @@ export default function App() {
   const metaCount = Object.values(movieMeta).filter(m => m?.poster || m?.rating).length;
 
   return (
-    <div style={{ minHeight:"100vh", background:"linear-gradient(155deg,#06060f,#0e0e24 30%,#180a20 60%,#06060f)", fontFamily:"'Inter',sans-serif", color:"#e0e0f0" }}>
+    <div style={{ minHeight:"100vh", position:"relative", zIndex:9999, fontFamily:"'Inter',sans-serif", color:"#e0e0f0" }}>
       {showTmdbModal && <TmdbModal onSave={(t,o)=>{ setShowTmdbModal(false); handleFetchMeta(t,o); }} onClose={()=>setShowTmdbModal(false)}/>}
       {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)}/>}
       <Dots mob={mob}/>

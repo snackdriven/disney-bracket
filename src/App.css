@@ -1,3 +1,8 @@
+body {
+  background: linear-gradient(155deg, #06060f, #0e0e24 30%, #180a20 60%, #06060f);
+  min-height: 100vh;
+}
+
 /* Cinema curtain texture — very subtle vertical weave */
 body::after {
   content: '';
