@@ -1150,7 +1150,8 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
           {m.imdb && <a href={m.imdb} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{ padding:"1px 5px", borderRadius:3, background:"#e5b80010", color:"#c49a00", fontSize:9, fontWeight:700, textDecoration:"none", border:"1px solid #e5b80018", letterSpacing:.3 }}>IMDb ↗</a>}
         </div>
 
-        {!mob && meta?.plot && (
+        {/* Plot — desktop hover only (hidden when notes open) */}
+        {!mob && !showCardNotes && meta?.plot && (
           <div style={{
             fontSize:11, color:"#7a7a9e", lineHeight:1.5,
             overflow:"hidden", display:"-webkit-box",
@@ -1160,6 +1161,14 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
             transition:"opacity .2s, max-height .22s",
             marginTop: h ? 3 : 0,
           }}>{meta.plot}</div>
+        )}
+
+        {/* Trivia — only when notes are open */}
+        {showCardNotes && FACTS[m.name] && (
+          <div style={{
+            fontSize:11, color:"#7a7a9e", lineHeight:1.55,
+            marginTop:2,
+          }}>{FACTS[m.name]}</div>
         )}
 
         {mob && <div style={{ fontSize:9, color:c.ac, fontWeight:700, letterSpacing:1.8, textTransform:"uppercase", opacity:.4 }}>Tap to pick</div>}
