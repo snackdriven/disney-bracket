@@ -175,6 +175,81 @@ const cmty = (r, i) => {                         // match top Y: round r, positi
   return Math.round(CBT + sp * (i + 0.5) - CMH / 2);
 };
 
+// ---- Static movie metadata (runtime, rating, plot) ----
+
+const STATIC_META = {
+  1:  { runtime:"88 min",  rating:"8.5", plot:"A lion prince flees his kingdom after his father's murder, then must return as an adult to reclaim what's his." },
+  2:  { runtime:"81 min",  rating:"8.3", plot:"A cowboy toy faces an identity crisis when a shiny new spaceman threatens to replace him as a child's favorite." },
+  3:  { runtime:"100 min", rating:"8.1", plot:"A clownfish crosses the ocean to rescue his son, who's been taken to a dentist's aquarium in Sydney." },
+  4:  { runtime:"84 min",  rating:"8.0", plot:"A young woman imprisoned in an enchanted castle slowly falls for the cursed beast who lives there." },
+  5:  { runtime:"83 min",  rating:"7.6", plot:"A mermaid princess makes a dangerous deal with a sea witch to become human and pursue the prince she loves." },
+  6:  { runtime:"96 min",  rating:"8.3", plot:"A 78-year-old widower ties thousands of balloons to his house and floats to South America, stowaway included." },
+  7:  { runtime:"90 min",  rating:"8.0", plot:"A street thief discovers a magic lamp with a wisecracking genie who grants three wishes, then falls for the princess." },
+  8:  { runtime:"95 min",  rating:"8.1", plot:"Inside an 11-year-old's mind, her emotions fight to help her navigate a difficult move to a new city." },
+  9:  { runtime:"105 min", rating:"8.4", plot:"A Mexican boy sneaks into the Land of the Dead on Día de los Muertos to find his music-loving ancestor." },
+  10: { runtime:"102 min", rating:"7.4", plot:"A princess sets off to find her sister, whose uncontrolled ice magic has trapped their kingdom in eternal winter." },
+  11: { runtime:"115 min", rating:"8.0", plot:"A superhero family forced to live in hiding gets pulled back into action when an obsessive villain targets them." },
+  12: { runtime:"98 min",  rating:"8.4", plot:"A lonely trash-compacting robot on an abandoned Earth falls in love and inadvertently saves humanity." },
+  13: { runtime:"88 min",  rating:"7.6", plot:"A young woman secretly takes her ailing father's place in the Imperial Army to fight an invading Hun force." },
+  14: { runtime:"100 min", rating:"7.7", plot:"A girl with magical 70-foot hair escapes her tower with a charming thief who agrees to take her to see the floating lanterns." },
+  15: { runtime:"92 min",  rating:"8.1", plot:"Two monster employees discover that children's laughter generates more power than screams, upending their whole society." },
+  16: { runtime:"107 min", rating:"7.6", plot:"A Polynesian chief's daughter defies her island's rules to sail across the ocean and restore a stolen demigod's hook." },
+  17: { runtime:"111 min", rating:"8.1", plot:"A rat with extraordinary culinary talent secretly puppeteers a clumsy kitchen worker in a famous Parisian restaurant." },
+  18: { runtime:"103 min", rating:"8.3", plot:"Woody, Buzz, and the gang navigate a daycare run by a sinister plush bear when Andy heads to college." },
+  19: { runtime:"85 min",  rating:"7.3", plot:"A lonely Hawaiian girl adopts a strange alien creature being hunted by two incompetent intergalactic bounty hunters." },
+  20: { runtime:"78 min",  rating:"7.3", plot:"An arrogant emperor turned into a llama by his scheming advisor must team up with a peasant to reclaim his throne." },
+  21: { runtime:"74 min",  rating:"7.4", plot:"A kind young woman tormented by her stepfamily gets a magical chance at the royal ball and the prince who falls for her." },
+  22: { runtime:"93 min",  rating:"7.3", plot:"The son of Zeus, stripped of his immortality as an infant, trains to become a hero and earn his way back to Olympus." },
+  23: { runtime:"75 min",  rating:"7.2", plot:"A princess cursed to sleep forever by a vengeful fairy waits in an enchanted forest until a prince can break the spell." },
+  24: { runtime:"99 min",  rating:"7.2", plot:"The only member of a magical Colombian family without a gift sets out to save everyone's powers before they disappear." },
+  25: { runtime:"100 min", rating:"8.0", plot:"A jazz musician who dies on the best day of his life teams up with a prickly soul to find his way back to the living." },
+  26: { runtime:"108 min", rating:"8.0", plot:"A rabbit cop and a con-artist fox investigate a conspiracy involving missing predators in a city of anthropomorphic animals." },
+  27: { runtime:"70 min",  rating:"7.3", plot:"A young deer grows up in a forest, confronting changing seasons and the ever-present danger of humans." },
+  28: { runtime:"101 min", rating:"7.7", plot:"An arcade game villain tired of being the bad guy goes game-jumping to find a medal and earn some respect." },
+  29: { runtime:"88 min",  rating:"7.2", plot:"A man raised by gorillas in the African jungle encounters humans for the first time and is torn between two worlds." },
+  30: { runtime:"78 min",  rating:"7.6", plot:"A human boy raised by wolves must leave his jungle home when a tiger threatens his life." },
+  31: { runtime:"93 min",  rating:"7.1", plot:"A Scottish princess defies her fate and accidentally turns her mother into a bear, then scrambles to reverse the spell." },
+  32: { runtime:"92 min",  rating:"7.9", plot:"Woody is stolen by a toy collector and must decide between a comfortable museum life or returning home to Andy." },
+  33: { runtime:"100 min", rating:"7.7", plot:"Woody's sense of purpose unravels when he meets Forky — a spork who doesn't want to be a toy — and discovers an old friend." },
+  34: { runtime:"76 min",  rating:"7.3", plot:"A pampered cocker spaniel falls for a streetwise stray after she's displaced by her owners' new baby." },
+  35: { runtime:"79 min",  rating:"7.2", plot:"Two dalmatians rally the animal kingdom to rescue their 99 stolen puppies from a fur-obsessed villain." },
+  36: { runtime:"77 min",  rating:"7.3", plot:"Three London children fly to Neverland and join the boy who never grows up in his battle against Captain Hook." },
+  37: { runtime:"91 min",  rating:"6.9", plot:"A deformed bellringer at Notre Dame falls for a gypsy dancer while fighting the corrupt minister who wants her destroyed." },
+  38: { runtime:"83 min",  rating:"7.6", plot:"The first Disney feature: a princess flees her jealous stepmother and hides with seven dwarfs in an enchanted forest." },
+  39: { runtime:"102 min", rating:"7.8", plot:"A young robotics prodigy and his late brother's inflatable healthcare robot form a superhero team to fight a masked villain." },
+  40: { runtime:"107 min", rating:"7.3", plot:"A warrior princess journeys across a fractured land to reassemble a magical gem and revive the last dragon." },
+  41: { runtime:"117 min", rating:"7.1", plot:"A hotshot race car crashes in a forgotten small town and slowly learns what matters more than winning." },
+  42: { runtime:"88 min",  rating:"7.4", plot:"Gepetto's wooden puppet is brought to life by a fairy and must prove himself brave, truthful, and unselfish to become real." },
+  43: { runtime:"125 min", rating:"7.7", plot:"Animated segments set to classical music — Mickey Mouse as the Sorcerer's Apprentice, dinosaurs marching to Stravinsky, and more." },
+  44: { runtime:"95 min",  rating:"7.4", plot:"Two sea monster boys disguised as humans spend a summer on the Italian Riviera chasing dreams of Vespa ownership." },
+  45: { runtime:"81 min",  rating:"6.6", plot:"A Native American woman forms a forbidden bond with an English soldier as colonizers arrive to mine her land for gold." },
+  46: { runtime:"75 min",  rating:"7.4", plot:"A curious girl falls down a rabbit hole into a nonsensical world populated by mad creatures and a tyrannical queen." },
+  47: { runtime:"100 min", rating:"7.5", plot:"Riley turns 13, and a new emotion — Anxiety — arrives and takes over her mind before a make-or-break hockey tryout." },
+  48: { runtime:"97 min",  rating:"7.1", plot:"A New Orleans waitress gets turned into a frog after kissing the wrong prince and must find a way to break the curse." },
+  49: { runtime:"95 min",  rating:"7.2", plot:"A misfit ant destroys his colony's food offering and must recruit a circus troupe to defend them from grasshopper extortion." },
+  50: { runtime:"64 min",  rating:"7.2", plot:"A baby elephant mocked for his oversized ears discovers he can fly and becomes the star of a struggling circus." },
+  51: { runtime:"83 min",  rating:"7.5", plot:"The classic tale retold with foxes, bears, and a wolf sheriff in a medieval England populated entirely by animals." },
+  52: { runtime:"104 min", rating:"7.3", plot:"A prequel following how Mike and Sulley met at college, both fighting to join the school's elite scare program." },
+  53: { runtime:"95 min",  rating:"7.1", plot:"Stevenson's classic retold in space — a rebellious teen sets sail on a solar galleon to find legendary pirate treasure." },
+  54: { runtime:"95 min",  rating:"6.9", plot:"A young linguist joins a secret expedition to find the sunken continent of Atlantis and unlock its ancient power source." },
+  55: { runtime:"74 min",  rating:"7.2", plot:"Basil of Baker Street — the mouse version of Sherlock Holmes — races to stop a villain from seizing control of Mousedom." },
+  56: { runtime:"77 min",  rating:"7.3", plot:"Bernard and Bianca from the Rescue Aid Society travel to Australia to save a boy kidnapped by an eagle poacher." },
+  57: { runtime:"79 min",  rating:"7.1", plot:"The wizard Merlin prepares a scrawny orphan named Wart for his destiny: to pull a magic sword from a stone." },
+  58: { runtime:"78 min",  rating:"7.1", plot:"An heiress's butler tries to lose her pampered cats in the countryside — the cats get help from an alley cat to find home." },
+  59: { runtime:"96 min",  rating:"6.8", plot:"A TV dog star who believes his superpowers are real is accidentally shipped cross-country and must find his way back." },
+  60: { runtime:"95 min",  rating:"6.9", plot:"A science-obsessed orphan travels to the future and meets an eccentric family who might hold the secret to his past." },
+  61: { runtime:"85 min",  rating:"6.9", plot:"A young hunter transformed into a bear must befriend the very bear he hunted in order to become human again." },
+  62: { runtime:"77 min",  rating:"7.1", plot:"Two mice from the Rescue Aid Society travel to a Louisiana swamp to save a kidnapped girl from a diamond thief." },
+  63: { runtime:"74 min",  rating:"6.7", plot:"A kitten joins a gang of New York City street dogs led by a smooth-talking human criminal, then gets adopted into luxury." },
+  64: { runtime:"101 min", rating:"6.8", plot:"In a city where fire, water, land, and air elements coexist uneasily, a fiery woman and a water guy break their world's rules." },
+  65: { runtime:"100 min", rating:"7.0", plot:"A 13-year-old Toronto girl discovers she turns into a giant red panda whenever she gets too excited or emotional." },
+  66: { runtime:"102 min", rating:"7.3", plot:"Two elf brothers set out on a quest to use a magic staff to bring their late father back for just one day." },
+  67: { runtime:"81 min",  rating:"5.8", plot:"A young chicken who once caused town-wide panic over nothing must convince everyone that the sky really is falling this time." },
+  68: { runtime:"118 min", rating:"7.6", plot:"Elastigirl goes on a mission to legalize superheroes while Mr. Incredible stays home and struggles with the kids." },
+  69: { runtime:"112 min", rating:"7.0", plot:"Wreck-It Ralph and Vanellope venture into the internet to find a replacement part for her game before it's shut down." },
+  70: { runtime:"93 min",  rating:"6.7", plot:"In a world where dinosaurs survived the asteroid, a timid young dinosaur befriends a feral human boy after getting lost." },
+};
+
 // ---- TMDB / OMDB helpers ----
 
 const extractImdbId = url => url?.match(/tt\d+/)?.[0] ?? null;
@@ -530,8 +605,13 @@ export default function App() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedBracket, setCopiedBracket] = useState(false);
 
-  // Movie meta (posters, runtime, rating)
-  const [movieMeta, setMovieMeta] = useState(() => loadLS("tmdb-meta-v1", {}));
+  // Movie meta (posters, runtime, rating) — static baseline merged with API cache (cache wins per-field)
+  const [movieMeta, setMovieMeta] = useState(() => {
+    const fromLS = loadLS("tmdb-meta-v1", {});
+    const merged = {};
+    ALL_MOVIES.forEach(m => { merged[m.seed] = { ...STATIC_META[m.seed], ...fromLS[m.seed] }; });
+    return merged;
+  });
   const [tmdbStatus, setTmdbStatus] = useState(null); // null|'fetching'|'done'|'error'
   const [showTmdbModal, setShowTmdbModal] = useState(false);
   const [pngStatus, setPngStatus] = useState(null); // null|'fetching'|'drawing'|'done'
