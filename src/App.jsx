@@ -138,6 +138,11 @@ const DOTS = Array.from({length:80}, () => ({
   op: Math.random()*.5+.15, l: Math.random()*100, t: Math.random()*100,
   dur: Math.random()*4+2, del: Math.random()*4,
 }));
+const MOTES = Array.from({length:45}, () => ({
+  l: Math.random()*100, t: 10+Math.random()*90,
+  sz: 0.8+Math.random()*2.2, dur: 22+Math.random()*28,
+  del: -(Math.random()*40), op: 0.08+Math.random()*0.22,
+}));
 const REG = ["Legends & Legacies","Heart & Heartbreak","Magic & Mischief","Worlds Apart"];
 const CLR = {
   Disney: { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
@@ -909,8 +914,10 @@ export default function App() {
       {showTmdbModal && <TmdbModal onSave={(t,o)=>{ setShowTmdbModal(false); handleFetchMeta(t,o); }} onClose={()=>setShowTmdbModal(false)}/>}
       {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)}/>}
       <Dots mob={mob}/>
+      <Motes mob={mob}/>
       <style>{`
         @keyframes tw{0%,100%{opacity:.2}50%{opacity:1}}
+        @keyframes mote-rise{0%{transform:translateY(0);opacity:0}8%{opacity:1}92%{opacity:1}100%{transform:translateY(-110vh);opacity:0}}
         @keyframes su{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
         @keyframes cb{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
         @keyframes wg{0%,100%{text-shadow:0 0 20px rgba(79,195,247,.4)}50%{text-shadow:0 0 50px rgba(79,195,247,.8),0 0 80px rgba(79,195,247,.3)}}
@@ -1366,6 +1373,18 @@ function Dots({ mob }) {
       background:`rgba(255,255,255,${d.op})`, borderRadius:"50%",
       left:`${d.l}%`, top:`${d.t}%`,
       animation:`tw ${d.dur}s ease-in-out infinite`, animationDelay:`${d.del}s`,
+    }}/>)}
+  </div>;
+}
+
+function Motes({ mob }) {
+  const motes = mob ? MOTES.slice(0, 18) : MOTES;
+  return <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:1, overflow:"hidden" }}>
+    {motes.map((m,i) => <div key={i} style={{
+      position:"absolute", width:m.sz, height:m.sz,
+      background:`rgba(255,255,255,${m.op})`, borderRadius:"50%",
+      left:`${m.l}%`, top:`${m.t}%`,
+      animation:`mote-rise ${m.dur}s ease-in-out infinite`, animationDelay:`${m.del}s`,
     }}/>)}
   </div>;
 }
