@@ -28,7 +28,7 @@ describe('data constants', () => {
 
   it('PIP has exactly 6 pairs covering seeds 59-70', () => {
     expect(PIP.length).toBe(6);
-    const counts = {};
+    const counts: Record<number, number> = {};
     PIP.flatMap(([a, b]) => [PLAYIN[a].seed, PLAYIN[b].seed]).forEach(s => {
       counts[s] = (counts[s] || 0) + 1;
     });

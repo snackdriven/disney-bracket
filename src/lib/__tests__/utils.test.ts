@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { loadLS, saveLS, extractImdbId, serMatch, desMatch } from '../utils.js';
+import type { Match } from '../../types.js';
 
 describe('loadLS', () => {
   it('returns fallback when key missing', () => {
@@ -58,11 +59,11 @@ describe('extractImdbId', () => {
 
 describe('serMatch / desMatch roundtrip', () => {
   it('preserves winner correctly', () => {
-    const movie1 = { seed: 1, name: 'The Lion King' };
-    const movie2 = { seed: 2, name: 'Toy Story' };
-    const match = [movie1, movie2];
+    const movie1 = { seed: 1, name: 'The Lion King', year: 1994, studio: 'Disney' as const, imdb: '' };
+    const movie2 = { seed: 2, name: 'Toy Story', year: 1995, studio: 'Pixar' as const, imdb: '' };
+    const match = [movie1, movie2] as Match;
     match.winner = movie1;
-    const matches = [match];
+    const matches: Match[] = [match];
 
     const serialized = serMatch(matches);
     const restored = desMatch(serialized);
@@ -73,10 +74,10 @@ describe('serMatch / desMatch roundtrip', () => {
   });
 
   it('preserves winner-less match', () => {
-    const movie1 = { seed: 3, name: 'Finding Nemo' };
-    const movie2 = { seed: 4, name: 'Beauty and the Beast' };
-    const match = [movie1, movie2];
-    const matches = [match];
+    const movie1 = { seed: 3, name: 'Finding Nemo', year: 2003, studio: 'Pixar' as const, imdb: '' };
+    const movie2 = { seed: 4, name: 'Beauty and the Beast', year: 1991, studio: 'Disney' as const, imdb: '' };
+    const match = [movie1, movie2] as Match;
+    const matches: Match[] = [match];
 
     const serialized = serMatch(matches);
     const restored = desMatch(serialized);
@@ -87,15 +88,15 @@ describe('serMatch / desMatch roundtrip', () => {
   });
 
   it('handles multiple matches correctly', () => {
-    const m1 = [{ seed: 1 }, { seed: 2 }];
+    const m1 = [{ seed: 1, name: '', year: 0, studio: 'Disney' as const, imdb: '' }, { seed: 2, name: '', year: 0, studio: 'Pixar' as const, imdb: '' }] as Match;
     m1.winner = m1[0];
-    const m2 = [{ seed: 3 }, { seed: 4 }];
+    const m2 = [{ seed: 3, name: '', year: 0, studio: 'Disney' as const, imdb: '' }, { seed: 4, name: '', year: 0, studio: 'Pixar' as const, imdb: '' }] as Match;
     // no winner on m2
 
     const serialized = serMatch([m1, m2]);
     const restored = desMatch(serialized);
 
-    expect(restored[0].winner).toEqual({ seed: 1 });
+    expect(restored[0].winner?.seed).toBe(1);
     expect(restored[1].winner).toBeUndefined();
   });
 });

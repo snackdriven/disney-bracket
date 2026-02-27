@@ -1,5 +1,6 @@
 import { REG } from './data.js';
 import { buildDisplayRds } from './bracket.js';
+import type { Match, Movie, UpsetEntry, ImgCache } from '../types.js';
 
 // Canvas export constants — 1920×1080
 export const CW = 1920, CH = 1080;
@@ -8,10 +9,10 @@ export const CPW = 22, CPH = 24;                       // poster dims
 export const CSTEP = 185;                              // column step (CSW + 25px gap)
 export const CBT = 60, CBH = 900;                      // bracket top Y, bracket height
 
-export const clx = r => 10 + r * CSTEP;               // left column x at round r
-export const crx = r => CW - 10 - CSW - r * CSTEP;   // right column x at round r
-export const cps = r => Math.round(16 / Math.pow(2, r)); // matches per side at round r
-export const cmty = (r, i) => {                        // match top Y: round r, position i within side
+export const clx = (r: number): number => 10 + r * CSTEP;               // left column x at round r
+export const crx = (r: number): number => CW - 10 - CSW - r * CSTEP;   // right column x at round r
+export const cps = (r: number): number => Math.round(16 / Math.pow(2, r)); // matches per side at round r
+export const cmty = (r: number, i: number): number => {                   // match top Y: round r, position i within side
   const sp = CBH / cps(r);
   return Math.round(CBT + sp * (i + 0.5) - CMH / 2);
 };
@@ -21,7 +22,7 @@ const CLR = {
   Pixar:  { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
 };
 
-function cBg(ctx) {
+function cBg(ctx: CanvasRenderingContext2D): void {
   const grad = ctx.createLinearGradient(0, 0, CW, CH);
   grad.addColorStop(0, "#06060f");
   grad.addColorStop(0.4, "#0e0e24");
@@ -31,7 +32,7 @@ function cBg(ctx) {
   ctx.fillRect(0, 0, CW, CH);
 }
 
-function cHeader(ctx) {
+function cHeader(ctx: CanvasRenderingContext2D): void {
   ctx.textAlign = "center";
   ctx.fillStyle = "#4fc3f7";
   ctx.font = "bold 18px Inter, sans-serif";
@@ -41,7 +42,7 @@ function cHeader(ctx) {
   ctx.fillText("70 movies · 69 matchups · 1 champion", CW / 2, 40);
 }
 
-function cRoundLabels(ctx) {
+function cRoundLabels(ctx: CanvasRenderingContext2D): void {
   const labels = ["R64", "R32", "Sweet 16", "Elite 8", "Final Four"];
   ctx.fillStyle = "#5a5a7e";
   ctx.font = "9px Inter, sans-serif";
@@ -52,7 +53,7 @@ function cRoundLabels(ctx) {
   });
 }
 
-function cRegionLabels(ctx) {
+function cRegionLabels(ctx: CanvasRenderingContext2D): void {
   const colors = ["#4fc3f7", "#ce93d8", "#ff8a65", "#4fc3f7"];
   REG.forEach((name, ri) => {
     const side = ri < 2 ? "left" : "right";
@@ -73,7 +74,7 @@ function cRegionLabels(ctx) {
   });
 }
 
-function cConnectors(ctx, side) {
+function cConnectors(ctx: CanvasRenderingContext2D, side: "left" | "right"): void {
   ctx.strokeStyle = "rgba(255,255,255,0.06)";
   ctx.lineWidth = 1;
   for (let r = 0; r < 4; r++) {
@@ -82,7 +83,7 @@ function cConnectors(ctx, side) {
       const cy0 = cmty(r, j * 2) + CMH / 2;
       const cy1 = cmty(r, j * 2 + 1) + CMH / 2;
       const yMid = (cy0 + cy1) / 2;
-      let xFrom, xTo;
+      let xFrom: number, xTo: number;
       if (side === "left") {
         xFrom = clx(r) + CSW;
         xTo   = clx(r + 1);
@@ -105,7 +106,7 @@ function cConnectors(ctx, side) {
   }
 }
 
-function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
+function cSlot(ctx: CanvasRenderingContext2D, x: number, y: number, movie: Movie | null, won: boolean, lost: boolean, isUpset: boolean, imgs: ImgCache): void {
   const c = movie ? CLR[movie.studio] : { bg: "#0d0d20", ac: "#3a3a5e", tx: "#5a5a7e" };
   ctx.fillStyle = won
     ? (isUpset ? "#3e1a0d" : "#1a1a0d")
@@ -148,17 +149,17 @@ function cSlot(ctx, x, y, movie, won, lost, isUpset, imgs) {
   ctx.fillText(name, textX, y + 18);
   ctx.fillStyle = lost ? "#2a2a40" : "#5a5a7e";
   ctx.font = "7px Inter, sans-serif";
-  ctx.fillText(movie.year, textX, y + 24);
+  ctx.fillText(String(movie.year), textX, y + 24);
 }
 
-function cMatch(ctx, x, y, m, isUpset0, isUpset1, imgs) {
+function cMatch(ctx: CanvasRenderingContext2D, x: number, y: number, m: Match | null, isUpset0: boolean, isUpset1: boolean, imgs: ImgCache): void {
   const w0 = !!m?.winner && m.winner.seed === m?.[0]?.seed;
   const w1 = !!m?.winner && m.winner.seed === m?.[1]?.seed;
-  cSlot(ctx, x, y, m?.[0], w0, !w0 && !!m?.winner, isUpset0, imgs);
-  cSlot(ctx, x, y + CSH + CGAP, m?.[1], w1, !w1 && !!m?.winner, isUpset1, imgs);
+  cSlot(ctx, x, y, m?.[0] ?? null, w0, !w0 && !!m?.winner, isUpset0, imgs);
+  cSlot(ctx, x, y + CSH + CGAP, m?.[1] ?? null, w1, !w1 && !!m?.winner, isUpset1, imgs);
 }
 
-function cSide(ctx, side, rds, upsets, imgs) {
+function cSide(ctx: CanvasRenderingContext2D, side: "left" | "right", rds: Match[][], _upsets: UpsetEntry[], imgs: ImgCache): void {
   for (let r = 0; r < 5; r++) {
     const round = rds[r] || null;
     const perSide = cps(r);
@@ -167,14 +168,14 @@ function cSide(ctx, side, rds, upsets, imgs) {
     for (let i = 0; i < perSide; i++) {
       const m = round?.[offset + i] || null;
       const y = cmty(r, i);
-      const isUpset0 = m?.winner?.seed === m?.[0]?.seed && m?.[0]?.seed > m?.[1]?.seed;
-      const isUpset1 = m?.winner?.seed === m?.[1]?.seed && m?.[1]?.seed > m?.[0]?.seed;
+      const isUpset0 = m?.winner?.seed === m?.[0]?.seed && (m?.[0]?.seed ?? 0) > (m?.[1]?.seed ?? 0);
+      const isUpset1 = m?.winner?.seed === m?.[1]?.seed && (m?.[1]?.seed ?? 0) > (m?.[0]?.seed ?? 0);
       cMatch(ctx, x, y, m, isUpset0, isUpset1, imgs);
     }
   }
 }
 
-function cChamp(ctx, ch, imgs) {
+function cChamp(ctx: CanvasRenderingContext2D, ch: Movie | null, imgs: ImgCache): void {
   const ffY = cmty(4, 0) + CMH / 2;
   const bW = 100, bH = 80;
   const bX = clx(4) + CSW;
@@ -210,7 +211,7 @@ function cChamp(ctx, ch, imgs) {
   }
 }
 
-function cPlayin(ctx, piM, imgs) {
+function cPlayin(ctx: CanvasRenderingContext2D, piM: Match[], imgs: ImgCache): void {
   if (!piM?.length) return;
   const pY = 978;
   ctx.fillStyle = "#5a5a7e";
@@ -222,19 +223,21 @@ function cPlayin(ctx, piM, imgs) {
   const startX = (CW - totalW) / 2;
   piM.forEach((m, i) => {
     const x = startX + i * (CSW + mGap);
-    const isUpset0 = m?.winner?.seed === m?.[0]?.seed && m?.[0]?.seed > m?.[1]?.seed;
-    const isUpset1 = m?.winner?.seed === m?.[1]?.seed && m?.[1]?.seed > m?.[0]?.seed;
+    const isUpset0 = m?.winner?.seed === m?.[0]?.seed && (m?.[0]?.seed ?? 0) > (m?.[1]?.seed ?? 0);
+    const isUpset1 = m?.winner?.seed === m?.[1]?.seed && (m?.[1]?.seed ?? 0) > (m?.[0]?.seed ?? 0);
     cMatch(ctx, x, pY, m, isUpset0, isUpset1, imgs);
   });
 }
 
 /**
  * Draw the full bracket onto a canvas element.
- * @param {HTMLCanvasElement} canvas
- * @param {object} state - { rds, piM, ch, upsets, imgs }
  */
-export function drawBracket(canvas, { rds, piM, ch, upsets, imgs }) {
-  const ctx = canvas.getContext("2d");
+export function drawBracket(
+  canvas: HTMLCanvasElement,
+  opts: { rds: Match[][]; piM: Match[]; ch: Movie | null; upsets: UpsetEntry[]; imgs: ImgCache }
+): void {
+  const { rds, piM, ch, upsets, imgs } = opts;
+  const ctx = canvas.getContext("2d")!;
   const displayRds = buildDisplayRds(rds, piM);
   cBg(ctx);
   cHeader(ctx);

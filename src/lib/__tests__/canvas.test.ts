@@ -4,10 +4,10 @@ import { buildDisplayRds, resetState, applyPick } from '../bracket.js';
 import { PIP, PLAYIN } from '../data.js';
 
 // Canvas constants for expected value calculations
-const expectedClx = r => 10 + r * CSTEP;
-const expectedCrx = r => CW - 10 - CSW - r * CSTEP;
-const expectedCps = r => Math.round(16 / Math.pow(2, r));
-const expectedCmty = (r, i) => {
+const expectedClx = (r: number) => 10 + r * CSTEP;
+const expectedCrx = (r: number) => CW - 10 - CSW - r * CSTEP;
+const expectedCps = (r: number) => Math.round(16 / Math.pow(2, r));
+const expectedCmty = (r: number, i: number) => {
   const sp = CBH / expectedCps(r);
   return Math.round(CBT + sp * (i + 0.5) - CMH / 2);
 };
@@ -111,8 +111,8 @@ describe('drawBracket', () => {
       createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
       save: vi.fn(), restore: vi.fn(), clip: vi.fn(),
       translate: vi.fn(), rotate: vi.fn(),
-    };
-    const mockCanvas = { getContext: vi.fn(() => mockCtx), width: 1920, height: 1080 };
+    } as unknown as CanvasRenderingContext2D;
+    const mockCanvas = { getContext: vi.fn(() => mockCtx), width: 1920, height: 1080 } as unknown as HTMLCanvasElement;
 
     let state = resetState();
     PIP.forEach(([a]) => { state = applyPick(state, PLAYIN[a]); });

@@ -1,4 +1,6 @@
-export const FACTS = {
+import type { Movie, StaticMeta, ColorScheme } from '../types.js';
+
+export const FACTS: Record<string, string> = {
   "The Lion King": "Most of Disney's top animators chose Pocahontas over this project, expecting it to be the bigger hit — Lion King ended up grossing more than three times as much",
   "Toy Story": "The first feature-length CGI film ever made — Pixar's computers ran 24 hours a day for over a year just to render it",
   "Finding Nemo": "The entire crew took scuba diving lessons, and the story team spent weeks at the Great Barrier Reef before drawing a single frame",
@@ -71,7 +73,7 @@ export const FACTS = {
   "The Good Dinosaur": "Pixar's most troubled production — the original director, story, and nearly all characters were replaced mid-production. It released the same year as Inside Out, making 2015 Pixar's strangest year",
 };
 
-export const MAIN = [
+export const MAIN: Movie[] = [
   { seed:1, name:"The Lion King", year:1994, studio:"Disney", imdb:"https://www.imdb.com/title/tt0110357/" },
   { seed:2, name:"Toy Story", year:1995, studio:"Pixar", imdb:"https://www.imdb.com/title/tt0114709/" },
   { seed:3, name:"Finding Nemo", year:2003, studio:"Pixar", imdb:"https://www.imdb.com/title/tt0266543/" },
@@ -132,7 +134,7 @@ export const MAIN = [
   { seed:58, name:"The Aristocats", year:1970, studio:"Disney", imdb:"https://www.imdb.com/title/tt0065421/" },
 ];
 
-export const PLAYIN = [
+export const PLAYIN: Movie[] = [
   { seed:59, name:"Bolt", year:2008, studio:"Disney", imdb:"https://www.imdb.com/title/tt0397892/" },
   { seed:60, name:"Meet the Robinsons", year:2007, studio:"Disney", imdb:"https://www.imdb.com/title/tt0396555/" },
   { seed:61, name:"Brother Bear", year:2003, studio:"Disney", imdb:"https://www.imdb.com/title/tt0328880/" },
@@ -148,20 +150,20 @@ export const PLAYIN = [
 ];
 
 // Play-in pairings: indices into PLAYIN
-export const PIP = [[4,2],[1,9],[0,7],[3,6],[5,8],[10,11]];
+export const PIP: [number, number][] = [[4,2],[1,9],[0,7],[3,6],[5,8],[10,11]];
 
 // Round of 64 pairings: indices into combined array (MAIN[0..57] + playin winners[58..63])
-export const R1 = [
+export const R1: [number, number][] = [
   [0,58],[31,32],[15,48],[16,41],[8,53],[23,40],[7,54],[25,38],
   [3,59],[29,36],[13,51],[18,47],[5,43],[26,33],[11,52],[20,46],
   [6,60],[27,39],[12,50],[19,49],[9,55],[22,45],[4,61],[21,44],
   [1,62],[30,35],[14,37],[17,42],[2,63],[24,34],[10,56],[28,57],
 ];
 
-export const RND = ["Round of 64","Round of 32","Sweet 16","Elite 8","Final Four","Championship"];
-export const REG = ["Legends & Legacies","Heart & Heartbreak","Magic & Mischief","Worlds Apart"];
+export const RND: string[] = ["Round of 64","Round of 32","Sweet 16","Elite 8","Final Four","Championship"];
+export const REG: string[] = ["Legends & Legacies","Heart & Heartbreak","Magic & Mischief","Worlds Apart"];
 
-export const STATIC_META = {
+export const STATIC_META: StaticMeta = {
   1:  { runtime:"88 min",  rating:"8.5", plot:"Lion prince Simba and his father are targeted by his bitter uncle, who wants to ascend the throne himself.", poster:"https://image.tmdb.org/t/p/w185/sKCr78MXSLixwmZ8DyJLrpMsd15.jpg" },
   2:  { runtime:"81 min",  rating:"8.3", plot:"A cowboy doll is profoundly jealous when a new spaceman action figure supplants him as the top toy in a boy's bedroom. When circumstances separate them from their owner, the duo have to put aside their differences to return to him.", poster:"https://image.tmdb.org/t/p/w185/uXDfjJbdP4ijW5hWSBrPrlKpxab.jpg" },
   3:  { runtime:"100 min", rating:"8.2", plot:"After his son is captured in the Great Barrier Reef and taken to Sydney, a timid clownfish sets out on a journey to bring him home.", poster:"https://image.tmdb.org/t/p/w185/eHuGQ10FUzK1mdOY69wF5pGgEf5.jpg" },
@@ -234,10 +236,15 @@ export const STATIC_META = {
   70: { runtime:"93 min",  rating:"6.7", plot:"In a world where dinosaurs and humans live side-by-side, an Apatosaurus named Arlo makes an unlikely human friend.", poster:"https://image.tmdb.org/t/p/w185/8RSkxOO80btfKjyiC5ZiTaCHIT8.jpg" },
 };
 
-export const ALL_MOVIES = [...MAIN, ...PLAYIN];
+export const ALL_MOVIES: Movie[] = [...MAIN, ...PLAYIN];
 
 // Movies ordered by when they first appear in the bracket (play-in → R1 region order)
-export const BRACKET_ORDER = [
+export const BRACKET_ORDER: Movie[] = [
   ...PIP.flatMap(([a,b]) => [PLAYIN[a], PLAYIN[b]]),
-  ...R1.flatMap(([a,b]) => { const out=[]; if(a<58) out.push(MAIN[a]); if(b<58) out.push(MAIN[b]); return out; }),
+  ...R1.flatMap(([a,b]) => { const out: Movie[]=[]; if(a<58) out.push(MAIN[a]); if(b<58) out.push(MAIN[b]); return out; }),
 ];
+
+export const CLR: Record<string, ColorScheme> = {
+  Disney: { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
+  Pixar:  { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
+};

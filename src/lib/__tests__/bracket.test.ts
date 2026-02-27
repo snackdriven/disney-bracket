@@ -8,18 +8,19 @@ import {
   buildDisplayRds,
   exportBracketText,
 } from '../bracket.js';
+import type { BracketState } from '../../types.js';
 
 // Build a valid set of 6 play-in winners (one from each pair)
 function makePlayinWinners() {
   return PIP.map(([a]) => PLAYIN[a]);
 }
 
-function freshState() {
+function freshState(): BracketState {
   return resetState();
 }
 
 // State after all 6 play-in picks
-function stateAfterPlayin() {
+function stateAfterPlayin(): BracketState {
   let state = freshState();
   PIP.forEach(([a]) => {
     state = applyPick(state, PLAYIN[a]);
@@ -153,7 +154,7 @@ describe('applyPick — main bracket', () => {
 });
 
 describe('applyPick — championship', () => {
-  function playFullBracket(state) {
+  function playFullBracket(state: BracketState): BracketState {
     // Play through all rounds until champion
     while (!state.ch) {
       const round = state.rds[state.cr];
@@ -170,7 +171,7 @@ describe('applyPick — championship', () => {
     state = playFullBracket(state);
     expect(state.ch).toBeDefined();
     expect(state.ch).not.toBeNull();
-    expect(state.ch.seed).toBeDefined();
+    expect(state.ch!.seed).toBeDefined();
   });
 
   it('ch is cr 5 winner (championship round)', () => {
@@ -227,7 +228,7 @@ describe('applyUndo', () => {
     const state = stateAfterPlayin();
     const baseUpsets = state.upsets.length;
     // Find and make an upset pick in R64
-    let upsetState = null;
+    let upsetState: BracketState | null = null;
     for (let i = 0; i < state.rds[0].length; i++) {
       const m = state.rds[0][i];
       if (m[1].seed > m[0].seed) {
@@ -235,8 +236,8 @@ describe('applyUndo', () => {
         break;
       }
     }
-    expect(upsetState.upsets.length).toBe(baseUpsets + 1);
-    const undone = applyUndo(upsetState);
+    expect(upsetState!.upsets.length).toBe(baseUpsets + 1);
+    const undone = applyUndo(upsetState!);
     expect(undone.upsets.length).toBe(baseUpsets);
   });
 
@@ -349,3 +350,7 @@ describe('exportBracketText', () => {
     expect(text).toMatch(/·\s+\w/);
   });
 });
+
+// Ensure MAIN export is actually used (suppresses unused import warning)
+const _mainCheck = MAIN.length;
+void _mainCheck;

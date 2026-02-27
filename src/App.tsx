@@ -2,18 +2,19 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { MAIN, PLAYIN, PIP, R1, RND, REG, FACTS, STATIC_META, ALL_MOVIES, BRACKET_ORDER } from './lib/data.js';
 import { loadLS, saveLS, serMatch, desMatch, extractImdbId } from './lib/utils.js';
-import { applyPick, applyUndo, resetState, buildDisplayRds, exportBracketText } from './lib/bracket.js';
+import { applyPick, applyUndo, resetState, exportBracketText } from './lib/bracket.js';
 import { drawBracket } from './lib/canvas.js';
+import type { Movie, Match, Phase, BracketState, Notes, ImgCache, MovieMeta, ColorScheme } from './types.js';
 
 const SB_URL = "https://pynmkrcbkcfxifnztnrn.supabase.co";
 const SB_ANON = "sb_publishable_8VEm7zR0vqKjOZRwH6jimw_qIWt-RPp";
 const supabase = createClient(SB_URL, SB_ANON, { auth: { flowType: "implicit", storageKey: "disney-bracket-auth" } });
 
-function useIsMobile(breakpoint = 600) {
+function useIsMobile(breakpoint = 600): boolean {
   const [mob, setMob] = useState(() => typeof window !== "undefined" && window.innerWidth <= breakpoint);
   useEffect(() => {
     const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
-    const handler = (e) => setMob(e.matches);
+    const handler = (e: MediaQueryListEvent) => setMob(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, [breakpoint]);
@@ -28,19 +29,19 @@ const DOTS = Array.from({length:110}, () => ({
   col: DOT_COLORS[Math.floor(Math.random()*DOT_COLORS.length)],
   er: Math.random() > 0.65,
 }));
-const CLR = {
+const CLR: Record<string, ColorScheme> = {
   Disney: { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
   Pixar:  { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
 };
-const BADGE_CLR = {
+const BADGE_CLR: Record<string, { bg: string; tx: string }> = {
   Disney: { bg:"#4fc3f722", tx:"#4fc3f7" },
   Pixar:  { bg:"#ff8a6522", tx:"#ff8a65" },
 };
 
 // ---- TMDB / OMDB helpers ----
 
-async function fetchMovieMeta(tmdbKey, omdbKey) {
-  const cache = (() => { try { return JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}"); } catch { return {}; } })();
+async function fetchMovieMeta(tmdbKey: string | null, omdbKey: string | null): Promise<Record<number, MovieMeta>> {
+  const cache: Record<number, MovieMeta> = (() => { try { return JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}") as Record<number, MovieMeta>; } catch { return {}; } })();
   const missing = ALL_MOVIES.filter(m => (!cache[m.seed]?.poster || !cache[m.seed]?.plot) && extractImdbId(m.imdb));
   const BATCH = 20;
   for (let i = 0; i < missing.length; i += BATCH) {
@@ -50,14 +51,14 @@ async function fetchMovieMeta(tmdbKey, omdbKey) {
       try {
         if (tmdbKey) {
           const r = await fetch(`https://api.themoviedb.org/3/find/${id}?api_key=${tmdbKey}&external_source=imdb_id`);
-          const d = await r.json();
+          const d = await r.json() as { movie_results?: Array<{ poster_path?: string; overview?: string }> };
           const mov = d.movie_results?.[0];
           if (mov?.poster_path) cache[m.seed].poster = `https://image.tmdb.org/t/p/w92${mov.poster_path}`;
           if (mov?.overview) cache[m.seed].plot = cache[m.seed].plot || mov.overview;
         }
         if (omdbKey) {
           const r = await fetch(`https://www.omdbapi.com/?i=${id}&apikey=${omdbKey}`);
-          const d = await r.json();
+          const d = await r.json() as { Runtime?: string; imdbRating?: string; Poster?: string; Plot?: string };
           if (d.Runtime && d.Runtime !== "N/A") cache[m.seed].runtime = d.Runtime;
           if (d.imdbRating && d.imdbRating !== "N/A") cache[m.seed].rating = d.imdbRating;
           if (!cache[m.seed].poster && d.Poster && d.Poster !== "N/A") cache[m.seed].poster = d.Poster;
@@ -70,16 +71,16 @@ async function fetchMovieMeta(tmdbKey, omdbKey) {
   return cache;
 }
 
-async function loadImages(metaMap) {
-  const imgs = {};
+async function loadImages(metaMap: Record<number, MovieMeta>): Promise<ImgCache> {
+  const imgs: ImgCache = {};
   await Promise.all(Object.entries(metaMap).map(([seed, meta]) => {
     if (!meta?.poster) return Promise.resolve();
-    return new Promise(res => {
+    return new Promise<void>(res => {
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.onload = () => { imgs[seed] = img; res(); };
-      img.onerror = res;
-      img.src = meta.poster;
+      img.onload = () => { imgs[Number(seed)] = img; res(); };
+      img.onerror = () => res();
+      img.src = meta.poster!;
     });
   }));
   return imgs;
@@ -89,32 +90,32 @@ export default function App() {
   const mob = useIsMobile();
 
   // Load saved bracket state — URL hash takes priority over localStorage (for sharing)
-  const [init] = useState(() => {
+  const [init] = useState<Partial<BracketState> | null>(() => {
     try {
       const hash = window.location.hash.slice(1);
       if (hash) {
-        const d = JSON.parse(atob(hash));
-        if (d?._v === 1) return { ...d, piM: desMatch(d.piM), rds: d.rds.map(r => desMatch(r)) };
+        const d = JSON.parse(atob(hash)) as { _v?: number } & Partial<BracketState> & { piM?: unknown; rds?: unknown[] };
+        if (d?._v === 1) return { ...d, piM: desMatch(d.piM), rds: (d.rds as unknown[]).map(r => desMatch(r)) };
       }
     } catch { /* ignore malformed hash */ }
-    const s = loadLS("dbk-state", null);
+    const s = loadLS<(Partial<BracketState> & { piM?: unknown; rds?: unknown[] }) | null>("dbk-state", null);
     if (!s) return null;
     try {
-      return { ...s, piM: desMatch(s.piM), rds: s.rds.map(r => desMatch(r)) };
+      return { ...s, piM: desMatch(s.piM), rds: (s.rds ?? []).map(r => desMatch(r)) };
     } catch {
       return null;
     }
   });
 
-  const [ph, setPh] = useState(() => init?.ph || "pi");
-  const [piM, setPiM] = useState(() => init?.piM || PIP.map(([a,b]) => [PLAYIN[a], PLAYIN[b]]));
-  const [piI, setPiI] = useState(() => init?.piI ?? 0);
-  const [rds, setRds] = useState(() => init?.rds || []);
-  const [cr, setCr] = useState(() => init?.cr ?? 0);
-  const [cm, setCm] = useState(() => init?.cm ?? 0);
-  const [ch, setCh] = useState(() => init?.ch || null);
-  const [hv, setHv] = useState(null);
-  const [an, setAn] = useState(null);
+  const [ph, setPh] = useState<Phase>(() => init?.ph || "pi");
+  const [piM, setPiM] = useState<Match[]>(() => init?.piM || PIP.map(([a,b]) => [PLAYIN[a], PLAYIN[b]] as Match));
+  const [piI, setPiI] = useState<number>(() => init?.piI ?? 0);
+  const [rds, setRds] = useState<Match[][]>(() => init?.rds || []);
+  const [cr, setCr] = useState<number>(() => init?.cr ?? 0);
+  const [cm, setCm] = useState<number>(() => init?.cm ?? 0);
+  const [ch, setCh] = useState<Movie | null>(() => init?.ch || null);
+  const [hv, setHv] = useState<number | null>(null);
+  const [an, setAn] = useState<number | null>(null);
   const [bk, setBk] = useState(false);
   const [fb, setFb] = useState(false);
   const [hi, setHi] = useState(() => init?.hi || []);
@@ -124,18 +125,18 @@ export default function App() {
   const [copiedBracket, setCopiedBracket] = useState(false);
 
   // Movie meta (posters, runtime, rating) — static baseline merged with API cache (cache wins per-field)
-  const [movieMeta, setMovieMeta] = useState(() => {
-    const fromLS = loadLS("tmdb-meta-v1", {});
-    const merged = {};
+  const [movieMeta, setMovieMeta] = useState<Record<number, MovieMeta>>(() => {
+    const fromLS = loadLS<Record<number, MovieMeta>>("tmdb-meta-v1", {});
+    const merged: Record<number, MovieMeta> = {};
     ALL_MOVIES.forEach(m => { merged[m.seed] = { ...STATIC_META[m.seed], ...fromLS[m.seed] }; });
     return merged;
   });
-  const [tmdbStatus, setTmdbStatus] = useState(null); // null|'fetching'|'done'|'error'
+  const [tmdbStatus, setTmdbStatus] = useState<string | null>(null); // null|'fetching'|'done'|'error'
   const [showTmdbModal, setShowTmdbModal] = useState(false);
-  const [pngStatus, setPngStatus] = useState(null); // null|'fetching'|'drawing'|'done'
+  const [pngStatus, setPngStatus] = useState<string | null>(null); // null|'fetching'|'drawing'|'done'
 
   // Supabase sync
-  const [sbUser, setSbUser] = useState(null);
+  const [sbUser, setSbUser] = useState<{ id: string; email?: string } | null>(null);
   const [syncStatus, setSyncStatus] = useState("idle"); // 'idle'|'syncing'|'synced'|'error'
   const [showAuthModal, setShowAuthModal] = useState(false);
 
@@ -154,21 +155,21 @@ export default function App() {
   }, [ph, piM, piI, rds, cr, cm, ch, hi, upsets]);
 
   // Notes state (persisted to localStorage)
-  const [notes, setNotes] = useState(() => {
-    const raw = loadLS("dbk-notes", {});
-    const migrated = {};
+  const [notes, setNotes] = useState<Notes>(() => {
+    const raw = loadLS<Record<string, unknown>>("dbk-notes", {});
+    const migrated: Notes = {};
     for (const [k, v] of Object.entries(raw)) {
-      if (typeof v === "string") migrated[k] = v;
+      if (typeof v === "string") migrated[Number(k)] = v;
       else if (v && typeof v === "object") {
-        const parts = [v[0], v[1]].filter(Boolean);
-        migrated[k] = parts.join("\n") || "";
+        const parts = [(v as Record<string, string>)[0], (v as Record<string, string>)[1]].filter(Boolean);
+        migrated[Number(k)] = parts.join("\n") || "";
       }
     }
     return migrated;
   });
   const [showNotes, setShowNotes] = useState(false);
 
-  const updateNote = (seed, text) => {
+  const updateNote = (seed: number, text: string) => {
     const nn = { ...notes, [seed]: text };
     setNotes(nn); saveLS("dbk-notes", nn);
   };
@@ -177,19 +178,19 @@ export default function App() {
     const { data, error } = await supabase
       .from("disney_bracket").select("notes,state").maybeSingle();
     if (error || !data) return;
-    if (data.notes) { setNotes(data.notes); saveLS("dbk-notes", data.notes); }
+    if (data.notes) { setNotes(data.notes as Notes); saveLS("dbk-notes", data.notes); }
     if (data.state) {
-      const s = data.state;
+      const s = data.state as Partial<BracketState> & { piM?: unknown; rds?: unknown[] };
       try {
-        setPh(s.ph); setPiM(desMatch(s.piM)); setPiI(s.piI ?? 0);
-        setRds(s.rds.map(r => desMatch(r))); setCr(s.cr ?? 0); setCm(s.cm ?? 0);
-        setCh(s.ch || null); setHi(s.hi || []); setUpsets(s.upsets || []);
+        setPh(s.ph ?? "pi"); setPiM(desMatch(s.piM)); setPiI(s.piI ?? 0);
+        setRds((s.rds ?? []).map(r => desMatch(r))); setCr(s.cr ?? 0); setCm(s.cm ?? 0);
+        setCh(s.ch ?? null); setHi(s.hi || []); setUpsets(s.upsets || []);
         saveLS("dbk-state", s);
       } catch { /* ignore malformed server data */ }
     }
   };
 
-  const handleFetchMeta = async (overrideTmdb, overrideOmdb) => {
+  const handleFetchMeta = async (overrideTmdb?: string | null, overrideOmdb?: string | null) => {
     const tmdbKey = overrideTmdb !== undefined ? overrideTmdb : localStorage.getItem("tmdb-key");
     const omdbKey = overrideOmdb !== undefined ? overrideOmdb : (localStorage.getItem("omdb-key") || "548162f0");
     if (!tmdbKey && !omdbKey) { setShowTmdbModal(true); return; }
@@ -206,7 +207,7 @@ export default function App() {
 
   // Easter egg: press ? to open the repo
   useEffect(() => {
-    const h = e => { if (e.key === "?" && !e.target.closest("input,textarea")) window.open("https://github.com/snackdriven/disney-bracket", "_blank", "noopener,noreferrer"); };
+    const h = (e: KeyboardEvent) => { if (e.key === "?" && !(e.target as Element).closest("input,textarea")) window.open("https://github.com/snackdriven/disney-bracket", "_blank", "noopener,noreferrer"); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, []);
@@ -246,10 +247,10 @@ export default function App() {
   }, []); // intentional: pullFromSupabase is stable, runs once
 
   // Auto-push on state change (debounced 2s)
-  const syncTimerRef = useRef(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!sbUser) return;
-    clearTimeout(syncTimerRef.current);
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     const serialized = { ph, piM: serMatch(piM), piI, rds: rds.map(r => serMatch(r)), cr, cm, ch, hi, upsets };
     syncTimerRef.current = setTimeout(async () => {
       setSyncStatus("syncing");
@@ -259,7 +260,7 @@ export default function App() {
       setSyncStatus(error ? "error" : "synced");
       setTimeout(() => setSyncStatus("idle"), 3000);
     }, 2000);
-    return () => clearTimeout(syncTimerRef.current);
+    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
   }, [ph, piM, piI, rds, cr, cm, ch, hi, upsets, notes, sbUser]);
 
   // Auto-fetch movie meta on mount if keys exist — reads cache from localStorage directly
@@ -268,7 +269,7 @@ export default function App() {
     const omdbKey = localStorage.getItem("omdb-key");
     if (!omdbKey) localStorage.setItem("omdb-key", "548162f0");
     const cachedPosters = (() => {
-      try { return Object.values(JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}")).filter(m => m?.poster).length; }
+      try { return Object.values(JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}") as Record<string, MovieMeta>).filter(m => m?.poster).length; }
       catch { return 0; }
     })();
     const effectiveOmdb = omdbKey || "548162f0";
@@ -283,7 +284,7 @@ export default function App() {
     const omdbKey = localStorage.getItem("omdb-key") || "548162f0";
     if (!tmdbKey && !omdbKey) { setShowTmdbModal(true); return; }
     setPngStatus("fetching");
-    let imgs = {};
+    let imgs: ImgCache = {};
     try {
       const map = await fetchMovieMeta(tmdbKey, omdbKey);
       setMovieMeta(map);
@@ -313,7 +314,7 @@ export default function App() {
   const up = ip ? piM : rds[cr];
   const ui = ip ? piI : cm;
 
-  const pick = (w) => {
+  const pick = (w: Movie) => {
     const opponent = mu[0].seed === w.seed ? mu[1] : mu[0];
     const isUpset = w.seed > opponent.seed;
     setAn(w.seed);
@@ -456,7 +457,7 @@ export default function App() {
         {showNotes && <NotesPanel mob={mob} notes={notes} updateNote={updateNote}/>}
 
         {/* Full bracket overlay */}
-        {fb && <FullBracket mob={mob} piM={piM} rds={rds} m64={[...MAIN,...piM.map(m=>m.winner).filter(Boolean)]} cr={cr} cm={cm} ip={ip} upsets={upsets}/>}
+        {fb && <FullBracket mob={mob} piM={piM} rds={rds} m64={[...MAIN,...piM.map(m=>m.winner).filter((w): w is Movie => !!w)]} cr={cr} cm={cm} ip={ip} upsets={upsets}/>}
 
         {ip && <div style={{ textAlign:"center", marginBottom:mob?16:20, animation:"fi .4s" }}>
           <div style={{ display:"inline-block", padding:mob?"8px 16px":"6px 18px", borderRadius:20, background:"rgba(79,195,247,.08)", border:"1px solid rgba(79,195,247,.2)", animation:"pp 3s ease-in-out infinite", fontSize:mob?13:12, fontWeight:700, color:"#4fc3f7", letterSpacing:mob?1:2, textTransform:"uppercase" }}>{mob?"🎬 Play-In Round":"🎬 Play-In — Bottom 12 fight for 6 spots"}</div>
@@ -535,7 +536,20 @@ export default function App() {
   );
 }
 
-function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
+interface CardProps {
+  m: Movie;
+  h: boolean;
+  a: boolean;
+  d: boolean;
+  onH: (seed: number | null) => void;
+  onC: () => void;
+  notes: Notes;
+  updateNote: (seed: number, text: string) => void;
+  mob?: boolean;
+  movieMeta: Record<number, MovieMeta>;
+}
+
+function Card({ m, h, a, d, onH, onC, notes, updateNote, mob = false, movieMeta }: CardProps) {
   const c = CLR[m.studio];
   const [showCardNotes, setShowCardNotes] = useState(false);
   const note = notes?.[m.seed] || "";
@@ -592,7 +606,7 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
         borderRadius: showCardNotes?(mob?"14px 0 0 0":"16px 0 0 0"):(mob?"14px 0 0 14px":"16px 0 0 16px"),
       }}>
         {hasPoster ? <>
-          <img src={meta.poster} alt="" style={{
+          <img src={meta!.poster} alt="" style={{
             width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top",
             display:"block", opacity:a ? 0.45 : 1,
             transition:"opacity .3s, transform .2s",
@@ -678,13 +692,18 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
   </div>;
 }
 
-function TmdbModal({ onSave, onClose }) {
+interface TmdbModalProps {
+  onSave: (tmdb: string, omdb: string) => void;
+  onClose: () => void;
+}
+
+function TmdbModal({ onSave, onClose }: TmdbModalProps) {
   const [tmdb, setTmdb] = useState(localStorage.getItem("tmdb-key") || "");
   const [omdb, setOmdb] = useState(localStorage.getItem("omdb-key") || "548162f0");
-  const dialogRef = useRef(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     dialogRef.current?.focus();
-    const h = e => { if (e.key === "Escape") onClose(); };
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
@@ -721,14 +740,18 @@ function TmdbModal({ onSave, onClose }) {
   </div>;
 }
 
-function AuthModal({ onClose }) {
+interface AuthModalProps {
+  onClose: () => void;
+}
+
+function AuthModal({ onClose }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
-  const [err, setErr] = useState(null);
-  const dialogRef = useRef(null);
+  const [err, setErr] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     dialogRef.current?.focus();
-    const h = e => { if (e.key === "Escape") onClose(); };
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
@@ -766,7 +789,17 @@ function AuthModal({ onClose }) {
   </div>;
 }
 
-function CardNotes({ seed, note, updateNote, ac, bg, mob, transparent }) {
+interface CardNotesProps {
+  seed: number;
+  note: string;
+  updateNote: (seed: number, text: string) => void;
+  ac: string;
+  bg: string;
+  mob: boolean;
+  transparent?: boolean;
+}
+
+function CardNotes({ seed, note, updateNote, ac, bg, mob, transparent }: CardNotesProps) {
   return <div style={{
     background: transparent ? "transparent" : `linear-gradient(155deg,${bg}ee,${bg}cc)`,
     border: transparent ? "none" : `1px solid ${ac}22`,
@@ -791,7 +824,13 @@ function CardNotes({ seed, note, updateNote, ac, bg, mob, transparent }) {
   </div>;
 }
 
-function NotesPanel({ notes, updateNote, mob }) {
+interface NotesPanelProps {
+  notes: Notes;
+  updateNote: (seed: number, text: string) => void;
+  mob: boolean;
+}
+
+function NotesPanel({ notes, updateNote, mob }: NotesPanelProps) {
   const [filter, setFilter] = useState("");
   const filtered = BRACKET_ORDER.filter(m => m.name.toLowerCase().includes(filter.toLowerCase()));
   return <div style={{
@@ -825,7 +864,15 @@ function NotesPanel({ notes, updateNote, mob }) {
   </div>;
 }
 
-function NoteRow({ m, note, c, updateNote, mob }) {
+interface NoteRowProps {
+  m: Movie;
+  note: string;
+  c: ColorScheme;
+  updateNote: (seed: number, text: string) => void;
+  mob: boolean;
+}
+
+function NoteRow({ m, note, c, updateNote, mob }: NoteRowProps) {
   const [open, setOpen] = useState(false);
   return <div style={{
     marginBottom:mob?6:6, background:"rgba(255,255,255,.02)", borderRadius:mob?10:10,
@@ -860,7 +907,11 @@ function NoteRow({ m, note, c, updateNote, mob }) {
   </div>;
 }
 
-function Dots({ mob }) {
+interface DotsProps {
+  mob: boolean;
+}
+
+function Dots({ mob }: DotsProps) {
   const dots = mob ? DOTS.slice(0, 40) : DOTS;
   return <div aria-hidden="true" style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0 }}>
     {dots.map((d,i) => <div key={i} style={{
@@ -872,8 +923,16 @@ function Dots({ mob }) {
   </div>;
 }
 
+interface BtnProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  p?: boolean;
+  s?: boolean;
+  mu?: boolean;
+  mob: boolean;
+}
 
-function Btn({ children, onClick, p, s, mu, mob }) {
+function Btn({ children, onClick, p, s, mu, mob }: BtnProps) {
   return <button className={mob?"mob-btn":""} onClick={onClick} style={{
     background: p?"linear-gradient(135deg,#4fc3f7,#2196f3)":mu?"rgba(255,255,255,.03)":"rgba(255,255,255,.06)",
     border: p?"none":`1px solid rgba(255,255,255,${mu?.06:.1})`,
@@ -884,7 +943,15 @@ function Btn({ children, onClick, p, s, mu, mob }) {
   }}>{children}</button>;
 }
 
-function BV({ pi, rds, cr, cm, mob }) {
+interface BVProps {
+  pi: Match[];
+  rds: Match[][];
+  cr?: number;
+  cm?: number;
+  mob: boolean;
+}
+
+function BV({ pi, rds, cr, cm, mob }: BVProps) {
   return <div style={{ marginTop:mob?20:28, padding:mob?14:16, background:"rgba(255,255,255,.03)", borderRadius:mob?12:14, border:"1px solid rgba(255,255,255,.06)", textAlign:"left", animation:"fi .3s" }}>
     <h3 style={{ fontSize:mob?15:14, fontWeight:700, color:"#b8b8d0", margin:mob?"0 0 12px":"0 0 14px", letterSpacing:1 }}>Bracket Results</h3>
     <RB t="Play-In Round" ms={pi} g mob={mob}/>
@@ -892,7 +959,17 @@ function BV({ pi, rds, cr, cm, mob }) {
   </div>;
 }
 
-function RB({ t, ms, g, cr, cm, ri, mob }) {
+interface RBProps {
+  t: string;
+  ms: Match[];
+  g?: boolean;
+  cr?: number;
+  cm?: number;
+  ri?: number;
+  mob: boolean;
+}
+
+function RB({ t, ms, g, cr, cm, ri, mob }: RBProps) {
   return <div style={{ marginBottom:mob?14:16 }}>
     <div style={{ fontSize:mob?11:10, letterSpacing:mob?2:2.5, textTransform:"uppercase", color:g?"#4fc3f7":"#6a6a8e", marginBottom:mob?6:6, fontWeight:700, opacity:g?.7:1 }}>{t}</div>
     {ms.map((m,mi) => {
@@ -904,16 +981,35 @@ function RB({ t, ms, g, cr, cm, ri, mob }) {
   </div>;
 }
 
-function MN({ m, w, r, mob, upset }) {
+interface MNProps {
+  m: Movie;
+  w?: Movie;
+  r?: boolean;
+  mob: boolean;
+  upset?: boolean;
+}
+
+function MN({ m, w, r, mob, upset }: MNProps) {
   const won=w?.seed===m.seed, lost=w&&!won;
   const winColor = upset ? "#ff8a65" : "#4fc3f7";
   return <span style={{ color:won?winColor:lost?"#4a4a65":"#8a8aa8", fontWeight:won?700:400, flex:1, textAlign:r?"right":"left", textDecoration:lost?"line-through":"none", opacity:lost?.5:1, overflow:mob?"hidden":undefined, textOverflow:mob?"ellipsis":undefined, whiteSpace:mob?"nowrap":undefined }}>{m.name}</span>;
 }
 
-function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
+interface FullBracketProps {
+  piM: Match[];
+  rds: Match[][];
+  m64: Movie[];
+  cr: number;
+  cm: number;
+  ip: boolean;
+  mob: boolean;
+  upsets: { seedDiff: number; winner: Movie; loser: Movie }[];
+}
+
+function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }: FullBracketProps) {
   const hasM64 = m64.length >= 64;
   const r1Display = R1.map(([a,b],i) => {
-    if (hasM64) return { a: m64[a], b: m64[b], region: Math.floor(i/8) };
+    if (hasM64) return { a: m64[a], b: m64[b], region: Math.floor(i/8), aSlot: a, bSlot: b };
     const ma = a < 58 ? MAIN[a] : null;
     const mb = b < 58 ? MAIN[b] : null;
     return { a: ma, b: mb, region: Math.floor(i/8), aSlot: a, bSlot: b };
@@ -922,15 +1018,15 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
   const r1Played = rds[0] || [];
 
   const regionStyle = { marginBottom:mob?16:20 };
-  const headStyle = { fontSize:mob?12:11, letterSpacing:mob?1.5:2, textTransform:"uppercase", fontWeight:700, marginBottom:mob?8:8, paddingBottom:mob?6:6, borderBottom:"1px solid rgba(255,255,255,.06)" };
+  const headStyle = { fontSize:mob?12:11, letterSpacing:mob?1.5:2, textTransform:"uppercase" as const, fontWeight:700, marginBottom:mob?8:8, paddingBottom:mob?6:6, borderBottom:"1px solid rgba(255,255,255,.06)" };
   const regColors = ["#4fc3f7","#ce93d8","#ff8a65","#4fc3f7"];
   const rowFs = mob ? 13 : 12;
   const rowPad = mob ? "5px 8px" : "4px 8px";
   const rowGap = mob ? 6 : 6;
   const vsFs = mob ? 10 : 9;
-  const ellipsis = mob ? { overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" } : {};
+  const ellipsis = mob ? { overflow:"hidden" as const, textOverflow:"ellipsis" as const, whiteSpace:"nowrap" as const } : {};
 
-  const piLabel = (slot) => {
+  const piLabel = (slot: number) => {
     const piIdx = slot - 58;
     const pair = PIP[piIdx];
     if (!pair) return "TBD";
@@ -953,7 +1049,7 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
         const w = m.winner;
         const isUpset = w && w.seed > (w.seed===m[0].seed ? m[1] : m[0]).seed;
         return <div key={i} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background: ip&&i===0&&!w ? "rgba(79,195,247,.06)" : "transparent" }}>
-          <MN m={m[0]} w={w} r mob={mob} upset={isUpset&&w?.seed===m[0].seed}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob} upset={isUpset&&w?.seed===m[1].seed}/>
+          <MN m={m[0]} w={w} r mob={mob} upset={!!(isUpset&&w?.seed===m[0].seed)}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob} upset={!!(isUpset&&w?.seed===m[1].seed)}/>
           {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#4fc3f7", opacity:.6, marginLeft:mob?2:4 }}>{isUpset?"⚡":"✓"}</span>}
         </div>;
       })}
@@ -972,11 +1068,11 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
           const aSeed = mu.a?.seed;
           const bSeed = mu.b?.seed;
           const isCurrentMatch = !ip && cr===0 && cm===regIdx*8+mi;
-          const isUpset = w && w.seed > (w.seed===aSeed ? bSeed : aSeed);
+          const isUpset = w && w.seed > (w.seed===aSeed ? (bSeed ?? 0) : (aSeed ?? 0));
           const winColor = isUpset ? "#ff8a65" : "#4fc3f7";
           return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCurrentMatch?"rgba(79,195,247,.06)":"transparent" }}>
             <span style={{
-              flex:1, textAlign:"right", ...ellipsis,
+              flex:1, textAlign:"right" as const, ...ellipsis,
               color: w?.seed===aSeed?winColor : w&&w.seed!==aSeed?"#4a4a65" : p?"#8a8aa8":"#7a7a9e",
               fontWeight: w?.seed===aSeed?700:400,
               textDecoration: w&&w.seed!==aSeed?"line-through":"none",
@@ -1007,7 +1103,7 @@ function FullBracket({ piM, rds, m64, cr, cm, ip, mob, upsets }) {
           const isUpset = w && w.seed > (w.seed===m[0].seed ? m[1] : m[0]).seed;
           const isCur = !ip && cr===roundNum && cm===mi;
           return <div key={mi} style={{ display:"flex", alignItems:"center", gap:rowGap, fontSize:rowFs, padding:rowPad, borderRadius:6, background:isCur?"rgba(79,195,247,.06)":"transparent" }}>
-            <MN m={m[0]} w={w} r mob={mob} upset={isUpset&&w?.seed===m[0].seed}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob} upset={isUpset&&w?.seed===m[1].seed}/>
+            <MN m={m[0]} w={w} r mob={mob} upset={!!(isUpset&&w?.seed===m[0].seed)}/><span style={{ color:"#3a3a55", fontSize:vsFs, letterSpacing:1, flexShrink:0 }}>vs</span><MN m={m[1]} w={w} mob={mob} upset={!!(isUpset&&w?.seed===m[1].seed)}/>
             {w && <span style={{ fontSize:vsFs, color:isUpset?"#ff8a65":"#4fc3f7", opacity:.6, marginLeft:2 }}>{isUpset?"⚡":"✓"}</span>}
           </div>;
         })}
