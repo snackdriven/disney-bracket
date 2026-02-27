@@ -72,7 +72,7 @@ npm test          # 70 Vitest unit tests
 npm run test:e2e  # 29 Playwright E2E tests at 1920×1080
 ```
 
-Unit tests cover the bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips. The E2E suite covers the 69-pick flow and a few regressions, including a race condition where Supabase's `#access_token` hash got clobbered by bracket state before the auth client could read it. That one has a test now.
+Unit tests cover the bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips. The E2E suite covers the 69-pick flow and a few regressions, including a race condition where bracket state was overwriting Supabase's `#access_token` hash before the auth client could read it. That one has a test now.
 
 CI runs both before building. Deploy only happens if they pass.
 
