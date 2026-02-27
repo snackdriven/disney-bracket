@@ -61,6 +61,23 @@ npm run dev
 
 React 19 + Vite. Supabase for auth and sync.
 
+### Testing
+
+The app started as a single 1,600-line component. All logic, all data, all canvas rendering — one file. Fine for moving fast, less fine for knowing whether anything works.
+
+The test pass involved extracting all pure logic into `src/lib/` modules (data constants, localStorage utils, bracket state transitions, canvas drawing helpers) with no behavior changes, then writing tests against those instead of against React.
+
+```bash
+npm test          # 70 Vitest unit tests
+npm run test:e2e  # 29 Playwright E2E tests at 1920×1080
+```
+
+Unit tests cover: movie data shape and seeding, localStorage serialization roundtrips, every bracket state transition (`applyPick`, `applyUndo`, `resetState`), upset detection, play-in to R64 phase transition, canvas position math.
+
+E2E tests cover: the full 69-pick bracket flow, state survival across hard reloads, URL hash sharing, the auth race condition where Supabase's `#access_token` hash was being overwritten before the client could read it, card notes persistence, and PNG/text export.
+
+CI runs both test suites before building. Deploy only happens if they pass.
+
 ```sql
 CREATE TABLE disney_bracket (
   user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
