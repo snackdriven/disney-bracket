@@ -28,9 +28,12 @@ describe('data constants', () => {
 
   it('PIP has exactly 6 pairs covering seeds 59-70', () => {
     expect(PIP.length).toBe(6);
-    const coveredSeeds = new Set(PIP.flatMap(([a, b]) => [PLAYIN[a].seed, PLAYIN[b].seed]));
+    const counts = {};
+    PIP.flatMap(([a, b]) => [PLAYIN[a].seed, PLAYIN[b].seed]).forEach(s => {
+      counts[s] = (counts[s] || 0) + 1;
+    });
     for (let s = 59; s <= 70; s++) {
-      expect(coveredSeeds.has(s)).toBe(true);
+      expect(counts[s]).toBe(1);
     }
   });
 

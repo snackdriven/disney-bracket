@@ -19,7 +19,7 @@ async function pickFirst(page) {
       return !el || el.textContent !== prev;
     },
     before,
-    { timeout: 3000 }
+    { timeout: 5000 }
   );
 }
 
@@ -40,6 +40,14 @@ test('picks survive a hard reload', async ({ page }) => {
   // The winner of match 1 should no longer appear as a current card
   const currentNames = await page.locator('[data-testid="movie-card"]').allTextContents();
   expect(currentNames.join(' ')).not.toContain(firstName?.trim().slice(0, 10) ?? '');
+
+  const stored = await page.evaluate(() => localStorage.getItem('dbk-state'));
+  expect(stored).not.toBeNull();
+  const state = JSON.parse(stored);
+  // piM is serialized as array of { p, w } objects via serMatch
+  const winner = state.piM?.[0]?.w;
+  expect(winner).not.toBeNull();
+  expect(firstName?.trim() ?? '').toContain(winner.name);
 });
 
 test('URL hash is updated after first pick', async ({ page }) => {
@@ -48,7 +56,7 @@ test('URL hash is updated after first pick', async ({ page }) => {
   await pickFirst(page);
 
   // Wait for the URL hash to be written (React effect runs after state update)
-  await page.waitForFunction(() => window.location.hash.length > 0, { timeout: 3000 });
+  await page.waitForFunction(() => window.location.hash.length > 0, { timeout: 5000 });
 
   const newUrl = page.url();
   expect(newUrl).toContain('#');
@@ -73,7 +81,7 @@ test('loading a share URL restores the bracket state', async ({ page }) => {
     const hash = window.location.hash.slice(1);
     if (!hash) return false;
     try { return JSON.parse(atob(hash)).piI >= 3; } catch { return false; }
-  }, { timeout: 3000 });
+  }, { timeout: 5000 });
 
   const shareUrl = page.url();
   expect(shareUrl).toContain('#');

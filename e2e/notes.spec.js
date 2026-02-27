@@ -32,6 +32,10 @@ test('note typed in card persists after reload', async ({ page }) => {
   const restoredTextarea = page.locator('textarea').first();
   await expect(restoredTextarea).toBeVisible();
   await expect(restoredTextarea).toHaveValue('This is my test note');
+
+  const stored = await page.evaluate(() => localStorage.getItem('dbk-notes'));
+  expect(stored).not.toBeNull();
+  expect(stored).toContain('This is my test note');
 });
 
 test('purple dot indicator appears after note added', async ({ page }) => {
@@ -66,7 +70,7 @@ test('global notes panel search filters movies', async ({ page }) => {
 test('note added from global panel is saved', async ({ page }) => {
   await page.getByRole('button', { name: /Notes/i }).first().click();
 
-  await page.locator('[style*="cursor: pointer"]').filter({ hasText: /#\d+/ }).first().click();
+  await page.locator('[data-testid="notes-panel-item"]').first().click();
 
   const textarea = page.locator('textarea').first();
   await expect(textarea).toBeVisible({ timeout: 3000 });

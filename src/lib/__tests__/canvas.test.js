@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { clx, crx, cps, cmty, CW, CSW, CSTEP, CBT, CBH, CMH } from '../canvas.js';
+import { describe, it, expect, vi } from 'vitest';
+import { clx, crx, cps, cmty, CW, CSW, CSTEP, CBT, CBH, CMH, drawBracket } from '../canvas.js';
 import { buildDisplayRds, resetState, applyPick } from '../bracket.js';
 import { PIP, PLAYIN } from '../data.js';
 
@@ -96,5 +96,30 @@ describe('buildDisplayRds with partial bracket state', () => {
     state = applyPick(state, winner);
     const display = buildDisplayRds(state.rds, state.piM);
     expect(display[0][0].winner).toBe(winner);
+  });
+});
+
+describe('drawBracket', () => {
+  it('does not throw on a post-playin state with no imgs', () => {
+    const mockCtx = {
+      fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: 'left',
+      globalAlpha: 1,
+      fillRect: vi.fn(), clearRect: vi.fn(), beginPath: vi.fn(),
+      moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), fill: vi.fn(),
+      fillText: vi.fn(), measureText: vi.fn(() => ({ width: 50 })),
+      drawImage: vi.fn(), roundRect: vi.fn(), arc: vi.fn(), closePath: vi.fn(),
+      createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+      save: vi.fn(), restore: vi.fn(), clip: vi.fn(),
+      translate: vi.fn(), rotate: vi.fn(),
+    };
+    const mockCanvas = { getContext: vi.fn(() => mockCtx), width: 1920, height: 1080 };
+
+    let state = resetState();
+    PIP.forEach(([a]) => { state = applyPick(state, PLAYIN[a]); });
+
+    expect(() => drawBracket(mockCanvas, {
+      rds: state.rds, piM: state.piM, ch: null, upsets: [], imgs: {}
+    })).not.toThrow();
+    expect(mockCanvas.getContext).toHaveBeenCalledWith('2d');
   });
 });

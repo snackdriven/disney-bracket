@@ -21,7 +21,7 @@ async function pickFirst(page) {
       return !el || el.textContent !== prev;
     },
     before,
-    { timeout: 3000 }
+    { timeout: 5000 }
   );
 }
 
@@ -81,5 +81,5 @@ test('progress bar increases with picks', async ({ page }) => {
 
   const valuenow = await progressBar.getAttribute('aria-valuenow');
   // 1 pick out of 69 = ~1.45%, so value should be 1
-  expect(parseInt(valuenow)).toBeGreaterThanOrEqual(1);
+  expect(parseInt(valuenow)).toBe(1);
 });

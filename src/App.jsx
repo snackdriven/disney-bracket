@@ -831,7 +831,7 @@ function NoteRow({ m, note, c, updateNote, mob }) {
     marginBottom:mob?6:6, background:"rgba(255,255,255,.02)", borderRadius:mob?10:10,
     border:`1px solid ${note?`${c.ac}18`:"rgba(255,255,255,.04)"}`,
   }}>
-    <button onClick={()=>setOpen(!open)} style={{
+    <button data-testid="notes-panel-item" onClick={()=>setOpen(!open)} style={{
       width:"100%", background:"transparent", border:"none", cursor:"pointer",
       display:"flex", alignItems:"center", gap:mob?8:8, padding:mob?"12px 12px":"8px 12px", textAlign:"left",
       minHeight:mob?48:undefined, WebkitTapHighlightColor:"transparent",

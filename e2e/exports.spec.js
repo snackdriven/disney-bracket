@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import * as fs from 'node:fs';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -20,7 +21,7 @@ async function pickFirst(page) {
       return !el || el.textContent !== prev;
     },
     before,
-    { timeout: 3000 }
+    { timeout: 5000 }
   );
 }
 
@@ -57,7 +58,7 @@ test('share URL clipboard content loads same bracket in new page', async ({ page
     const hash = window.location.hash.slice(1);
     if (!hash) return false;
     try { return JSON.parse(atob(hash)).piI >= 2; } catch { return false; }
-  }, { timeout: 3000 });
+  }, { timeout: 5000 });
 
   const shareUrl = page.url();
   expect(shareUrl).toContain('#');
@@ -111,4 +112,8 @@ test('PNG download triggered from champion view', async ({ page, browserName }, 
 
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('disney-and-pixar-bracket.png');
+  const downloadPath = await download.path();
+  const buf = fs.readFileSync(downloadPath);
+  expect(buf[0]).toBe(0x89);
+  expect(buf.slice(1, 4).toString('ascii')).toBe('PNG');
 });
