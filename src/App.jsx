@@ -487,13 +487,13 @@ export default function App() {
         </div>
 
         : mu ? <div key={`${ph}-${ip?piI:`${cr}-${cm}`}`} style={{ animation:"su .3s ease-out" }}>
-          <div style={{ textAlign:"center", marginBottom:mob?12:16, fontSize:mob?14:13, color:"#8080a0" }}>Match {mn} of {mt}</div>
+          <div data-testid="match-counter" style={{ textAlign:"center", marginBottom:mob?12:16, fontSize:mob?14:13, color:"#8080a0" }}>Match {mn} of {mt}</div>
           {mob ? (
             <div style={{ display:"flex", flexDirection:"column", gap:0, alignItems:"center" }}>
               <Card mob m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0])} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:12, padding:"10px 0", width:"100%" }}>
                 <div style={{ flex:1, height:1, background:"linear-gradient(90deg,transparent,rgba(255,255,255,.12))" }}/>
-                <span style={{ fontSize:14, fontWeight:800, color:"#5a5a7e", letterSpacing:3 }}>VS</span>
+                <span data-testid="vs-divider" style={{ fontSize:14, fontWeight:800, color:"#5a5a7e", letterSpacing:3 }}>VS</span>
                 <div style={{ flex:1, height:1, background:"linear-gradient(90deg,rgba(255,255,255,.12),transparent)" }}/>
               </div>
               <Card mob m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1])} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
@@ -503,7 +503,7 @@ export default function App() {
               <Card key={mu[0].seed} m={mu[0]} h={hv===mu[0].seed} a={an===mu[0].seed} d={!!an} onH={setHv} onC={()=>pick(mu[0])} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
               <div style={{ padding:"0 22px", flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
                 <div style={{ width:1, height:32, background:"linear-gradient(180deg,transparent,rgba(255,255,255,.1))" }}/>
-                <span style={{ fontSize:13, fontWeight:800, color:"#3a3a58", letterSpacing:4 }}>VS</span>
+                <span data-testid="vs-divider" style={{ fontSize:13, fontWeight:800, color:"#3a3a58", letterSpacing:4 }}>VS</span>
                 <div style={{ width:1, height:32, background:"linear-gradient(180deg,rgba(255,255,255,.1),transparent)" }}/>
               </div>
               <Card key={mu[1].seed} m={mu[1]} h={hv===mu[1].seed} a={an===mu[1].seed} d={!!an} onH={setHv} onC={()=>pick(mu[1])} notes={notes} updateNote={updateNote} movieMeta={movieMeta}/>
@@ -566,7 +566,7 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
       boxShadow: h?`0 ${mob?14:22}px ${mob?36:54}px rgba(0,0,0,.5)`:`0 4px ${mob?14:18}px rgba(0,0,0,.35)`,
       transition:"transform .18s cubic-bezier(.25,.8,.25,1), box-shadow .18s",
     } : { display:"contents" }}>
-    <button className={mob?"mob-card":""} onClick={()=>!d&&onC()}
+    <button data-testid="movie-card" className={mob?"mob-card":""} onClick={()=>!d&&onC()}
       onMouseEnter={mob?undefined:()=>onH(m.seed)} onMouseLeave={mob?undefined:()=>onH(null)}
       onTouchStart={mob?()=>onH(m.seed):undefined} onTouchEnd={mob?()=>onH(null):undefined}
       style={{
@@ -616,7 +616,7 @@ function Card({ m, h, a, d, onH, onC, notes, updateNote, mob, movieMeta }) {
           {hasPoster && <span style={{ fontSize:9, fontWeight:800, color:c.ac, opacity:.5, letterSpacing:.5 }}>#{m.seed}</span>}
           <span style={{ padding:"1px 7px", borderRadius:20, background:BADGE_CLR[m.studio].bg, color:BADGE_CLR[m.studio].tx, fontSize:9, fontWeight:700, letterSpacing:.4 }}>{m.studio}</span>
           <span style={{ fontSize:10, color:"#52526a" }}>{m.year}</span>
-          {note && !showCardNotes && <span style={{ width:5, height:5, borderRadius:"50%", background:"#ce93d8", flexShrink:0, marginLeft:2 }}/>}
+          {note && !showCardNotes && <span data-testid="notes-dot" style={{ width:5, height:5, borderRadius:"50%", background:"#ce93d8", flexShrink:0, marginLeft:2 }}/>}
         </div>
 
         {/* Title — 2-line clamp, never truncates with ellipsis on a single line */}

@@ -240,13 +240,14 @@ describe('applyUndo', () => {
     expect(undone.upsets.length).toBe(baseUpsets);
   });
 
-  it('undoing from main back to play-in reverts ph', () => {
-    // Pick 5 play-in matches, then undo the 5th
+  it('undoing 5th play-in pick reverts piI from 5 to 4', () => {
+    // Picks 5 play-in matches (still in play-in phase), then undoes the last one
     let state = freshState();
     for (let i = 0; i < 5; i++) {
       state = applyPick(state, state.piM[state.piI][0]);
     }
     expect(state.piI).toBe(5);
+    expect(state.ph).toBe('pi');
     const undone = applyUndo(state);
     expect(undone.piI).toBe(4);
     expect(undone.ph).toBe('pi');
