@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { pickFirst } from './helpers.js';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -8,22 +9,6 @@ test.beforeEach(async ({ page }) => {
   });
   await page.reload();
 });
-
-// Helper: click the first available movie card and wait for the next match to render
-async function pickFirst(page) {
-  const counter = page.locator('[data-testid="match-counter"]');
-  const before = await counter.textContent();
-  await page.locator('[data-testid="movie-card"]').first().click();
-  // Wait until the match counter changes, meaning the next match has loaded
-  await page.waitForFunction(
-    (prev) => {
-      const el = document.querySelector('[data-testid="match-counter"]');
-      return !el || el.textContent !== prev;
-    },
-    before,
-    { timeout: 5000 }
-  );
-}
 
 test('play-in round loads on fresh start', async ({ page }) => {
   await expect(page.getByText('Play-In Round', { exact: false }).first()).toBeVisible();
@@ -40,13 +25,6 @@ test('complete all 6 play-in matches, then R64 loads', async ({ page }) => {
     await pickFirst(page);
   }
   await expect(page.getByText('Round of 64', { exact: false })).toBeVisible({ timeout: 3000 });
-  await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 1 of 32');
-});
-
-test('match counter shows correct value after play-in completes', async ({ page }) => {
-  for (let i = 0; i < 6; i++) {
-    await pickFirst(page);
-  }
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 1 of 32');
 });
 

@@ -60,7 +60,9 @@ describe('data constants', () => {
     ALL_MOVIES.forEach(m => {
       expect(typeof m.seed).toBe('number');
       expect(typeof m.name).toBe('string');
+      expect(m.name.length).toBeGreaterThan(0);
       expect(typeof m.year).toBe('number');
+      expect(m.year).toBeGreaterThan(1900);
       expect(m.studio === 'Disney' || m.studio === 'Pixar').toBe(true);
     });
   });
@@ -73,15 +75,38 @@ describe('data constants', () => {
     expect(REG.length).toBe(4);
   });
 
-  it('ALL_MOVIES is MAIN + PLAYIN', () => {
-    expect(ALL_MOVIES.length).toBe(70);
-    expect(ALL_MOVIES[0]).toBe(MAIN[0]);
-    expect(ALL_MOVIES[58]).toBe(PLAYIN[0]);
+  it('ALL_MOVIES is MAIN then PLAYIN in order', () => {
+    expect(ALL_MOVIES.every((m, i) =>
+      m === (i < MAIN.length ? MAIN[i] : PLAYIN[i - MAIN.length])
+    )).toBe(true);
   });
 
   it('BRACKET_ORDER covers all 70 movies', () => {
     expect(BRACKET_ORDER.length).toBe(70);
     const seeds = new Set(BRACKET_ORDER.map(m => m.seed));
     expect(seeds.size).toBe(70);
+  });
+
+  it('MAIN movies all have non-empty imdb fields', () => {
+    MAIN.forEach(m => { expect(m.imdb.length).toBeGreaterThan(0); });
+  });
+
+  it('PLAYIN movies all have non-empty imdb fields', () => {
+    PLAYIN.forEach(m => { expect(m.imdb.length).toBeGreaterThan(0); });
+  });
+
+  it('R1 has no duplicate movie references', () => {
+    const indices = R1.flatMap(([a, b]) => [a, b]);
+    expect(new Set(indices).size).toBe(64);
+  });
+
+  it('STATIC_META entries have all content fields', () => {
+    ALL_MOVIES.forEach(m => {
+      const entry = STATIC_META[m.seed];
+      expect(entry.runtime?.length ?? 0).toBeGreaterThan(0);
+      expect(entry.rating?.length ?? 0).toBeGreaterThan(0);
+      expect(entry.poster?.length ?? 0).toBeGreaterThan(0);
+      expect(entry.plot?.length ?? 0).toBeGreaterThan(0);
+    });
   });
 });

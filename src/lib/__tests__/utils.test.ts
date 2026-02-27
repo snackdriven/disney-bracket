@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { loadLS, saveLS, extractImdbId, serMatch, desMatch } from '../utils.js';
-import type { Match } from '../../types.js';
+import type { Match, SerializedMatch } from '../../types.js';
+
+afterEach(() => localStorage.clear());
 
 describe('loadLS', () => {
   it('returns fallback when key missing', () => {
@@ -19,9 +21,15 @@ describe('loadLS', () => {
 
   it('returns null (not fallback) when stored value is "null"', () => {
     localStorage.setItem('null-key', 'null');
-    // v = 'null' (truthy string) → JSON.parse('null') = null
-    // The ternary checks v, not the parsed result, so null is returned
+    // Intentional: storing explicit null returns null, not fallback. Callers must handle null explicitly.
     expect(loadLS('null-key', 'default')).toBeNull();
+  });
+
+  it('returns fallback when getItem throws', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementationOnce(() => {
+      throw new Error('storage unavailable');
+    });
+    expect(loadLS('any-key', 'fallback')).toBe('fallback');
   });
 });
 
@@ -32,10 +40,10 @@ describe('saveLS', () => {
   });
 
   it('silently swallows storage errors', () => {
-    const origSetItem = localStorage.setItem.bind(localStorage);
-    localStorage.setItem = () => { throw new Error('quota exceeded'); };
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw new Error('quota exceeded');
+    });
     expect(() => saveLS('any', 'val')).not.toThrow();
-    localStorage.setItem = origSetItem;
   });
 });
 
@@ -98,5 +106,31 @@ describe('serMatch / desMatch roundtrip', () => {
 
     expect(restored[0].winner?.seed).toBe(1);
     expect(restored[1].winner).toBeUndefined();
+  });
+
+  it('handles serialized null winner (w: null)', () => {
+    const movie1 = { seed: 1, name: 'The Lion King', year: 1994, studio: 'Disney' as const, imdb: '' };
+    const movie2 = { seed: 2, name: 'Toy Story', year: 1995, studio: 'Pixar' as const, imdb: '' };
+    const serialized = [{ p: [movie1, movie2], w: null }] as SerializedMatch[];
+    const restored = desMatch(serialized);
+    expect(restored[0].winner).toBeUndefined();
+  });
+});
+
+describe('desMatch edge cases', () => {
+  it('returns [] for null', () => {
+    expect(desMatch(null)).toEqual([]);
+  });
+
+  it('returns [] for a string', () => {
+    expect(desMatch('string')).toEqual([]);
+  });
+
+  it('returns [] for a plain object', () => {
+    expect(desMatch({})).toEqual([]);
+  });
+
+  it('throws on array with null entry', () => {
+    expect(() => desMatch([null])).toThrow();
   });
 });

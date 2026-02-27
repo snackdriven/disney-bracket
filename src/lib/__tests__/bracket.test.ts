@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MAIN, PLAYIN, PIP, R1 } from '../data.js';
+import { PLAYIN, PIP, R1 } from '../data.js';
 import {
   buildInitialRounds,
   applyPick,
@@ -15,15 +15,11 @@ function makePlayinWinners() {
   return PIP.map(([a]) => PLAYIN[a]);
 }
 
-function freshState(): BracketState {
-  return resetState();
-}
-
-// State after all 6 play-in picks
+// State after all 6 play-in picks (alternates picks to cover both code paths)
 function stateAfterPlayin(): BracketState {
-  let state = freshState();
-  PIP.forEach(([a]) => {
-    state = applyPick(state, PLAYIN[a]);
+  let state = resetState();
+  PIP.forEach(([a, b], i) => {
+    state = applyPick(state, PLAYIN[i % 2 === 0 ? a : b]);
   });
   return state;
 }
@@ -64,7 +60,7 @@ describe('buildInitialRounds', () => {
 
 describe('applyPick — play-in phase', () => {
   it('advances piI after a pick', () => {
-    const state = freshState();
+    const state = resetState();
     const winner = state.piM[0][0];
     const next = applyPick(state, winner);
     expect(next.piI).toBe(1);
@@ -72,14 +68,14 @@ describe('applyPick — play-in phase', () => {
   });
 
   it('stores winner on the match', () => {
-    const state = freshState();
+    const state = resetState();
     const winner = state.piM[0][0];
     const next = applyPick(state, winner);
     expect(next.piM[0].winner).toBe(winner);
   });
 
   it('adds entry to history', () => {
-    const state = freshState();
+    const state = resetState();
     const winner = state.piM[0][0];
     const next = applyPick(state, winner);
     expect(next.hi.length).toBe(1);
@@ -155,12 +151,10 @@ describe('applyPick — main bracket', () => {
 
 describe('applyPick — championship', () => {
   function playFullBracket(state: BracketState): BracketState {
-    // Play through all rounds until champion
     while (!state.ch) {
       const round = state.rds[state.cr];
-      if (!round) break;
-      const match = round[state.cm];
-      if (!match) break;
+      const match = round?.[state.cm];
+      if (!round || !match) throw new Error(`Bracket stalled at cr=${state.cr} cm=${state.cm}`);
       state = applyPick(state, match[0]);
     }
     return state;
@@ -169,12 +163,10 @@ describe('applyPick — championship', () => {
   it('sets ch when championship match is decided', () => {
     let state = stateAfterPlayin();
     state = playFullBracket(state);
-    expect(state.ch).toBeDefined();
-    expect(state.ch).not.toBeNull();
-    expect(state.ch!.seed).toBeDefined();
+    expect(state.ch?.seed).toBeGreaterThan(0);
   });
 
-  it('ch is cr 5 winner (championship round)', () => {
+  it('history has 69 entries after full bracket completion', () => {
     let state = stateAfterPlayin();
     state = playFullBracket(state);
     // cr should have advanced through all rounds
@@ -184,13 +176,13 @@ describe('applyPick — championship', () => {
 
 describe('applyUndo', () => {
   it('returns same state if history is empty', () => {
-    const state = freshState();
+    const state = resetState();
     const undone = applyUndo(state);
     expect(undone).toBe(state);
   });
 
   it('reverts last play-in pick', () => {
-    const state = freshState();
+    const state = resetState();
     const winner = state.piM[0][0];
     const picked = applyPick(state, winner);
     const undone = applyUndo(picked);
@@ -216,7 +208,7 @@ describe('applyUndo', () => {
     // Pick all but verify last pick gives ch
     while (!state.ch) {
       const match = state.rds[state.cr]?.[state.cm];
-      if (!match) break;
+      if (!match) throw new Error(`Bracket stalled at cr=${state.cr} cm=${state.cm}`);
       state = applyPick(state, match[0]);
     }
     expect(state.ch).not.toBeNull();
@@ -243,7 +235,7 @@ describe('applyUndo', () => {
 
   it('undoing 5th play-in pick reverts piI from 5 to 4', () => {
     // Picks 5 play-in matches (still in play-in phase), then undoes the last one
-    let state = freshState();
+    let state = resetState();
     for (let i = 0; i < 5; i++) {
       state = applyPick(state, state.piM[state.piI][0]);
     }
@@ -280,7 +272,7 @@ describe('resetState', () => {
 
 describe('buildDisplayRds', () => {
   it('synthesizes R64 when rds is empty', () => {
-    const state = freshState();
+    const state = resetState();
     const display = buildDisplayRds(state.rds, state.piM);
     expect(display[0]).toBeDefined();
     expect(display[0].length).toBe(32);
@@ -304,12 +296,13 @@ describe('buildDisplayRds', () => {
     const display = buildDisplayRds(state.rds, state.piM);
     expect(display[0]).toBeDefined();
     expect(display[1]).toBeDefined();
+    expect(display[1].length).toBe(16);
   });
 });
 
 describe('exportBracketText', () => {
   it('starts with the correct header', () => {
-    const text = exportBracketText({ piM: freshState().piM, rds: [], ch: null });
+    const text = exportBracketText({ piM: resetState().piM, rds: [], ch: null });
     expect(text).toContain('🎬 Disney & Pixar: The Bracket — My Results');
   });
 
@@ -328,6 +321,8 @@ describe('exportBracketText', () => {
     }
     const text = exportBracketText({ piM: state.piM, rds: state.rds, ch: state.ch });
     expect(text).toContain('ROUND OF 64');
+    expect(text).not.toContain('ROUND OF 32');
+    expect((text.match(/def\./g) || []).length).toBe(14);
   });
 
   it('includes champion line when bracket is complete', () => {
@@ -351,6 +346,14 @@ describe('exportBracketText', () => {
   });
 });
 
-// Ensure MAIN export is actually used (suppresses unused import warning)
-const _mainCheck = MAIN.length;
-void _mainCheck;
+describe('applyPick — validation', () => {
+  it('accepts pick of movie not in current match', () => {
+    let state = resetState();
+    PIP.forEach(() => { state = applyPick(state, state.piM[state.piI][0]); });
+    const fakeMovie = { seed: 999, name: 'Fake', year: 2000, studio: 'Disney' as const, imdb: '' };
+    const next = applyPick(state, fakeMovie);
+    expect(next.rds[0][0].winner).toBe(fakeMovie);
+    expect(next.cm).toBe(1);
+  });
+});
+

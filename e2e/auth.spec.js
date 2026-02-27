@@ -1,9 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const SB_URL = 'https://pynmkrcbkcfxifnztnrn.supabase.co';
-const SB_ANON = 'sb_publishable_8VEm7zR0vqKjOZRwH6jimw_qIWt-RPp';
-
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await page.evaluate(() => {
@@ -33,7 +29,6 @@ test('auth modal closes on escape key', async ({ page }) => {
 });
 
 test.describe('with injected session', () => {
-  test.skip(!SERVICE_KEY, 'Requires SUPABASE_SERVICE_KEY env var');
 
   test('injected session shows user email in header', async ({ page }) => {
     const testEmail = 'test@example.com';
@@ -51,8 +46,9 @@ test.describe('with injected session', () => {
     await page.reload();
     await page.waitForLoadState('networkidle');
 
-    // Sync button should be gone and email or sign-out should be visible
+    // Sync button should be gone and sign-out should be visible
     await expect(page.getByRole('button', { name: /Sync across devices/i })).not.toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: /Sign out/i })).toBeVisible({ timeout: 5000 });
   });
 
   test('make a pick triggers sync network request', async ({ page }) => {
@@ -61,6 +57,17 @@ test.describe('with injected session', () => {
       syncRequests.push(route.request().url());
       route.continue();
     });
+
+    await page.evaluate(({ email }) => {
+      localStorage.setItem('sb-pynmkrcbkcfxifnztnrn-auth-token', JSON.stringify({
+        access_token: 'fake_access_token',
+        refresh_token: 'fake_refresh_token',
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'test-user-id', email },
+      }));
+    }, { email: 'test@example.com' });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
 
     await page.locator('[data-testid="movie-card"]').first().click();
 
@@ -73,7 +80,7 @@ test.describe('with injected session', () => {
   });
 });
 
-test('sign out removes email from header', async ({ page }) => {
+test('unauthenticated state has no sign out button', async ({ page }) => {
   // Without a session, sign-out button should not be visible
   await expect(page.getByRole('button', { name: /Sign out/i })).not.toBeVisible();
   await expect(page.getByRole('button', { name: /Sync across devices/i })).toBeVisible();
