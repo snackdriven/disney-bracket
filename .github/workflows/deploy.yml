@@ -23,6 +23,14 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Run unit tests
+        run: npm test
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
