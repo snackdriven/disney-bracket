@@ -41,7 +41,7 @@ test.describe('with injected session', () => {
         expires_at: Math.floor(Date.now() / 1000) + 3600,
         user: { id: 'test-user-id', email },
       };
-      localStorage.setItem('sb-pynmkrcbkcfxifnztnrn-auth-token', JSON.stringify(fakeSession));
+      localStorage.setItem('disney-bracket-auth', JSON.stringify(fakeSession));
     }, { email: testEmail });
 
     await page.reload();
@@ -60,7 +60,7 @@ test.describe('with injected session', () => {
     });
 
     await page.evaluate(({ email }) => {
-      localStorage.setItem('sb-pynmkrcbkcfxifnztnrn-auth-token', JSON.stringify({
+      localStorage.setItem('disney-bracket-auth', JSON.stringify({
         access_token: 'fake_access_token',
         refresh_token: 'fake_refresh_token',
         expires_at: Math.floor(Date.now() / 1000) + 3600,
