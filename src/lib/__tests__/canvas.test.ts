@@ -11,6 +11,8 @@ describe('canvas position math', () => {
   it('clx increases with each round', () => {
     expect(clx(1)).toBeGreaterThan(clx(0));
     expect(clx(2)).toBeGreaterThan(clx(1));
+    expect(clx(3)).toBeGreaterThan(clx(2));
+    expect(clx(4)).toBeGreaterThan(clx(3));
   });
 
   it('crx(0) returns right column x for round 0', () => {
@@ -20,6 +22,8 @@ describe('canvas position math', () => {
   it('crx decreases with each round (columns move inward)', () => {
     expect(crx(1)).toBeLessThan(crx(0));
     expect(crx(2)).toBeLessThan(crx(1));
+    expect(crx(3)).toBeLessThan(crx(2));
+    expect(crx(4)).toBeLessThan(crx(3));
   });
 
   it('cps(0) returns 16 matches per side for R64', () => {
@@ -31,11 +35,6 @@ describe('canvas position math', () => {
     expect(cps(2)).toBe(4);
     expect(cps(3)).toBe(2);
     expect(cps(4)).toBe(1);
-    expect(cps(5)).toBe(1);
-  });
-
-  it('cmty(0, 0) returns a positive Y coordinate', () => {
-    expect(cmty(0, 0)).toBeGreaterThan(0);
   });
 
   it('cmty(0, 0) equals 60', () => {

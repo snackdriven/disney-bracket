@@ -39,6 +39,11 @@ describe('saveLS', () => {
     expect(localStorage.getItem('save-test')).toBe('{"a":1}');
   });
 
+  it('saveLS then loadLS roundtrips the value', () => {
+    saveLS('roundtrip-key', { x: 42 });
+    expect(loadLS('roundtrip-key', null)).toEqual({ x: 42 });
+  });
+
   it('silently swallows storage errors', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
       throw new Error('quota exceeded');
@@ -66,9 +71,10 @@ describe('extractImdbId', () => {
 });
 
 describe('serMatch / desMatch roundtrip', () => {
+  const movie1 = { seed: 1, name: 'The Lion King', year: 1994, studio: 'Disney' as const, imdb: '' };
+  const movie2 = { seed: 2, name: 'Toy Story', year: 1995, studio: 'Pixar' as const, imdb: '' };
+
   it('preserves winner correctly', () => {
-    const movie1 = { seed: 1, name: 'The Lion King', year: 1994, studio: 'Disney' as const, imdb: '' };
-    const movie2 = { seed: 2, name: 'Toy Story', year: 1995, studio: 'Pixar' as const, imdb: '' };
     const match = [movie1, movie2] as Match;
     match.winner = movie1;
     const matches: Match[] = [match];
@@ -109,8 +115,6 @@ describe('serMatch / desMatch roundtrip', () => {
   });
 
   it('handles serialized null winner (w: null)', () => {
-    const movie1 = { seed: 1, name: 'The Lion King', year: 1994, studio: 'Disney' as const, imdb: '' };
-    const movie2 = { seed: 2, name: 'Toy Story', year: 1995, studio: 'Pixar' as const, imdb: '' };
     const serialized = [{ p: [movie1, movie2], w: null }] as SerializedMatch[];
     const restored = desMatch(serialized);
     expect(restored[0].winner).toBeUndefined();
@@ -130,7 +134,15 @@ describe('desMatch edge cases', () => {
     expect(desMatch({})).toEqual([]);
   });
 
-  it('throws on array with null entry', () => {
-    expect(() => desMatch([null])).toThrow();
+  it('returns [] for an empty array', () => {
+    expect(desMatch([])).toEqual([]);
+  });
+
+  it('throws TypeError on array with null entry — known gap: no per-element guard', () => {
+    expect(() => desMatch([null])).toThrow(TypeError);
+  });
+
+  it('throws TypeError on entry with null participants — known gap: no inner validation', () => {
+    expect(() => desMatch([{ p: null, w: null }])).toThrow(TypeError);
   });
 });

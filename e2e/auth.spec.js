@@ -9,8 +9,9 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
-test('unauthenticated state shows sync button', async ({ page }) => {
+test('unauthenticated state: sync button visible, sign-out not visible', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Sync across devices/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Sign out/i })).not.toBeVisible();
 });
 
 test('auth modal opens when sync button clicked', async ({ page }) => {
@@ -25,12 +26,12 @@ test('auth modal closes on escape key', async ({ page }) => {
   await expect(page.locator('[role="dialog"]')).toBeVisible();
 
   await page.keyboard.press('Escape');
-  await expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 2000 });
+  await expect(page.locator('[role="dialog"]')).not.toBeVisible();
 });
 
 test.describe('with injected session', () => {
 
-  test('injected session shows user email in header', async ({ page }) => {
+  test('injected session hides sync button and shows sign-out', async ({ page }) => {
     const testEmail = 'test@example.com';
 
     await page.evaluate(({ email }) => {
@@ -69,19 +70,14 @@ test.describe('with injected session', () => {
     await page.reload();
     await page.waitForLoadState('networkidle');
 
+    // Set up request waiter before clicking — the 2s debounce means the request fires ~2s after the pick
+    const syncRequestPromise = page.waitForRequest('**/disney_bracket**', { timeout: 5000 });
     await page.locator('[data-testid="movie-card"]').first().click();
 
-    // Wait for the 2s debounce + extra time for the request
-    await page.waitForTimeout(3500);
-
-    // With a valid (even fake) session token, a sync attempt fires
+    // With a valid (even fake) session token, a sync attempt fires after the debounce
     // We can't guarantee the request succeeds (fake token), but we can verify it was attempted
+    await syncRequestPromise;
     expect(syncRequests.length).toBeGreaterThan(0);
   });
 });
 
-test('unauthenticated state has no sign out button', async ({ page }) => {
-  // Without a session, sign-out button should not be visible
-  await expect(page.getByRole('button', { name: /Sign out/i })).not.toBeVisible();
-  await expect(page.getByRole('button', { name: /Sync across devices/i })).toBeVisible();
-});

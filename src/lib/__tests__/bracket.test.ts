@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PLAYIN, PIP, R1 } from '../data.js';
+import { MAIN, PLAYIN, PIP, R1 } from '../data.js';
 import {
   buildInitialRounds,
   applyPick,
@@ -10,9 +10,9 @@ import {
 } from '../bracket.js';
 import type { BracketState } from '../../types.js';
 
-// Build a valid set of 6 play-in winners (one from each pair)
+// Build a valid set of 6 play-in winners — alternates [0]/[1] to match stateAfterPlayin
 function makePlayinWinners() {
-  return PIP.map(([a]) => PLAYIN[a]);
+  return PIP.map(([a, b], i) => PLAYIN[i % 2 === 0 ? a : b]);
 }
 
 // State after all 6 play-in picks (alternates picks to cover both code paths)
@@ -118,6 +118,18 @@ describe('applyPick — main bracket', () => {
     expect(state.cm).toBe(0);
     expect(state.rds.length).toBe(2);
     expect(state.rds[1].length).toBe(16);
+  });
+
+  it('R32 participants are exactly the R64 winners in bracket order', () => {
+    let state = stateAfterPlayin();
+    for (let i = 0; i < 32; i++) {
+      state = applyPick(state, state.rds[state.cr][state.cm][0]);
+    }
+    const r64Winners = state.rds[0].map(m => m.winner);
+    state.rds[1].forEach((match, i) => {
+      expect(match[0]).toBe(r64Winners[i * 2]);
+      expect(match[1]).toBe(r64Winners[i * 2 + 1]);
+    });
   });
 
   it('detects upset when lower seed beats higher seed', () => {
@@ -233,6 +245,34 @@ describe('applyUndo', () => {
     expect(undone.upsets.length).toBe(baseUpsets);
   });
 
+  it('undoing the last pick of a round drops the promoted next round', () => {
+    let state = stateAfterPlayin();
+    // Pick all 32 R64 matches — the 32nd pick promotes to R32
+    for (let i = 0; i < 32; i++) {
+      state = applyPick(state, state.rds[state.cr][state.cm][0]);
+    }
+    expect(state.cr).toBe(1);
+    expect(state.rds.length).toBe(2);
+    const undone = applyUndo(state);
+    expect(undone.cr).toBe(0);
+    expect(undone.cm).toBe(31);
+    expect(undone.rds.length).toBe(1); // R32 dropped
+    expect(undone.rds[0][31].winner).toBeUndefined();
+  });
+
+  it('undoing a pick at cm > 0 reverts to that position', () => {
+    let state = stateAfterPlayin();
+    // Make 3 R64 picks: cm advances 0→1→2→3
+    for (let i = 0; i < 3; i++) {
+      state = applyPick(state, state.rds[state.cr][state.cm][0]);
+    }
+    expect(state.cm).toBe(3);
+    const undone = applyUndo(state);
+    expect(undone.cm).toBe(2);
+    expect(undone.cr).toBe(0);
+    expect(undone.rds[0][2].winner).toBeUndefined();
+  });
+
   it('undoing 5th play-in pick reverts piI from 5 to 4', () => {
     // Picks 5 play-in matches (still in play-in phase), then undoes the last one
     let state = resetState();
@@ -276,6 +316,11 @@ describe('buildDisplayRds', () => {
     const display = buildDisplayRds(state.rds, state.piM);
     expect(display[0]).toBeDefined();
     expect(display[0].length).toBe(32);
+    // Each MAIN-seeded slot should reference the correct movie from MAIN
+    R1.forEach(([a, b], i) => {
+      if (a < 58) expect(display[0][i][0]).toBe(MAIN[a]);
+      if (b < 58) expect(display[0][i][1]).toBe(MAIN[b]);
+    });
   });
 
   it('returns existing rounds when present', () => {
@@ -284,6 +329,9 @@ describe('buildDisplayRds', () => {
     const picked = applyPick(state, winner);
     const display = buildDisplayRds(picked.rds, picked.piM);
     expect(display[0][0].winner).toBe(winner);
+    // Participants must not be shuffled or re-derived
+    expect(display[0][0][0]).toBe(state.rds[0][0][0]);
+    expect(display[0][0][1]).toBe(state.rds[0][0][1]);
   });
 
   it('synthesizes future rounds from winners', () => {
@@ -297,6 +345,12 @@ describe('buildDisplayRds', () => {
     expect(display[0]).toBeDefined();
     expect(display[1]).toBeDefined();
     expect(display[1].length).toBe(16);
+    // R32 participants should be the R64 winners paired in order
+    const r64Winners = state.rds[0].map(m => m.winner);
+    display[1].forEach((match, i) => {
+      expect(match[0]).toBe(r64Winners[i * 2]);
+      expect(match[1]).toBe(r64Winners[i * 2 + 1]);
+    });
   });
 });
 
@@ -304,6 +358,17 @@ describe('exportBracketText', () => {
   it('starts with the correct header', () => {
     const text = exportBracketText({ piM: resetState().piM, rds: [], ch: null });
     expect(text).toContain('🎬 Disney & Pixar: The Bracket — My Results');
+  });
+
+  it('includes only completed play-in picks when play-in is partial', () => {
+    let state = resetState();
+    for (let i = 0; i < 3; i++) {
+      state = applyPick(state, state.piM[state.piI][0]);
+    }
+    const text = exportBracketText({ piM: state.piM, rds: state.rds, ch: state.ch });
+    expect(text).toContain('PLAY-IN ROUND');
+    expect((text.match(/def\./g) || []).length).toBe(3);
+    expect(text).not.toContain('ROUND OF 64');
   });
 
   it('includes play-in results when picks exist', () => {
@@ -329,7 +394,7 @@ describe('exportBracketText', () => {
     let state = stateAfterPlayin();
     while (!state.ch) {
       const match = state.rds[state.cr]?.[state.cm];
-      if (!match) break;
+      if (!match) throw new Error(`Bracket stalled at cr=${state.cr} cm=${state.cm}`);
       state = applyPick(state, match[0]);
     }
     const text = exportBracketText({ piM: state.piM, rds: state.rds, ch: state.ch });
@@ -347,7 +412,7 @@ describe('exportBracketText', () => {
 });
 
 describe('applyPick — validation', () => {
-  it('accepts pick of movie not in current match', () => {
+  it('silently accepts out-of-match pick — known defect: no input validation', () => {
     let state = resetState();
     PIP.forEach(() => { state = applyPick(state, state.piM[state.piI][0]); });
     const fakeMovie = { seed: 999, name: 'Fake', year: 2000, studio: 'Disney' as const, imdb: '' };

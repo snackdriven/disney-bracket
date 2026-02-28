@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('play-in round loads on fresh start', async ({ page }) => {
-  await expect(page.getByText('Play-In Round', { exact: false }).first()).toBeVisible();
+  await expect(page.getByText('Play-In Round', { exact: false })).toBeVisible();
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 1 of 6');
 });
 
@@ -29,7 +29,7 @@ test('complete all 6 play-in matches, then R64 loads', async ({ page }) => {
 });
 
 test('VS divider visible during a match', async ({ page }) => {
-  await expect(page.locator('[data-testid="vs-divider"]').first()).toBeVisible();
+  await expect(page.locator('[data-testid="vs-divider"]')).toBeVisible();
 });
 
 test('undo button reverts last pick', async ({ page }) => {
@@ -38,6 +38,8 @@ test('undo button reverts last pick', async ({ page }) => {
 
   await page.getByRole('button', { name: /Undo/i }).click();
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 1 of 6');
+  // Both candidates for match 1 should be present again
+  await expect(page.locator('[data-testid="movie-card"]')).toHaveCount(2);
 });
 
 test('reset button clears all picks back to play-in', async ({ page }) => {
@@ -48,7 +50,7 @@ test('reset button clears all picks back to play-in', async ({ page }) => {
 
   await page.getByRole('button', { name: /Reset/i }).click();
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 1 of 6');
-  await expect(page.getByText('Play-In Round', { exact: false }).first()).toBeVisible();
+  await expect(page.getByText('Play-In Round', { exact: false })).toBeVisible();
 });
 
 test('progress bar increases with picks', async ({ page }) => {
@@ -59,5 +61,5 @@ test('progress bar increases with picks', async ({ page }) => {
 
   const valuenow = await progressBar.getAttribute('aria-valuenow');
   // 1 pick out of 69 = ~1.45%, so value should be 1
-  expect(parseInt(valuenow)).toBe(1);
+  expect(parseInt(valuenow, 10)).toBe(1);
 });

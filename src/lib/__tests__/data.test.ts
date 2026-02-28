@@ -6,18 +6,16 @@ describe('data constants', () => {
     expect(MAIN.length + PLAYIN.length).toBe(70);
   });
 
-  it('MAIN has 58 movies with seeds 1-58', () => {
+  it('MAIN has 58 movies with seeds 1-58 (contiguous)', () => {
     expect(MAIN.length).toBe(58);
     const seeds = MAIN.map(m => m.seed).sort((a, b) => a - b);
-    expect(seeds[0]).toBe(1);
-    expect(seeds[57]).toBe(58);
+    seeds.forEach((s, i) => expect(s).toBe(i + 1));
   });
 
-  it('PLAYIN has 12 movies with seeds 59-70', () => {
+  it('PLAYIN has 12 movies with seeds 59-70 (contiguous)', () => {
     expect(PLAYIN.length).toBe(12);
     const seeds = PLAYIN.map(m => m.seed).sort((a, b) => a - b);
-    expect(seeds[0]).toBe(59);
-    expect(seeds[11]).toBe(70);
+    seeds.forEach((s, i) => expect(s).toBe(i + 59));
   });
 
   it('no duplicate seed numbers', () => {
