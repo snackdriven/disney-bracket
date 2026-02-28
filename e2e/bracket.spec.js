@@ -11,7 +11,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('play-in round loads on fresh start', async ({ page }) => {
-  await expect(page.getByText('Play-In Round', { exact: false })).toBeVisible();
+  // exact: true targets the <span> only — mobile renders a second element containing 🎬 Play-In Round
+  await expect(page.getByText('Play-In Round', { exact: true })).toBeVisible();
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 1 of 6');
 });
 
@@ -50,7 +51,7 @@ test('reset button clears all picks back to play-in', async ({ page }) => {
 
   await page.getByRole('button', { name: /Reset/i }).click();
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 1 of 6');
-  await expect(page.getByText('Play-In Round', { exact: false })).toBeVisible();
+  await expect(page.getByText('Play-In Round', { exact: true })).toBeVisible();
 });
 
 test('progress bar increases with picks', async ({ page }) => {

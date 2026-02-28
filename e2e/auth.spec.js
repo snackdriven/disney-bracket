@@ -68,7 +68,9 @@ test.describe('with injected session', () => {
       }));
     }, { email: 'test@example.com' });
     await page.reload();
-    await page.waitForLoadState('networkidle');
+    // networkidle would timeout here: Supabase fires auth network calls after picking up the
+    // injected session, and those never settle with a fake token. Wait for signed-in UI instead.
+    await expect(page.getByRole('button', { name: /Sign out/i })).toBeVisible({ timeout: 10000 });
 
     // Set up request waiter before clicking — the 2s debounce means the request fires ~2s after the pick
     const syncRequestPromise = page.waitForRequest('**/disney_bracket**', { timeout: 5000 });
