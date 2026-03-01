@@ -101,7 +101,10 @@ test('URL hash state takes priority over localStorage state', async ({ page }) =
   await pickFirst(page);
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 2 of 6');
 
-  // Now navigate to the share URL — hash (match 3) should win over localStorage (match 2)
+  // Navigate via about:blank first so Chromium does a full page unload before loading
+  // the share URL. Without this, going from path#hashA to path#hashB is a hash-only
+  // navigation — React never re-mounts and useState initializers never re-run.
+  await page.goto('about:blank');
   await page.goto(shareUrl);
   await page.waitForLoadState('networkidle');
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 3 of 6', { timeout: 5000 });
