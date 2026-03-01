@@ -29,7 +29,7 @@ HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
   set fillStyle(_: unknown) {}, set strokeStyle(_: unknown) {}, set font(_: unknown) {},
   set textAlign(_: unknown) {}, set lineWidth(_: unknown) {}, set globalAlpha(_: unknown) {},
   set shadowColor(_: unknown) {}, set shadowBlur(_: unknown) {},
-}) as ReturnType<typeof HTMLCanvasElement.prototype.getContext>;
+}) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 
 // jsdom doesn't implement matchMedia — stub it.
 Object.defineProperty(window, 'matchMedia', {
