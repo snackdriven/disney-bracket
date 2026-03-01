@@ -13,10 +13,13 @@ export const serMatch = (ms: Match[]): SerializedMatch[] =>
 
 export const desMatch = (ms: unknown): Match[] => {
   if (!Array.isArray(ms)) return [];
-  return (ms as SerializedMatch[]).map(({ p, w }) => {
+  return (ms as SerializedMatch[]).flatMap(entry => {
+    if (!entry || typeof entry !== 'object') return [];
+    const { p, w } = entry as SerializedMatch;
+    if (!Array.isArray(p) || !p[0] || !p[1]) return [];
     const m = [p[0], p[1]] as Match;
     if (w) m.winner = w;
-    return m;
+    return [m];
   });
 };
 

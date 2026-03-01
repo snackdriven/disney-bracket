@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { beforeEach } from 'vitest';
 
-// Simple localStorage mock for jsdom (already included, but ensure clean state)
+// Ensure clean localStorage state before each test
 beforeEach(() => {
   localStorage.clear();
 });

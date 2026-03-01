@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { MAIN, PLAYIN, PIP, R1, RND, REG, FACTS, STATIC_META, ALL_MOVIES, BRACKET_ORDER } from './lib/data.js';
 import { loadLS, saveLS, serMatch, desMatch, extractImdbId } from './lib/utils.js';
@@ -412,7 +412,7 @@ export default function App() {
           <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,#9d8fe0,#ce93d8,#4fc3f7)", borderRadius:20, transition:"width .5s" }}/>
         </div>
         <div style={{ display:"flex", justifyContent:"space-between", fontSize:mob?12:11, color:"#6a6a8e", marginBottom:mob?10:14 }}>
-          <span>{hi.length}/69 decided</span><span>{rl}{rn?` · ${rn}`:""}</span>
+          <span>{hi.length}/69 decided</span><span data-testid="round-label">{rl}{rn?` · ${rn}`:""}</span>
         </div>
 
         {/* Sync + posters strip */}
@@ -428,7 +428,7 @@ export default function App() {
           ) : (
             <button onClick={()=>setShowAuthModal(true)} style={{ background:"none", border:"none", color:"#6a6a8e", fontSize:mob?12:11, cursor:"pointer", letterSpacing:.5 }}>☁ Sync across devices</button>
           )}
-          <a href="https://snackdriven.github.io/bad-movie-bracket/" target="_blank" rel="noopener noreferrer" title="something worse this way comes" style={{ color:"#3a3a52", fontSize:mob?12:11, textDecoration:"none", opacity:.5 }}>💀</a>
+          <a href="https://snackdriven.github.io/bad-movie-bracket/" target="_blank" rel="noopener noreferrer" aria-label="Visit Bad Movie Bracket" title="something worse this way comes" style={{ color:"#3a3a52", fontSize:mob?12:11, textDecoration:"none", opacity:.5 }}>💀</a>
           <span style={{ color:"#4a4a65" }}>·</span>
           <button onClick={()=>{ if(tmdbStatus==="fetching") return; if(!localStorage.getItem("tmdb-key")) setShowTmdbModal(true); else handleFetchMeta(); }} style={{ background:"none", border:"none", color:metaCount>0?"#6a6a8e":"#4fc3f7", fontSize:mob?12:11, cursor:"pointer" }}>
             {tmdbStatus==="fetching"?"⏳ Fetching..." : metaCount>0 ? `🎬 ${metaCount} movies loaded` : "🎬 Add posters & ratings"}
@@ -465,7 +465,7 @@ export default function App() {
 
         {ch ? <div style={{ textAlign:"center", animation:"su .5s ease-out", padding:mob?"24px 12px":"40px 20px" }}>
           <div style={{ fontSize:mob?42:56, animation:"cb 2s ease-in-out infinite", marginBottom:mob?8:12 }}>👑</div>
-          <div style={{ fontSize:mob?12:11, letterSpacing:mob?4:6, textTransform:"uppercase", color:"#4fc3f7", marginBottom:mob?8:10 }}>Your Champion</div>
+          <div data-testid="champion-label" style={{ fontSize:mob?12:11, letterSpacing:mob?4:6, textTransform:"uppercase", color:"#4fc3f7", marginBottom:mob?8:10 }}>Your Champion</div>
           <div style={{ fontSize:"clamp(28px,7vw,50px)", fontWeight:800, color:"#4fc3f7", animation:"wg 2s ease-in-out infinite", marginBottom:6 }}>{ch.name}</div>
           <div style={{ fontSize:mob?15:15, color:"#9a9abe" }}>{ch.studio} · {ch.year} · #{ch.seed} seed</div>
           {upsets.length > 0 && <div style={{ marginTop:16, fontSize:mob?13:13, color:"#6a6a8e" }}>
@@ -749,12 +749,21 @@ function AuthModal({ onClose }: AuthModalProps) {
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  // Keep a ref to onClose so the keydown handler always calls the latest version
+  // without needing it in the effect dependency array. Empty deps ensures the effect
+  // runs once on mount — capturing previouslyFocused before the dialog steals focus.
+  const onCloseRef = useRef(onClose);
+  useLayoutEffect(() => { onCloseRef.current = onClose; });
   useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     dialogRef.current?.focus();
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onCloseRef.current(); };
     window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener("keydown", h);
+      previouslyFocused?.focus();
+    };
+  }, []);
   const sendLink = async () => {
     setErr(null);
     const { error } = await supabase.auth.signInWithOtp({
@@ -838,10 +847,11 @@ function NotesPanel({ notes, updateNote, mob }: NotesPanelProps) {
     border:"1px solid rgba(206,147,216,.15)", animation:"fi .3s",
   }}>
     <div style={{ marginBottom:mob?12:14 }}>
-      <h3 style={{ fontSize:mob?16:15, fontWeight:700, color:"#ce93d8", margin:0, letterSpacing:.5 }}>Movie Notes</h3>
+      <h3 data-testid="notes-panel-header" style={{ fontSize:mob?16:15, fontWeight:700, color:"#ce93d8", margin:0, letterSpacing:.5 }}>Movie Notes</h3>
     </div>
 
     <input
+      data-testid="notes-search"
       value={filter}
       onChange={e => setFilter(e.target.value)}
       placeholder="Search movies..."

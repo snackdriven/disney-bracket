@@ -52,6 +52,26 @@ test.describe('with injected session', () => {
     await expect(page.getByRole('button', { name: /Sign out/i })).toBeVisible({ timeout: 5000 });
   });
 
+  test('sign out clears session and shows sync button again', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.setItem('disney-bracket-auth', JSON.stringify({
+        access_token: 'fake_access_token',
+        refresh_token: 'fake_refresh_token',
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        user: { id: 'test-user-id', email: 'test@example.com' },
+      }));
+    });
+    await page.reload();
+    await expect(page.getByRole('button', { name: /Sign out/i })).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole('button', { name: /Sign out/i }).click();
+
+    // Supabase fires a network request to revoke the token (which fails with fake token),
+    // then clears the local session and fires onAuthStateChange. Use a long timeout.
+    await expect(page.getByRole('button', { name: /Sync across devices/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('button', { name: /Sign out/i })).not.toBeVisible({ timeout: 5000 });
+  });
+
   test('make a pick triggers sync network request', async ({ page }) => {
     const syncRequests = [];
     await page.route('**/disney_bracket**', (route) => {

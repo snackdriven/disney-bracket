@@ -412,12 +412,24 @@ describe('exportBracketText', () => {
 });
 
 describe('applyPick — validation', () => {
-  it('silently accepts out-of-match pick — known defect: no input validation', () => {
+  it('rejects a movie not in the current match', () => {
     let state = resetState();
     PIP.forEach(() => { state = applyPick(state, state.piM[state.piI][0]); });
+    const beforeCm = state.cm;
+    const beforeHistoryLength = state.hi.length;
     const fakeMovie = { seed: 999, name: 'Fake', year: 2000, studio: 'Disney' as const, imdb: '' };
     const next = applyPick(state, fakeMovie);
-    expect(next.rds[0][0].winner).toBe(fakeMovie);
+    expect(next).toBe(state); // guard returns the same object reference
+    expect(next.cm).toBe(beforeCm); // match index did not advance
+    expect(next.hi).toHaveLength(beforeHistoryLength); // history did not grow
+  });
+
+  it('accepts a valid match participant', () => {
+    let state = resetState();
+    PIP.forEach(() => { state = applyPick(state, state.piM[state.piI][0]); });
+    const validPick = state.rds[0][0][0];
+    const next = applyPick(state, validPick);
+    expect(next.rds[0][0].winner).toBe(validPick);
     expect(next.cm).toBe(1);
   });
 });

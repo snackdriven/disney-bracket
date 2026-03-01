@@ -68,8 +68,8 @@ The app started as a single 1,600-line component. All logic, all data, all canva
 To get it testable, I pulled the pure logic into `src/lib/` modules (bracket state transitions, data constants, canvas math, localStorage helpers) without touching behavior, then wrote tests against those instead of against React.
 
 ```bash
-npm test          # 70 Vitest unit tests
-npm run test:e2e  # 29 Playwright E2E tests at 1920×1080
+npm test          # 84 Vitest unit tests
+npm run test:e2e  # 27 Playwright E2E tests at 1920×1080
 ```
 
 Unit tests cover the bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips. The E2E suite covers the 69-pick flow and a few regressions, including a race condition where bracket state was overwriting Supabase's `#access_token` hash before the auth client could read it. That one has a test now.

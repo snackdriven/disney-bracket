@@ -50,18 +50,30 @@ describe('canvas position math', () => {
 
 describe('drawBracket', () => {
   it('does not throw on a post-playin state with no imgs', () => {
-    const mockCtx = {
-      fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: 'left',
-      globalAlpha: 1,
+    // Exhaustive mock of every ctx property/method canvas.ts touches.
+    // Wrapped in a Proxy so any new ctx usage in canvas.ts fails loudly instead of silently.
+    const mockCtxBase = {
+      fillStyle: '' as unknown, strokeStyle: '' as unknown, lineWidth: 1 as unknown,
+      font: '' as unknown, textAlign: 'left' as unknown,
       fillRect: vi.fn(), clearRect: vi.fn(), beginPath: vi.fn(),
       moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), fill: vi.fn(),
       fillText: vi.fn(), measureText: vi.fn(() => ({ width: 50 })),
-      drawImage: vi.fn(), roundRect: vi.fn(), arc: vi.fn(), closePath: vi.fn(),
+      drawImage: vi.fn(), roundRect: vi.fn(),
       createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
       save: vi.fn(), restore: vi.fn(), clip: vi.fn(),
       translate: vi.fn(), rotate: vi.fn(),
-    // Mock must include every ctx method called by drawBracket. Update here if canvas.ts adds new calls.
-    } as unknown as CanvasRenderingContext2D;
+    };
+    const mockCtx = new Proxy(mockCtxBase, {
+      get(target, prop) {
+        if (!(prop in target)) throw new Error(`canvas.ts accessed ctx.${String(prop)} — add it to the mock`);
+        return target[prop as keyof typeof target];
+      },
+      set(target, prop, value) {
+        if (!(prop in target)) throw new Error(`canvas.ts set ctx.${String(prop)} — add it to the mock`);
+        (target as Record<string, unknown>)[String(prop)] = value;
+        return true;
+      },
+    }) as unknown as CanvasRenderingContext2D;
     const mockCanvas = { getContext: vi.fn(() => mockCtx), width: 1920, height: 1080 } as unknown as HTMLCanvasElement;
 
     let state = resetState();

@@ -42,7 +42,6 @@ test('purple dot indicator appears after note added', async ({ page }) => {
   await page.getByRole('button', { name: /Add notes for/i }).first().click();
   const textarea = page.locator('textarea').first();
   await textarea.fill('Added a note here');
-  await page.waitForTimeout(100);
 
   await page.getByRole('button', { name: /Hide notes for/i }).first().click();
 
@@ -53,18 +52,21 @@ test('purple dot indicator appears after note added', async ({ page }) => {
 test('global notes panel opens and shows movies', async ({ page }) => {
   await page.getByRole('button', { name: /Notes/i }).first().click();
 
-  await expect(page.getByText('Movie Notes')).toBeVisible();
+  await expect(page.locator('[data-testid="notes-panel-header"]')).toBeVisible();
   await expect(page.locator('input[placeholder="Search movies..."]')).toBeVisible();
 });
 
 test('global notes panel search filters movies', async ({ page }) => {
   await page.getByRole('button', { name: /Notes/i }).first().click();
-  await expect(page.getByText('Movie Notes')).toBeVisible();
+  await expect(page.locator('[data-testid="notes-panel-header"]')).toBeVisible();
 
-  const searchInput = page.locator('input[placeholder="Search movies..."]');
+  const searchInput = page.locator('[data-testid="notes-search"]');
   await searchInput.fill('Lion King');
 
+  // Matching movie is visible
   await expect(page.getByText('The Lion King')).toBeVisible();
+  // A clearly unrelated movie should not be in the results
+  await expect(page.getByText('Toy Story', { exact: true })).not.toBeVisible();
 });
 
 test('note added from global panel is saved', async ({ page }) => {

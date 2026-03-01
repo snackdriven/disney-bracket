@@ -138,11 +138,11 @@ describe('desMatch edge cases', () => {
     expect(desMatch([])).toEqual([]);
   });
 
-  it('throws TypeError on array with null entry — known gap: no per-element guard', () => {
-    expect(() => desMatch([null])).toThrow(TypeError);
+  it('skips null entries gracefully', () => {
+    expect(desMatch([null])).toEqual([]);
   });
 
-  it('throws TypeError on entry with null participants — known gap: no inner validation', () => {
-    expect(() => desMatch([{ p: null, w: null }])).toThrow(TypeError);
+  it('skips entries with null participants gracefully', () => {
+    expect(desMatch([{ p: null, w: null }])).toEqual([]);
   });
 });

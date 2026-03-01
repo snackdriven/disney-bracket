@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { pickFirst } from './helpers.js';
+import { pickFirst } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -81,4 +81,38 @@ test('hash not overwritten when access_token is in URL', async ({ page }) => {
   const hash = new URL(page.url()).hash;
   expect(hash).not.toMatch(/^#eyJ/);
   expect(hash).toContain('access_token');
+});
+
+test('URL hash state takes priority over localStorage state', async ({ page }) => {
+  // Make 2 picks so hash has state at match 3
+  await pickFirst(page);
+  await pickFirst(page);
+  await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 3 of 6');
+  await page.waitForFunction(() => window.location.hash.length > 0, { timeout: 5000 });
+  const shareUrl = page.url();
+
+  // Navigate fresh and make 1 pick so localStorage has state at match 2
+  await page.goto('/');
+  await page.evaluate(() => {
+    localStorage.clear();
+    window.history.replaceState(null, '', window.location.pathname);
+  });
+  await page.reload();
+  await pickFirst(page);
+  await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 2 of 6');
+
+  // Now navigate to the share URL — hash (match 3) should win over localStorage (match 2)
+  await page.goto(shareUrl);
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 3 of 6', { timeout: 5000 });
+});
+
+test('corrupted URL hash is ignored and app loads cleanly', async ({ page }) => {
+  const badHashUrl = page.url() + '#eyJthisisnotvalidbase64!!!';
+  await page.goto(badHashUrl);
+  await page.waitForLoadState('networkidle');
+
+  // App should fall back to clean state, not crash
+  await expect(page.locator('[data-testid="match-counter"]')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('[data-testid="round-label"]')).toContainText('Play-In Round');
 });

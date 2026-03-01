@@ -17,6 +17,8 @@ export function applyPick(state: BracketState, winner: Movie): BracketState {
   const ip = ph === "pi";
   const mu = ip ? piM[piI] : rds[cr]?.[cm];
 
+  if (!mu || (winner.seed !== mu[0].seed && winner.seed !== mu[1].seed)) return state;
+
   const opponent = mu[0].seed === winner.seed ? mu[1] : mu[0];
   const isUpset = winner.seed > opponent.seed;
 

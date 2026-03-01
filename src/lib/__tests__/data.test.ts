@@ -60,7 +60,8 @@ describe('data constants', () => {
       expect(typeof m.name).toBe('string');
       expect(m.name.length).toBeGreaterThan(0);
       expect(typeof m.year).toBe('number');
-      expect(m.year).toBeGreaterThan(1900);
+      expect(m.year).toBeGreaterThanOrEqual(1937); // Snow White (1937) is the earliest possible Disney film
+      expect(m.year).toBeLessThanOrEqual(new Date().getFullYear());
       expect(m.studio === 'Disney' || m.studio === 'Pixar').toBe(true);
     });
   });

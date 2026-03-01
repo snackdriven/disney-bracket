@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'node:fs';
-import { pickFirst } from './helpers.js';
+import { type Page } from '@playwright/test';
+import { pickFirst } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -11,7 +12,7 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
-async function completeFullBracket(page) {
+async function completeFullBracket(page: Page): Promise<void> {
   for (let i = 0; i < 69; i++) {
     await pickFirst(page);
   }
@@ -60,7 +61,7 @@ test('export text button copies bracket text with correct content', async ({ pag
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 
   await completeFullBracket(page);
-  await expect(page.getByText('Your Champion')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[data-testid="champion-label"]')).toBeVisible({ timeout: 10000 });
 
   const exportBtn = page.getByRole('button', { name: /Export|Copy|Copied/i });
   await expect(exportBtn).toBeVisible({ timeout: 3000 });
@@ -78,7 +79,7 @@ test('champion view shows after completing bracket', async ({ page }) => {
 
   await completeFullBracket(page);
 
-  await expect(page.getByText('Your Champion')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[data-testid="champion-label"]')).toBeVisible({ timeout: 10000 });
   await expect(page.getByText('👑')).toBeVisible();
 });
 
@@ -87,7 +88,7 @@ test('PNG download triggered from champion view', async ({ page }, testInfo) => 
   test.setTimeout(180000);
 
   await completeFullBracket(page);
-  await expect(page.getByText('Your Champion')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('[data-testid="champion-label"]')).toBeVisible({ timeout: 10000 });
 
   // Set up download listener immediately before clicking so the 30s timeout is fresh
   const pngBtn = page.getByRole('button', { name: /PNG/i });
@@ -99,6 +100,12 @@ test('PNG download triggered from champion view', async ({ page }, testInfo) => 
   expect(download.suggestedFilename()).toBe('disney-and-pixar-bracket.png');
   const downloadPath = await download.path();
   const buf = fs.readFileSync(downloadPath);
+  // PNG magic bytes
   expect(buf[0]).toBe(0x89);
   expect(buf.slice(1, 4).toString('ascii')).toBe('PNG');
+  // PNG dimensions are at bytes 16–23 (big-endian uint32 width, uint32 height)
+  const width = buf.readUInt32BE(16);
+  const height = buf.readUInt32BE(20);
+  expect(width).toBe(1920);
+  expect(height).toBe(1080);
 });
