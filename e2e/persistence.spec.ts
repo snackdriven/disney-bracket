@@ -23,7 +23,7 @@ test('picks survive a hard reload', async ({ page }) => {
 
   const stored = await page.evaluate(() => localStorage.getItem('dbk-state'));
   expect(stored).not.toBeNull();
-  const state = JSON.parse(stored);
+  const state = JSON.parse(stored!);
   // piM is serialized as array of { p, w } objects via serMatch
   const winner = state.piM?.[0]?.w;
   expect(winner).not.toBeNull();

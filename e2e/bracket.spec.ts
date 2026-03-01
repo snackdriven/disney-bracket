@@ -74,5 +74,5 @@ test('progress bar increases with picks', async ({ page }) => {
 
   const valuenow = await progressBar.getAttribute('aria-valuenow');
   // 1 pick out of 69 = ~1.45%, so value should be 1
-  expect(parseInt(valuenow, 10)).toBe(1);
+  expect(parseInt(valuenow!, 10)).toBe(1);
 });
