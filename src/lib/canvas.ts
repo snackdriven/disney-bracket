@@ -1,6 +1,7 @@
 import { REG } from './data.js';
 import { buildDisplayRds } from './bracket.js';
-import type { Match, Movie, UpsetEntry, ImgCache } from '../types.js';
+import { CLR } from './colors.js';
+import type { Match, DisplayMatch, Movie, UpsetEntry, ImgCache } from '../types.js';
 
 // Canvas export constants — 1920×1080
 export const CW = 1920, CH = 1080;
@@ -17,10 +18,6 @@ export const cmty = (r: number, i: number): number => {                   // mat
   return Math.round(CBT + sp * (i + 0.5) - CMH / 2);
 };
 
-const CLR = {
-  Disney: { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
-  Pixar:  { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
-};
 
 function cBg(ctx: CanvasRenderingContext2D): void {
   const grad = ctx.createLinearGradient(0, 0, CW, CH);
@@ -107,7 +104,7 @@ function cConnectors(ctx: CanvasRenderingContext2D, side: "left" | "right"): voi
 }
 
 function cSlot(ctx: CanvasRenderingContext2D, x: number, y: number, movie: Movie | null, won: boolean, lost: boolean, isUpset: boolean, imgs: ImgCache): void {
-  const c = movie ? CLR[movie.studio] : { bg: "#0d0d20", ac: "#3a3a5e", tx: "#5a5a7e" };
+  const c = movie ? CLR[movie.studio] : { bg: "#0d0d20", accent: "#3a3a5e", text: "#5a5a7e" };
   ctx.fillStyle = won
     ? (isUpset ? "#3e1a0d" : "#1a1a0d")
     : lost ? "rgba(0,0,0,0.3)"
@@ -115,7 +112,7 @@ function cSlot(ctx: CanvasRenderingContext2D, x: number, y: number, movie: Movie
   ctx.beginPath();
   ctx.roundRect(x, y, CSW, CSH, 4);
   ctx.fill();
-  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#4fc3f7") : lost ? "rgba(255,255,255,0.04)" : `${c.ac}40`;
+  ctx.strokeStyle = won ? (isUpset ? "#ff8a65" : "#4fc3f7") : lost ? "rgba(255,255,255,0.04)" : `${c.accent}40`;
   ctx.lineWidth = won ? 1.5 : 1;
   ctx.stroke();
   if (!movie) {
@@ -136,7 +133,7 @@ function cSlot(ctx: CanvasRenderingContext2D, x: number, y: number, movie: Movie
     ctx.restore();
     textX = x + CPW + 5;
   }
-  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#4fc3f7") : lost ? "#3a3a5e" : c.ac + "aa";
+  ctx.fillStyle = won ? (isUpset ? "#ff8a65" : "#4fc3f7") : lost ? "#3a3a5e" : c.accent + "aa";
   ctx.font = "bold 7px Inter, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(`#${movie.seed}`, textX, y + 9);
@@ -152,14 +149,14 @@ function cSlot(ctx: CanvasRenderingContext2D, x: number, y: number, movie: Movie
   ctx.fillText(String(movie.year), textX, y + 24);
 }
 
-function cMatch(ctx: CanvasRenderingContext2D, x: number, y: number, m: Match | null, isUpset0: boolean, isUpset1: boolean, imgs: ImgCache): void {
-  const w0 = !!m?.winner && m.winner.seed === m?.[0]?.seed;
-  const w1 = !!m?.winner && m.winner.seed === m?.[1]?.seed;
-  cSlot(ctx, x, y, m?.[0] ?? null, w0, !w0 && !!m?.winner, isUpset0, imgs);
-  cSlot(ctx, x, y + CSH + CGAP, m?.[1] ?? null, w1, !w1 && !!m?.winner, isUpset1, imgs);
+function cMatch(ctx: CanvasRenderingContext2D, x: number, y: number, m: DisplayMatch | null, isUpset0: boolean, isUpset1: boolean, imgs: ImgCache): void {
+  const w0 = !!m?.winner && m.winner.seed === m?.players[0]?.seed;
+  const w1 = !!m?.winner && m.winner.seed === m?.players[1]?.seed;
+  cSlot(ctx, x, y, m?.players[0] ?? null, w0, !w0 && !!m?.winner, isUpset0, imgs);
+  cSlot(ctx, x, y + CSH + CGAP, m?.players[1] ?? null, w1, !w1 && !!m?.winner, isUpset1, imgs);
 }
 
-function cSide(ctx: CanvasRenderingContext2D, side: "left" | "right", rds: Match[][], _upsets: UpsetEntry[], imgs: ImgCache): void {
+function cSide(ctx: CanvasRenderingContext2D, side: "left" | "right", rds: DisplayMatch[][], imgs: ImgCache): void {
   for (let r = 0; r < 5; r++) {
     const round = rds[r] || null;
     const perSide = cps(r);
@@ -168,8 +165,8 @@ function cSide(ctx: CanvasRenderingContext2D, side: "left" | "right", rds: Match
     for (let i = 0; i < perSide; i++) {
       const m = round?.[offset + i] || null;
       const y = cmty(r, i);
-      const isUpset0 = m?.winner?.seed === m?.[0]?.seed && (m?.[0]?.seed ?? 0) > (m?.[1]?.seed ?? 0);
-      const isUpset1 = m?.winner?.seed === m?.[1]?.seed && (m?.[1]?.seed ?? 0) > (m?.[0]?.seed ?? 0);
+      const isUpset0 = m?.winner?.seed === m?.players[0]?.seed && (m?.players[0]?.seed ?? 0) > (m?.players[1]?.seed ?? 0);
+      const isUpset1 = m?.winner?.seed === m?.players[1]?.seed && (m?.players[1]?.seed ?? 0) > (m?.players[0]?.seed ?? 0);
       cMatch(ctx, x, y, m, isUpset0, isUpset1, imgs);
     }
   }
@@ -223,8 +220,8 @@ function cPlayin(ctx: CanvasRenderingContext2D, piM: Match[], imgs: ImgCache): v
   const startX = (CW - totalW) / 2;
   piM.forEach((m, i) => {
     const x = startX + i * (CSW + mGap);
-    const isUpset0 = m?.winner?.seed === m?.[0]?.seed && (m?.[0]?.seed ?? 0) > (m?.[1]?.seed ?? 0);
-    const isUpset1 = m?.winner?.seed === m?.[1]?.seed && (m?.[1]?.seed ?? 0) > (m?.[0]?.seed ?? 0);
+    const isUpset0 = m?.winner?.seed === m.players[0].seed && m.players[0].seed > m.players[1].seed;
+    const isUpset1 = m?.winner?.seed === m.players[1].seed && m.players[1].seed > m.players[0].seed;
     cMatch(ctx, x, pY, m, isUpset0, isUpset1, imgs);
   });
 }
@@ -234,19 +231,19 @@ function cPlayin(ctx: CanvasRenderingContext2D, piM: Match[], imgs: ImgCache): v
  */
 export function drawBracket(
   canvas: HTMLCanvasElement,
-  opts: { rds: Match[][]; piM: Match[]; ch: Movie | null; upsets: UpsetEntry[]; imgs: ImgCache }
+  opts: { rounds: Match[][]; playInMatches: Match[]; ch: Movie | null; upsets: UpsetEntry[]; imgs: ImgCache }
 ): void {
-  const { rds, piM, ch, upsets, imgs } = opts;
+  const { rounds, playInMatches, ch, imgs } = opts;
   const ctx = canvas.getContext("2d")!;
-  const displayRds = buildDisplayRds(rds, piM);
+  const displayRds = buildDisplayRds(rounds, playInMatches);
   cBg(ctx);
   cHeader(ctx);
   cRoundLabels(ctx);
   cRegionLabels(ctx);
   cConnectors(ctx, "left");
   cConnectors(ctx, "right");
-  cSide(ctx, "left", displayRds, upsets, imgs);
-  cSide(ctx, "right", displayRds, upsets, imgs);
+  cSide(ctx, "left", displayRds, imgs);
+  cSide(ctx, "right", displayRds, imgs);
   cChamp(ctx, ch, imgs);
-  cPlayin(ctx, piM, imgs);
+  cPlayin(ctx, playInMatches, imgs);
 }

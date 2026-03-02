@@ -15,7 +15,7 @@ An interactive tournament bracket for 70 Disney and Pixar movies. Users pick fav
 - **Package manager:** npm
 - **Linting:** ESLint 9 (flat config) + typescript-eslint
 - **Deployment:** GitHub Pages via GitHub Actions (push to `main`)
-- **Styling:** Inline CSS-in-JS (no CSS library or preprocessor)
+- **Styling:** Tailwind CSS v4 (`@tailwindcss/vite` plugin, no config file; `@theme` in `index.css`)
 - **State management:** React hooks (`useState`, `useEffect`) + localStorage
 - **Auth/sync:** Supabase (magic link auth, implicit flow)
 - **Routing:** None — single-page, single-route app
@@ -26,21 +26,49 @@ An interactive tournament bracket for 70 Disney and Pixar movies. Users pick fav
 disney-bracket/
 ├── src/
 │   ├── main.tsx              # React entry point
-│   ├── App.tsx               # Root component (~1100 lines)
+│   ├── App.tsx               # Root component
 │   ├── types.ts              # Shared TypeScript types
 │   ├── test-setup.ts         # Vitest global setup
-│   ├── App.css               # Minimal global styles
-│   ├── index.css             # CSS reset
-│   └── lib/
-│       ├── bracket.ts        # Pure bracket state transitions
-│       ├── canvas.ts         # PNG export / canvas rendering
-│       ├── data.ts           # Movie data, seedings, round config
-│       ├── utils.ts          # localStorage helpers, serialization
+│   ├── index.css             # Tailwind import + @theme tokens + keyframes
+│   ├── hooks/
+│   │   ├── useBracketState.ts  # Bracket state, localStorage, URL hash
+│   │   ├── useIsMobile.ts
+│   │   ├── useMovieMeta.ts     # TMDB fetch + PNG export
+│   │   ├── useNotes.ts
+│   │   ├── useShareClipboard.ts  # Copy link / copy bracket text
+│   │   ├── useSupabaseSync.ts
+│   │   └── __tests__/
+│   │       ├── useBracketState.test.ts
+│   │       └── useNotes.test.ts
+│   ├── lib/
+│   │   ├── bracket.ts        # Pure bracket state transitions
+│   │   ├── canvas.ts         # PNG export / canvas rendering
+│   │   ├── colors.ts         # Shared studio color constants (CLR, BADGE_CLR)
+│   │   ├── data.ts           # Movie data, seedings, round config
+│   │   ├── theme.ts          # Re-exports from colors.ts
+│   │   ├── utils.ts          # localStorage helpers, serialization
+│   │   └── __tests__/
+│   │       ├── bracket.test.ts
+│   │       ├── canvas.test.ts
+│   │       ├── data.test.ts
+│   │       └── utils.test.ts
+│   └── components/
+│       ├── AuthModal.tsx
+│       ├── Btn.tsx
+│       ├── BV.tsx            # Bracket visualizer panel
+│       ├── Card.tsx          # Movie matchup card
+│       ├── CardNotes.tsx
+│       ├── ChampionScreen.tsx
+│       ├── Dots.tsx          # Animated background particles
+│       ├── FullBracket.tsx
+│       ├── MatchView.tsx
+│       ├── NotesPanel.tsx
+│       ├── SyncStrip.tsx
+│       ├── TmdbModal.tsx
 │       └── __tests__/
-│           ├── bracket.test.ts
-│           ├── canvas.test.ts
-│           ├── data.test.ts
-│           └── utils.test.ts
+│           └── BV.test.tsx
+├── src/__tests__/
+│   └── App.test.tsx          # Integration tests (React Testing Library)
 ├── e2e/
 │   ├── auth.spec.js          # Auth modal, session injection
 │   ├── bracket.spec.js       # Pick flow, undo, reset, progress
@@ -69,7 +97,7 @@ npm run dev           # Start dev server (Vite)
 npm run build         # Production build (output: dist/)
 npm run lint          # Run ESLint
 npm run preview       # Preview production build locally
-npm test              # Run 84 Vitest unit tests
+npm test              # Run 73 Vitest unit tests
 npm run test:e2e      # Run 27 Playwright E2E tests (requires dev server or auto-starts it)
 ```
 
@@ -77,45 +105,63 @@ npm run test:e2e      # Run 27 Playwright E2E tests (requires dev server or auto
 
 ### Module split
 
-Business logic lives in `src/lib/` as pure TypeScript functions. The React component (`App.tsx`) handles all rendering and state, calling into lib functions for state transitions.
+Business logic lives in `src/lib/` as pure TypeScript functions. State lives in `src/hooks/`. Components are in `src/components/`.
 
 - **`bracket.ts`** — All bracket state transitions: `applyPick`, `applyUndo`, `resetState`, `buildDisplayRds`, `exportBracketText`. All pure functions.
 - **`canvas.ts`** — Canvas rendering for the PNG export at 1920×1080.
+- **`colors.ts`** — Shared color constants (`CLR`, `BADGE_CLR`) for both React components and canvas. `theme.ts` re-exports from here.
 - **`data.ts`** — Movie data (70 movies), seeding constants (`MAIN`, `PLAYIN`, `PIP`, `R1`), round/region names, trivia, static metadata.
 - **`utils.ts`** — `loadLS`/`saveLS` for localStorage, `serMatch`/`desMatch` for match serialization, `extractImdbId`.
 
-### Key State Variables in App.tsx (abbreviated names are intentional)
+### Key State Variables
 
-| Variable | Meaning | Values |
-|----------|---------|--------|
-| `ph` | Phase | `"pi"` (play-in) or `"m"` (main) |
-| `piM` | Play-in matches | Array of 6 Match tuples |
-| `piI` | Play-in index | 0–5 |
-| `rds` | Rounds | `Match[][]` |
-| `cr` | Current round | 0–5 |
-| `cm` | Current match | Index within round |
-| `ch` | Champion | `Movie \| null` |
-| `hv` | Hovered movie seed | `number \| null` |
-| `an` | Animated movie seed | `number \| null` |
-| `bk` | Show bracket panel | `boolean` |
-| `fb` | Show full bracket | `boolean` |
-| `hi` | History (for undo) | `HistoryEntry[]` |
-| `upsets` | Upset log | `UpsetEntry[]` |
-| `notes` | Movie notes | `Notes` (`Record<number, string>`) |
-| `showNotes` | Notes panel visible | `boolean` |
+State lives in `useBracketState` (bracket logic), `useShareClipboard` (clipboard), `useNotes`, `useSupabaseSync`, and `useMovieMeta`. Lightweight UI toggles (`hoveredSeed`, `showBracketPanel`, `showFullBracket`) live as plain `useState` in App.tsx.
+
+| Variable | Hook/Location | Meaning | Values |
+|----------|---------------|---------|--------|
+| `phase` | useBracketState | Phase | `"pi"` (play-in) or `"m"` (main) |
+| `playInMatches` | useBracketState | Play-in matches | `Match[]` (6 items) |
+| `playInIndex` | useBracketState | Play-in index | 0–5 |
+| `rounds` | useBracketState | Rounds | `Match[][]` |
+| `currentRound` | useBracketState | Current round | 0–5 |
+| `currentMatch` | useBracketState | Current match | Index within round |
+| `champion` | useBracketState | Champion | `Movie \| null` |
+| `history` | useBracketState | History (for undo) | `HistoryEntry[]` |
+| `upsets` | useBracketState | Upset log | `UpsetEntry[]` |
+| `animatingSeed` | useBracketState | Animated movie seed | `number \| null` |
+| `copiedLink` | useShareClipboard | Share link copied | `boolean` |
+| `copiedBracket` | useShareClipboard | Bracket text copied | `boolean` |
+| `hoveredSeed` | App.tsx useState | Hovered movie seed | `number \| null` |
+| `showBracketPanel` | App.tsx useState | Show bracket panel | `boolean` |
+| `showFullBracket` | App.tsx useState | Show full bracket | `boolean` |
+| `notes` | useNotes | Movie notes | `Notes` (`Record<number, string>`) |
+| `showNotes` | useNotes | Notes panel visible | `boolean` |
 
 ### Core Types (src/types.ts)
 
 ```ts
 interface Movie { seed: number; name: string; year: number; studio: "Disney" | "Pixar"; imdb: string; }
-type Match = [Movie, Movie] & { winner?: Movie };
-interface BracketState { ph: Phase; piM: Match[]; piI: number; rds: Match[][]; cr: number; cm: number; ch: Movie | null; hi: HistoryEntry[]; upsets: UpsetEntry[]; }
+interface Match { players: [Movie, Movie]; winner?: Movie; }
+interface DisplayMatch { players: [Movie | null, Movie | null]; winner?: Movie; }
+interface ColorScheme { bg: string; accent: string; text: string; }
+interface BracketState {
+  phase: Phase; playInMatches: Match[]; playInIndex: number;
+  rounds: Match[][]; currentRound: number; currentMatch: number;
+  champion: Movie | null; history: HistoryEntry[]; upsets: UpsetEntry[];
+}
+interface HistoryEntry { phase: Phase; matchIndex: number; round: number; wasUpset: boolean; }
 ```
 
-### localStorage Keys
+`SerializedMatch` (`{ p: [Movie, Movie]; w: Movie | null }`) is the wire format used in localStorage and URL hash — separate from `Match` to keep the runtime type clean.
 
-- `dbk-state` — Serialized bracket state
+### localStorage Keys and Schema
+
+- `dbk-state` — Serialized bracket state (schema v2; v1 saves with abbreviated keys are migrated automatically on load)
 - `dbk-notes` — Movie notes keyed by seed number
+
+**Schema v2** key names match `BracketState` exactly: `phase`, `playInMatches`, `playInIndex`, `rounds`, `currentRound`, `currentMatch`, `champion`, `history`, `upsets`. Includes `_v: 2` marker.
+
+**Schema v1** (old saves) used abbreviated keys: `ph`, `piM`, `piI`, `rds`, `cr`, `cm`, `ch`, `hi`. Detected by `'ph' in data && !('phase' in data)` and migrated in `useBracketState`.
 
 ### Auth / Sync
 
@@ -135,15 +181,20 @@ Sync is debounced (~2s) after each pick and writes to the `disney_bracket` table
 
 ### Unit tests (Vitest)
 
-84 tests across 4 files in `src/lib/__tests__/`. All test pure functions — no React rendering.
+73 tests across 8 files.
 
 ```bash
 npm test
 ```
 
-Coverage areas: bracket state transitions, upset detection, play-in → R64 handoff, undo across phase boundaries, serialization roundtrips, canvas position math, data integrity (seed uniqueness, required fields, STATIC_META completeness).
-
-Notable: `bracket.test.ts` includes a "known defect" test that documents `applyPick` accepting out-of-match movie objects without validation.
+- `src/lib/__tests__/bracket.test.ts` — State transitions, upset detection, play-in → R64 handoff, undo across phase boundaries, seed-based pick validation
+- `src/lib/__tests__/canvas.test.ts` — drawBracket smoke test (does not throw on post-playin state)
+- `src/lib/__tests__/data.test.ts` — Data integrity (seed uniqueness, required fields, STATIC_META completeness)
+- `src/lib/__tests__/utils.test.ts` — Serialization roundtrips, localStorage helpers
+- `src/hooks/__tests__/useBracketState.test.ts` — Hook integration: state restoration, pick/undo/reset
+- `src/hooks/__tests__/useNotes.test.ts` — Notes init, save, clear
+- `src/components/__tests__/BV.test.tsx` — Bracket visualizer: winner display, upset highlighting
+- `src/__tests__/App.test.tsx` — Integration tests via React Testing Library (14 tests)
 
 ### E2E tests (Playwright)
 
@@ -162,10 +213,11 @@ Both suites run on every push to `main` before the build. Deploy is blocked if e
 ## Code Conventions
 
 - **TypeScript** — strict mode, `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`
-- **Abbreviated variable names** — follows existing codebase style (`ph`, `cr`, `cm`, `mob`, etc.)
-- **Inline styles** — all styling is inline CSS objects, no CSS classes
+- **Descriptive variable names** — full names throughout (`phase`, `currentRound`, `playInMatches`, etc.)
+- **Styling** — Tailwind utility classes for static layout/spacing/typography/fixed colors; inline `style={{}}` only for dynamic runtime values (studio-dependent colors like `c.ac`, `c.bg`). Never mix the two on the same property.
+- **Dynamic studio colors** — set as CSS custom properties on the element (`style={{ '--ac': c.ac } as React.CSSProperties}`) and reference via arbitrary Tailwind value (`className="text-[var(--ac)]"`) when used alongside Tailwind classes, or just inline when simpler.
 - **Mobile-first responsive** — `useIsMobile()` hook returns `mob`; every UI change needs desktop + mobile variants
-- **No UI dependencies** — no component library, no CSS framework
+- **No component library** — all UI is hand-built with Tailwind
 - **Functional components only** — no class components
 - **ESLint** — `varsIgnorePattern: '^[A-Z_]'` allows unused uppercase names (component imports)
 
@@ -192,7 +244,7 @@ Add to `MAIN` or `PLAYIN` in `src/lib/data.ts` with `{ seed, name, year, studio,
 
 ### Adding new UI features
 
-Add components near the bottom of `App.tsx`. Pass `mob` prop for responsive behavior. Use inline styles matching the existing dark theme palette (see below). Export any new pure logic to `src/lib/` and write unit tests for it.
+Add a new file in `src/components/`. Pass `mob` prop for responsive behavior. Use Tailwind classes for static styles; inline `style={{}}` for dynamic studio-dependent colors. Import and use the component in `App.tsx`. Export any new pure logic to `src/lib/` and write unit tests for it.
 
 ### Color palette reference
 

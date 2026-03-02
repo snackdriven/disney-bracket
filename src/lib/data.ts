@@ -245,6 +245,6 @@ export const BRACKET_ORDER: Movie[] = [
 ];
 
 export const CLR: Record<string, ColorScheme> = {
-  Disney: { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
-  Pixar:  { bg:"#0d0d1e", ac:"#9d8fe0", gl:"rgba(157,143,224,.25)", tx:"#b8b0e8" },
+  Disney: { bg:"#0d0d1e", accent:"#9d8fe0", text:"#b8b0e8" },
+  Pixar:  { bg:"#0d0d1e", accent:"#9d8fe0", text:"#b8b0e8" },
 };

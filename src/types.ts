@@ -8,27 +8,35 @@ export interface Movie {
   imdb: string;
 }
 
-// 2-tuple + optional winner mutated in place
-export type Match = [Movie, Movie] & { winner?: Movie };
+export interface Match {
+  players: [Movie, Movie];
+  winner?: Movie;
+}
+
+// Like Match but players may be null (display-only, not yet decided rounds)
+export interface DisplayMatch {
+  players: [Movie | null, Movie | null];
+  winner?: Movie;
+}
 
 export type Phase = "pi" | "m";
 
 export interface BracketState {
-  ph: Phase;
-  piM: Match[];      // 6 play-in matches
-  piI: number;       // current play-in index (0-5)
-  rds: Match[][];    // rds[round][matchIndex]
-  cr: number;        // current round
-  cm: number;        // current match
-  ch: Movie | null;
-  hi: HistoryEntry[];
+  phase: Phase;
+  playInMatches: Match[];
+  playInIndex: number;
+  rounds: Match[][];
+  currentRound: number;
+  currentMatch: number;
+  champion: Movie | null;
+  history: HistoryEntry[];
   upsets: UpsetEntry[];
 }
 
 export interface HistoryEntry {
-  p: Phase;
-  i: number;
-  r: number;
+  phase: Phase;
+  matchIndex: number;
+  round: number;
   wasUpset: boolean;
 }
 
@@ -57,7 +65,6 @@ export type StaticMeta = Record<number, MovieMeta>;
 
 export interface ColorScheme {
   bg: string;
-  ac: string;
-  gl: string;
-  tx: string;
+  accent: string;
+  text: string;
 }

@@ -2,13 +2,6 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { pickFirst } from './helpers';
 
-// Known violations suppressed until fixed:
-// - nested-interactive: IMDb <a> link is inside <button data-testid="movie-card">. The
-//   entire card is a button; extracting the link requires a Card layout refactor.
-// - color-contrast: Cancel/muted buttons use #6a6a8e on #191930 (3.32:1 vs 4.5:1 required).
-//   Intentional low-prominence design. Fix would require brightening secondary button text.
-const KNOWN_VIOLATIONS = ['nested-interactive', 'color-contrast'];
-
 test.describe('accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
@@ -19,7 +12,6 @@ test.describe('accessibility', () => {
   test('play-in state has no WCAG 2.1 AA violations', async ({ page }) => {
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .disableRules(KNOWN_VIOLATIONS)
       .analyze();
     expect(results.violations).toEqual([]);
   });
@@ -29,7 +21,6 @@ test.describe('accessibility', () => {
     await expect(page.locator('[role="dialog"]')).toBeVisible();
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .disableRules(KNOWN_VIOLATIONS)
       .analyze();
     expect(results.violations).toEqual([]);
   });
@@ -43,7 +34,6 @@ test.describe('accessibility', () => {
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .disableRules(KNOWN_VIOLATIONS)
       .analyze();
     expect(results.violations).toEqual([]);
   });
@@ -54,7 +44,6 @@ test.describe('accessibility', () => {
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
-      .disableRules(KNOWN_VIOLATIONS)
       .analyze();
     expect(results.violations).toEqual([]);
   });

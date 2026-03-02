@@ -24,8 +24,8 @@ test('picks survive a hard reload', async ({ page }) => {
   const stored = await page.evaluate(() => localStorage.getItem('dbk-state'));
   expect(stored).not.toBeNull();
   const state = JSON.parse(stored!);
-  // piM is serialized as array of { p, w } objects via serMatch
-  const winner = state.piM?.[0]?.w;
+  // playInMatches is serialized as array of { p, w } objects via serMatch
+  const winner = state.playInMatches?.[0]?.w;
   expect(winner).not.toBeNull();
   // The winner of match 1 should no longer appear as a current card
   const currentNames = await page.locator('[data-testid="movie-card"]').allTextContents();

@@ -54,25 +54,27 @@ If 70 movies of genuine heartfelt cinema is too much and you need a palate clean
 
 ## Dev
 
+The hard problem first: Supabase magic link auth writes `#access_token=...` into the URL hash on sign-in. The app also uses the hash to share bracket state. Without a guard, the bracket persistence effect would overwrite the token before the auth client could read it — the user signs in, the hash gets clobbered, and the session never establishes. There's a regression test for this in `e2e/persistence.spec.js`.
+
+Stack: React 19 + TypeScript + Vite. Tailwind CSS v4. Supabase for auth and sync.
+
 ```bash
 npm install
 npm run dev
 ```
 
-React 19 + Vite. Supabase for auth and sync.
-
-### Testing
+### Tests
 
 The app started as a single 1,600-line component. All logic, all data, all canvas rendering in one file. Fine for moving fast, bad for knowing whether anything works.
 
 To get it testable, I pulled the pure logic into `src/lib/` modules (bracket state transitions, data constants, canvas math, localStorage helpers) without touching behavior, then wrote tests against those instead of against React.
 
 ```bash
-npm test          # 84 Vitest unit tests
+npm test          # 73 Vitest unit tests
 npm run test:e2e  # 27 Playwright E2E tests at 1920×1080
 ```
 
-Unit tests cover the bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips. The E2E suite covers the 69-pick flow and a few regressions, including a race condition where bracket state was overwriting Supabase's `#access_token` hash before the auth client could read it. That one has a test now.
+Unit tests cover the bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips, and notes init logic. The E2E suite covers the 69-pick flow and the auth hash race condition above.
 
 CI runs both before building. Deploy only happens if they pass.
 

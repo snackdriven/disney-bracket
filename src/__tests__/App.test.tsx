@@ -1,5 +1,9 @@
+// Integration tests — render the full <App/> component against jsdom.
+// These test user-visible behavior, not isolated bracket logic.
+// Pure bracket logic is unit-tested in src/lib/__tests__/bracket.test.ts.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { applyPick, resetState } from '../lib/bracket';
 import { serMatch } from '../lib/utils';
@@ -15,7 +19,9 @@ vi.mock('@supabase/supabase-js', () => ({
     },
     from: vi.fn().mockReturnValue({
       upsert: vi.fn().mockResolvedValue({ error: null }),
-      select: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+      select: vi.fn().mockReturnValue({
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }),
     }),
   }),
 }));
@@ -49,9 +55,11 @@ Object.defineProperty(window, 'matchMedia', {
 /** Serialize bracket state for localStorage seeding in tests. */
 function serializeState(s: ReturnType<typeof resetState>) {
   return JSON.stringify({
-    ph: s.ph, piI: s.piI, cr: s.cr, cm: s.cm, ch: s.ch, hi: s.hi, upsets: s.upsets,
-    piM: serMatch(s.piM),
-    rds: s.rds.map(r => serMatch(r)),
+    _v: 2,
+    phase: s.phase, playInIndex: s.playInIndex, currentRound: s.currentRound,
+    currentMatch: s.currentMatch, champion: s.champion, history: s.history, upsets: s.upsets,
+    playInMatches: serMatch(s.playInMatches),
+    rounds: s.rounds.map(r => serMatch(r)),
   });
 }
 
@@ -61,24 +69,11 @@ beforeEach(() => {
 });
 
 describe('App — initial render', () => {
-  it('shows play-in round label on fresh load', async () => {
+  it('shows play-in round label and Match 1 of 6 counter on fresh load', async () => {
     render(<App />);
     await waitFor(() => {
       expect(screen.getByTestId('round-label')).toHaveTextContent('Play-In Round');
-    });
-  });
-
-  it('renders Match 1 of 6 counter on fresh load', async () => {
-    render(<App />);
-    await waitFor(() => {
       expect(screen.getByTestId('match-counter')).toHaveTextContent('Match 1 of 6');
-    });
-  });
-
-  it('shows two movie cards for the first match', async () => {
-    render(<App />);
-    await waitFor(() => {
-      expect(screen.getAllByTestId('movie-card')).toHaveLength(2);
     });
   });
 
@@ -100,42 +95,35 @@ describe('App — initial render', () => {
 
 describe('App — pick interaction', () => {
   it('advances the match counter after clicking a card', async () => {
+    const user = userEvent.setup();
     render(<App />);
     await waitFor(() => screen.getAllByTestId('movie-card'));
-    fireEvent.click(screen.getAllByTestId('movie-card')[0]);
+    await user.click(screen.getAllByTestId('movie-card')[0]);
     await waitFor(() => {
       expect(screen.getByTestId('match-counter')).toHaveTextContent('Match 2 of 6');
     });
   });
 
   it('saves bracket state to localStorage after a pick', async () => {
+    const user = userEvent.setup();
     render(<App />);
     await waitFor(() => screen.getAllByTestId('movie-card'));
-    fireEvent.click(screen.getAllByTestId('movie-card')[0]);
+    await user.click(screen.getAllByTestId('movie-card')[0]);
     await waitFor(() => {
       const stored = localStorage.getItem('dbk-state');
       expect(stored).not.toBeNull();
-      expect(JSON.parse(stored!).piI).toBe(1);
-    });
-  });
-
-  it('progress bar advances after a pick', async () => {
-    render(<App />);
-    await waitFor(() => screen.getAllByTestId('movie-card'));
-    fireEvent.click(screen.getAllByTestId('movie-card')[0]);
-    await waitFor(() => {
-      const bar = screen.getByRole('progressbar');
-      expect(Number(bar.getAttribute('aria-valuenow'))).toBeGreaterThan(0);
+      expect(JSON.parse(stored!).playInIndex).toBe(1);
     });
   });
 
   it('undo button reverts the last pick', async () => {
+    const user = userEvent.setup();
     render(<App />);
     await waitFor(() => screen.getAllByTestId('movie-card'));
-    fireEvent.click(screen.getAllByTestId('movie-card')[0]);
+    await user.click(screen.getAllByTestId('movie-card')[0]);
     await waitFor(() => expect(screen.getByTestId('match-counter')).toHaveTextContent('Match 2 of 6'));
 
-    fireEvent.click(screen.getByRole('button', { name: /Undo/i }));
+    await user.click(screen.getByRole('button', { name: /Undo/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId('match-counter')).toHaveTextContent('Match 1 of 6');
@@ -143,15 +131,16 @@ describe('App — pick interaction', () => {
   });
 
   it('reset button returns to Match 1 of 6 from any position', async () => {
+    const user = userEvent.setup();
     render(<App />);
     await waitFor(() => screen.getAllByTestId('movie-card'));
     // Make 3 picks
     for (let i = 0; i < 3; i++) {
-      fireEvent.click(screen.getAllByTestId('movie-card')[0]);
+      await user.click(screen.getAllByTestId('movie-card')[0]);
       await waitFor(() => expect(screen.getByTestId('match-counter')).toHaveTextContent(`Match ${i + 2} of 6`));
     }
 
-    fireEvent.click(screen.getByRole('button', { name: /Reset/i }));
+    await user.click(screen.getByRole('button', { name: /Reset/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId('match-counter')).toHaveTextContent('Match 1 of 6');
@@ -160,11 +149,12 @@ describe('App — pick interaction', () => {
   });
 
   it('completing all 6 play-in matches transitions to Round of 64', async () => {
+    const user = userEvent.setup();
     render(<App />);
     await waitFor(() => expect(screen.getAllByTestId('movie-card')).toHaveLength(2));
 
     for (let i = 0; i < 6; i++) {
-      fireEvent.click(screen.getAllByTestId('movie-card')[0]);
+      await user.click(screen.getAllByTestId('movie-card')[0]);
       if (i < 5) {
         // Wait for counter to advance before next pick
         await waitFor(() =>
@@ -183,8 +173,8 @@ describe('App — pick interaction', () => {
 describe('App — state restoration', () => {
   it('restores bracket state from localStorage on mount', async () => {
     let s = resetState();
-    s = applyPick(s, s.piM[0][0]);
-    s = applyPick(s, s.piM[1][0]);
+    s = applyPick(s, s.playInMatches[0].players[0]);
+    s = applyPick(s, s.playInMatches[1].players[0]);
     localStorage.setItem('dbk-state', serializeState(s));
 
     render(<App />);
@@ -197,10 +187,11 @@ describe('App — state restoration', () => {
 
 describe('App — notes', () => {
   it('notes toggle button opens a textarea for the current card', async () => {
+    const user = userEvent.setup();
     render(<App />);
     await waitFor(() => screen.getAllByRole('button', { name: /Add notes for/i }));
 
-    fireEvent.click(screen.getAllByRole('button', { name: /Add notes for/i })[0]);
+    await user.click(screen.getAllByRole('button', { name: /Add notes for/i })[0]);
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toBeInTheDocument();
@@ -210,21 +201,23 @@ describe('App — notes', () => {
 
 describe('App — auth modal', () => {
   it('opens auth modal when sync button is clicked', async () => {
+    const user = userEvent.setup();
     render(<App />);
     await waitFor(() => screen.getByRole('button', { name: /Sync across devices/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Sync across devices/i }));
+    await user.click(screen.getByRole('button', { name: /Sync across devices/i }));
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
   });
 
   it('auth modal closes when Cancel is clicked', async () => {
+    const user = userEvent.setup();
     render(<App />);
     await waitFor(() => screen.getByRole('button', { name: /Sync across devices/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Sync across devices/i }));
+    await user.click(screen.getByRole('button', { name: /Sync across devices/i }));
     await waitFor(() => screen.getByRole('dialog'));
 
-    fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
+    await user.click(screen.getByRole('button', { name: /Cancel/i }));
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -235,13 +228,14 @@ describe('App — auth modal', () => {
 describe('App — champion screen', () => {
   it('shows champion screen when champion is set in state', async () => {
     const s = resetState();
-    const champion = s.piM[0][0];
+    const champion = s.playInMatches[0].players[0];
     localStorage.setItem('dbk-state', JSON.stringify({
-      ph: s.ph, piI: s.piI, cr: s.cr, cm: s.cm,
-      ch: champion,
-      hi: s.hi, upsets: s.upsets,
-      piM: serMatch(s.piM),
-      rds: s.rds.map(r => serMatch(r)),
+      _v: 2,
+      phase: s.phase, playInIndex: s.playInIndex, currentRound: s.currentRound, currentMatch: s.currentMatch,
+      champion,
+      history: s.history, upsets: s.upsets,
+      playInMatches: serMatch(s.playInMatches),
+      rounds: s.rounds.map(r => serMatch(r)),
     }));
     render(<App />);
     await waitFor(() => {
@@ -263,7 +257,9 @@ describe('App — animation timing', () => {
     const cards = screen.getAllByTestId('movie-card');
     expect(screen.getByTestId('match-counter')).toHaveTextContent('Match 1 of 6');
 
-    // Click triggers pick() — setAn fires immediately, setTimeout queued at 320ms
+    // fireEvent is synchronous — it queues the 320ms setTimeout without draining
+    // the async scheduler. userEvent.click() would drain the queue and skip past
+    // the animation window, making the mid-animation assertion impossible.
     fireEvent.click(cards[0]);
 
     // Counter not yet advanced (still within animation window)

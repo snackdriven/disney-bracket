@@ -1,3 +1,36 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-deep: #06060f;
+  --color-bg-dark: #0e0e24;
+  --color-bg-mid: #180a20;
+  --color-bg-card: #12122a;
+  --color-disney: #4fc3f7;
+  --color-pixar: #ff8a65;
+  --color-gold: #ffd54f;
+  --color-purple: #ce93d8;
+  --color-text-primary: #e0e0f0;
+  --color-text-secondary: #8a8aa8;
+  --color-text-muted: #6a6a8e;
+  --color-text-faint: #5a5a7e;
+  --font-family-sans: 'Inter', sans-serif;
+  --font-family-display: 'Outfit', sans-serif;
+
+  --animate-tw: tw 4s ease-in-out infinite;
+  --animate-tw2: tw2 6s linear infinite;
+  --animate-su: su 0.2s ease-out;
+  --animate-su-slow: su 0.5s ease-out;
+  --animate-su-mid: su 0.3s ease-out;
+  --animate-fi: fi 0.4s;
+  --animate-cb: cb 2s ease-in-out infinite;
+  --animate-wg: wg 2s ease-in-out infinite;
+  --animate-ch: ch 0.35s ease forwards;
+  --animate-pp: pp 3s ease-in-out infinite;
+  --animate-uf: uf 1.5s ease-out forwards;
+  --animate-mote: mote-rise linear forwards;
+  --animate-spark: spark-rotate 8s linear infinite;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -27,4 +60,24 @@ button {
   input, textarea {
     font-size: 16px;
   }
+  .mob-btn:active  { opacity: .7  !important; transform: scale(.97) !important; }
+  .mob-card:active { transform: scale(.98) !important; opacity: .9 !important; }
+}
+
+@keyframes tw   { 0%,100%{ opacity:.05 } 50%{ opacity:1 } }
+@keyframes tw2  { 0%,100%{ opacity:.05 } 20%{ opacity:.9 } 35%{ opacity:.15 } 55%{ opacity:.8 } 70%{ opacity:.05 } 85%{ opacity:.6 } }
+@keyframes mote-rise { 0%{ transform:translateY(0);opacity:0 } 8%{ opacity:1 } 92%{ opacity:1 } 100%{ transform:translateY(-110vh);opacity:0 } }
+@keyframes su   { from{ opacity:0;transform:translateY(24px) } to{ opacity:1;transform:translateY(0) } }
+@keyframes cb   { 0%,100%{ transform:translateY(0) rotate(-2deg) } 50%{ transform:translateY(-10px) rotate(2deg) } }
+@keyframes wg   { 0%,100%{ text-shadow:0 0 20px rgba(79,195,247,.4) } 50%{ text-shadow:0 0 50px rgba(79,195,247,.8),0 0 80px rgba(79,195,247,.3) } }
+@keyframes ch   { 0%{ transform:scale(1) } 40%{ transform:scale(1.04) } 100%{ transform:scale(.98);opacity:.6 } }
+@keyframes fi   { from{ opacity:0 } to{ opacity:1 } }
+@keyframes pp   { 0%,100%{ border-color:rgba(79,195,247,.15) } 50%{ border-color:rgba(79,195,247,.4) } }
+@keyframes uf   { 0%{ opacity:0;transform:translateY(-8px) scale(.9) } 20%{ opacity:1;transform:translateY(0) scale(1) } 80%{ opacity:1 } 100%{ opacity:0 } }
+@keyframes spark-rotate { to { --spark-angle: 360deg; } }
+
+@property --spark-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
 }
