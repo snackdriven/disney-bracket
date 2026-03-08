@@ -1,6 +1,6 @@
 import { ALL_MOVIES } from './data.js';
 import { extractImdbId } from './utils.js';
-import type { MovieMeta, ImgCache } from '../types.js';
+import type { Movie, MovieMeta, ImgCache } from '../types.js';
 
 export async function fetchMovieMeta(tmdbKey: string | null, omdbKey: string | null): Promise<Record<number, MovieMeta>> {
   const cache: Record<number, MovieMeta> = (() => { try { return JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}") as Record<number, MovieMeta>; } catch { return {}; } })();
@@ -33,6 +33,32 @@ export async function fetchMovieMeta(tmdbKey: string | null, omdbKey: string | n
   }
   localStorage.setItem("tmdb-meta-v1", JSON.stringify(cache));
   return cache;
+}
+
+export async function fetchSingleMovieMeta(movie: Movie, tmdbKey: string | null, omdbKey: string | null): Promise<MovieMeta> {
+  const id = extractImdbId(movie.imdb);
+  const result: MovieMeta = {};
+  if (!id) return result;
+  try {
+    if (tmdbKey) {
+      const r = await fetch(`https://api.themoviedb.org/3/find/${id}?external_source=imdb_id`, {
+        headers: { Authorization: `Bearer ${tmdbKey}` },
+      });
+      const d = await r.json() as { movie_results?: Array<{ poster_path?: string; overview?: string }> };
+      const mov = d.movie_results?.[0];
+      if (mov?.poster_path) result.poster = `https://image.tmdb.org/t/p/w92${mov.poster_path}`;
+      if (mov?.overview) result.plot = mov.overview;
+    }
+    if (omdbKey) {
+      const r = await fetch(`https://www.omdbapi.com/?i=${id}&apikey=${omdbKey}`);
+      const d = await r.json() as { Runtime?: string; imdbRating?: string; Poster?: string; Plot?: string };
+      if (d.Runtime && d.Runtime !== "N/A") result.runtime = d.Runtime;
+      if (d.imdbRating && d.imdbRating !== "N/A") result.rating = d.imdbRating;
+      if (!result.poster && d.Poster && d.Poster !== "N/A") result.poster = d.Poster;
+      if (d.Plot && d.Plot !== "N/A") result.plot = d.Plot;
+    }
+  } catch { /* silent failure */ }
+  return result;
 }
 
 export async function loadImages(metaMap: Record<number, MovieMeta>): Promise<ImgCache> {
