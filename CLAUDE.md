@@ -18,15 +18,16 @@ An interactive tournament bracket for 70 Disney and Pixar movies. Users pick fav
 - **Styling:** Tailwind CSS v4 (`@tailwindcss/vite` plugin, no config file; `@theme` in `index.css`)
 - **State management:** React hooks (`useState`, `useEffect`) + localStorage
 - **Auth/sync:** Supabase (magic link auth, implicit flow)
-- **Routing:** None — single-page, single-route app
+- **Routing:** None — single-page app. `main.tsx` renders `<AdminPage />` at `/?admin=1`, `<App />` everywhere else.
 
 ## Project Structure
 
 ```
 disney-bracket/
 ├── src/
-│   ├── main.tsx              # React entry point
-│   ├── App.tsx               # Root component
+│   ├── main.tsx              # Entry point; renders AdminPage at ?admin=1, App elsewhere
+│   ├── App.tsx               # Root component (main bracket UI)
+│   ├── ErrorBoundary.tsx     # Top-level error boundary
 │   ├── types.ts              # Shared TypeScript types
 │   ├── test-setup.ts         # Vitest global setup
 │   ├── index.css             # Tailwind import + @theme tokens + keyframes
@@ -45,6 +46,8 @@ disney-bracket/
 │   │   ├── canvas.ts         # PNG export / canvas rendering
 │   │   ├── colors.ts         # Shared studio color constants (CLR, BADGE_CLR)
 │   │   ├── data.ts           # Movie data, seedings, round config
+│   │   ├── meta.ts           # fetchMovieMeta — TMDB + OMDB API calls, writes tmdb-meta-v1
+│   │   ├── supabase.ts       # Supabase client init
 │   │   ├── theme.ts          # Re-exports from colors.ts
 │   │   ├── utils.ts          # localStorage helpers, serialization
 │   │   └── __tests__/
@@ -53,6 +56,7 @@ disney-bracket/
 │   │       ├── data.test.ts
 │   │       └── utils.test.ts
 │   └── components/
+│       ├── AdminPage.tsx     # Metadata manager UI (accessible at /?admin=1)
 │       ├── AuthModal.tsx
 │       ├── Btn.tsx
 │       ├── BV.tsx            # Bracket visualizer panel
@@ -111,6 +115,8 @@ Business logic lives in `src/lib/` as pure TypeScript functions. State lives in 
 - **`canvas.ts`** — Canvas rendering for the PNG export at 1920×1080.
 - **`colors.ts`** — Shared color constants (`CLR`, `BADGE_CLR`) for both React components and canvas. `theme.ts` re-exports from here.
 - **`data.ts`** — Movie data (70 movies), seeding constants (`MAIN`, `PLAYIN`, `PIP`, `R1`), round/region names, trivia, static metadata.
+- **`meta.ts`** — `fetchMovieMeta(tmdbKey, omdbKey)` fetches poster/rating/runtime/plot from TMDB and OMDB APIs in batches of 20, reads/writes `tmdb-meta-v1` in localStorage.
+- **`supabase.ts`** — Supabase client initialization.
 - **`utils.ts`** — `loadLS`/`saveLS` for localStorage, `serMatch`/`desMatch` for match serialization, `extractImdbId`.
 
 ### Key State Variables
@@ -158,6 +164,7 @@ interface HistoryEntry { phase: Phase; matchIndex: number; round: number; wasUps
 
 - `dbk-state` — Serialized bracket state (schema v2; v1 saves with abbreviated keys are migrated automatically on load)
 - `dbk-notes` — Movie notes keyed by seed number
+- `tmdb-meta-v1` — Movie metadata cache (`Record<number, MovieMeta>`); written by `meta.ts`, managed via AdminPage
 
 **Schema v2** key names match `BracketState` exactly: `phase`, `playInMatches`, `playInIndex`, `rounds`, `currentRound`, `currentMatch`, `champion`, `history`, `upsets`. Includes `_v: 2` marker.
 
@@ -218,6 +225,7 @@ Both suites run on every push to `main` before the build. Deploy is blocked if e
 - **Dynamic studio colors** — set as CSS custom properties on the element (`style={{ '--ac': c.ac } as React.CSSProperties}`) and reference via arbitrary Tailwind value (`className="text-[var(--ac)]"`) when used alongside Tailwind classes, or just inline when simpler.
 - **Mobile-first responsive** — `useIsMobile()` hook returns `mob`; every UI change needs desktop + mobile variants
 - **No component library** — all UI is hand-built with Tailwind
+- **AdminPage exception** — `AdminPage.tsx` uses only inline `style={{}}` (no Tailwind at all); this is intentional for the isolated admin tool
 - **Functional components only** — no class components
 - **ESLint** — `varsIgnorePattern: '^[A-Z_]'` allows unused uppercase names (component imports)
 
@@ -233,6 +241,10 @@ Push to `main` → GitHub Actions:
 Vite config sets `base: '/disney-bracket/'` for correct asset paths.
 
 ## Common Tasks
+
+### Using the admin page
+
+Navigate to `/?admin=1`. Enter TMDB (v3 auth) and OMDB API keys, click "Save Keys," then "Fetch Missing" to fill gaps or "Refresh All" to rebuild from scratch. Keys are stored in `sessionStorage` only — they don't persist across browser sessions. Cache lives in `localStorage` under `tmdb-meta-v1`.
 
 ### Adding a new movie
 
