@@ -1,7 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Visual regression tests (visual.spec.ts) use pixel-diff screenshot comparison
+// with tight thresholds. They are sensitive to Chromium/font/runner-image drift,
+// so they're excluded from CI runs and should be run locally with
+// `npx playwright test e2e/visual.spec.ts` (and re-baselined via --update-snapshots
+// after intentional UI changes).
+const testIgnore = process.env.CI ? ['**/visual.spec.ts'] : undefined;
+
 export default defineConfig({
   testDir: './e2e',
+  testIgnore,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
