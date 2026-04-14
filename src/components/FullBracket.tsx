@@ -26,7 +26,7 @@ export function FullBracket({ playInMatches, rounds, pool64, currentRound, curre
 
   const regColors = ["#4fc3f7","#ce93d8","#ff8a65","#4fc3f7"];
   const rowFs = mob ? 13 : 12;
-  const rowPad = mob ? "5px 8px" : "4px 8px";
+  const rowPad = mob ? "8px 4px" : "4px 8px";
   const rowGap = 6;
   const vsFs = mob ? 10 : 9;
   const ellipsis = mob ? { overflow:"hidden" as const, textOverflow:"ellipsis" as const, whiteSpace:"nowrap" as const } : {};
@@ -87,7 +87,8 @@ export function FullBracket({ playInMatches, rounds, pool64, currentRound, curre
             <div
               key={i}
               className={[
-                "flex items-center rounded-[6px]",
+                "flex items-center",
+                mob ? "border-b border-white/[0.03] last:border-0" : "rounded-[6px]",
                 isPlayIn && i === 0 && !w ? "bg-[rgba(79,195,247,.06)]" : "bg-transparent",
               ].join(" ")}
               style={{ gap: rowGap, fontSize: rowFs, padding: rowPad }}
@@ -125,7 +126,8 @@ export function FullBracket({ playInMatches, rounds, pool64, currentRound, curre
                 <div
                   key={mi}
                   className={[
-                    "flex items-center rounded-[6px]",
+                    "flex items-center",
+                    mob ? "border-b border-white/[0.03] last:border-0" : "rounded-[6px]",
                     isCurrentMatch ? "bg-[rgba(79,195,247,.06)]" : "bg-transparent",
                   ].join(" ")}
                   style={{ gap: rowGap, fontSize: rowFs, padding: rowPad }}
@@ -176,7 +178,8 @@ export function FullBracket({ playInMatches, rounds, pool64, currentRound, curre
                 <div
                   key={mi}
                   className={[
-                    "flex items-center rounded-[6px]",
+                    "flex items-center",
+                    mob ? "border-b border-white/[0.03] last:border-0" : "rounded-[6px]",
                     isCur ? "bg-[rgba(79,195,247,.06)]" : "bg-transparent",
                   ].join(" ")}
                   style={{ gap: rowGap, fontSize: rowFs, padding: rowPad }}

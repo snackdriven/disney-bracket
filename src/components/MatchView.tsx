@@ -46,14 +46,16 @@ export function MatchView({
   partnerVoted, partnerName,
 }: MatchViewProps) {
   return (
-    <div key={`${phase}-${isPlayIn ? playInIndex : `${currentRound}-${currentMatch}`}`} className="animate-[su_.3s_ease-out]">
-      <div
-        data-testid="match-counter"
-        className="text-center text-[#8080a0]"
-        style={{ marginBottom: mob ? 12 : 16, fontSize: mob ? 14 : 13 }}
-      >
-        Match {matchNumber} of {matchTotal}
-      </div>
+    <div key={`${phase}-${isPlayIn ? playInIndex : `${currentRound}-${currentMatch}`}`} className={`animate-[su_.3s_ease-out] ${mob ? 'flex-1 flex flex-col h-full w-full' : ''}`}>
+      {!mob && (
+        <div
+          data-testid="match-counter"
+          className="text-center text-[#8080a0]"
+          style={{ marginBottom: mob ? 8 : 16, fontSize: mob ? 12 : 13 }}
+        >
+          Match {matchNumber} of {matchTotal}
+        </div>
+      )}
 
       {partnerVoted && partnerName && (
         <div className="text-center text-[#ce93d8] font-bold uppercase tracking-[1px] animate-pulse" style={{ fontSize: 11, marginBottom: 12 }}>
@@ -62,14 +64,18 @@ export function MatchView({
       )}
 
       {mob ? (
-        <div className="flex flex-col items-center gap-0">
-          <Card mob movie={activeMatch.players[0]} hovered={hoveredSeed === activeMatch.players[0].seed} animating={animatingSeed === activeMatch.players[0].seed} disabled={!!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[0])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
-          <div className="flex items-center justify-center gap-[12px] py-[10px] w-full">
-            <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-white/12"/>
-            <span data-testid="vs-divider" className="text-[14px] font-extrabold text-[#5a5a7e] tracking-[3px]">VS</span>
-            <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-white/12"/>
+        <div className="flex-1 flex flex-col relative w-full h-full overflow-hidden shrink-0">
+          <div className="flex-1 w-full flex flex-col justify-end overflow-hidden pb-[2px]">
+            <Card mob movie={activeMatch.players[0]} hovered={hoveredSeed === activeMatch.players[0].seed} animating={animatingSeed === activeMatch.players[0].seed} disabled={!!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[0])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
           </div>
-          <Card mob movie={activeMatch.players[1]} hovered={hoveredSeed === activeMatch.players[1].seed} animating={animatingSeed === activeMatch.players[1].seed} disabled={!!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[1])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
+          
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[44px] h-[44px] rounded-full bg-[#06060f] border-2 border-[rgba(255,255,255,0.08)] flex items-center justify-center shadow-lg pointer-events-none">
+            <span className="text-[13px] font-extrabold text-[#5a5a7e] tracking-[2px] ml-[2px]">VS</span>
+          </div>
+
+          <div className="flex-1 w-full flex flex-col justify-start overflow-hidden pt-[2px]">
+             <Card mob movie={activeMatch.players[1]} hovered={hoveredSeed === activeMatch.players[1].seed} animating={animatingSeed === activeMatch.players[1].seed} disabled={!!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[1])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
+          </div>
         </div>
       ) : (
         <div className="flex items-center justify-center gap-0">
@@ -94,17 +100,29 @@ export function MatchView({
         </div>
       )}
 
-      <div className="flex justify-center" style={{ gap: mob ? 10 : 10, marginTop: mob ? 18 : 22 }}>
-        {history.length > 0 && <Btn mob={mob} s onClick={undo}>← Undo</Btn>}
-        <Btn mob={mob} s mu onClick={reset}>Reset</Btn>
-        {history.length > 0 && <Btn mob={mob} s mu onClick={copyLink}>{copiedLink ? "✓!" : "🔗 Share"}</Btn>}
-      </div>
+      {!mob && (
+        <>
+          <div className="flex justify-center" style={{ gap: mob ? 10 : 10, marginTop: mob ? 12 : 22 }}>
+            {history.length > 0 && <Btn mob={mob} s onClick={undo}>← Undo</Btn>}
+            {history.length > 0 && <Btn mob={mob} s mu onClick={copyLink}>{copiedLink ? "✓!" : "🔗 Share"}</Btn>}
+          </div>
+
+          <div className="text-center" style={{ marginTop: mob ? 16 : 24, marginBottom: mob ? 8 : 0 }}>
+            <button 
+              onClick={reset}
+              className="bg-transparent border-none text-[12px] text-[#505070] underline cursor-pointer tracking-wide"
+            >
+              Reset Bracket
+            </button>
+          </div>
+        </>
+      )}
 
       {showBracketPanel && !isPlayIn && (
         <BV mob={mob} playInMatches={playInMatches} rounds={rounds} currentRound={currentRound} currentMatch={currentMatch}/>
       )}
 
-      {!showBracketPanel && upNextPool && upNextIndex + 1 < upNextPool.length && (
+      {!mob && !showBracketPanel && upNextPool && upNextIndex + 1 < upNextPool.length && (
         <div style={{ marginTop: mob ? 24 : 30 }}>
           <div
             className="uppercase font-bold text-[#5a5a7e] tracking-[2.5px]"
