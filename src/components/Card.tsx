@@ -104,11 +104,7 @@ export function Card({ movie, hovered, animating, disabled, onHover, onPick, not
                     transform: hovered && !mob ? "scale(1.05)" : "scale(1)",
                   }}
                 />
-                <div style={{
-                  position: "absolute", top: 0, right: 0, bottom: 0, width: "60%",
-                  background: `linear-gradient(90deg,transparent,${c.bg}f0)`,
-                  pointerEvents: "none",
-                }} />
+                <div className="absolute top-0 right-0 bottom-0 w-[1px] bg-white/10 shadow-[0_0_10px_rgba(0,0,0,0.5)] z-10" />
               </>
             ) : (
               <div style={{

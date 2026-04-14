@@ -32,19 +32,21 @@ Did you know Toy Story 2 was almost entirely deleted by accident and only surviv
 
 ## Features
 
-- Notes on any movie. Write down your reasoning, confront it later.
-- Upset tracking. Counts every time you pick the lower seed and judges you for it.
-- Undo any pick. Reset the whole bracket. No judgment.
-- Shareable link with your full bracket encoded in the URL.
+- **Mobile First Gestures**: Swipe left/right on cards native CSS snap-scrolling to flip between gorgeous hero artwork and extensive movie plot/trivia details.
+- **On-the-fly Metadata Repair**: Catch an error in a summary or notice a low-res poster? The app has native TMDB search integration built right in to hot-swap movie details instantly.
+- **Notes on any movie.** Write down your reasoning, confront it later.
+- **Upset tracking.** Counts every time you pick the lower seed and judges you for it.
+- **Undo any pick.** Reset the whole bracket. No judgment.
 
 ---
 
-## Sync
+## 2-Player Co-op Sync
 
-Sign in with a magic link and your bracket and notes follow you across devices, because **this is not a one-session experience**, and anyone who tells you they finished it in one sitting is lying or didn't think hard enough.
+Sign in with Google OAuth to persist your bracket to the cloud natively—because **this is not a one-session experience**, and anyone who tells you they finished it in one sitting is lying or didn't think hard enough.
 
-Or stay in the browser. Your bracket lives in local storage until you clear it.
+Or better yet: Generate a Room Code and invite a friend. The app connects you both peer-to-peer via Firebase Realtime. When a matchup is live, the app enforces **Blind Voting**—it won't reveal or advance the bracket until *both* players have submitted their picks anonymously. If you disagree, work it out.
 
+If you don't log in, your bracket lives securely in local storage until you clear it.
 ---
 
 If 70 movies of genuine heartfelt cinema is too much and you need a palate cleanser, there's also a [Worst Movie Tournament](https://github.com/snackdriven/bad-movie-bracket) where nobody cries (on purpose).
@@ -53,9 +55,7 @@ If 70 movies of genuine heartfelt cinema is too much and you need a palate clean
 
 ## Dev
 
-The hard problem first: Supabase magic link auth writes `#access_token=...` into the URL hash on sign-in. The app also uses the hash to share bracket state. Without a guard, the bracket persistence effect would overwrite the token before the auth client could read it — the user signs in, the hash gets clobbered, and the session never establishes. There's a regression test for this in `e2e/persistence.spec.js`.
-
-Stack: React 19 + TypeScript + Vite. Tailwind CSS v4. Supabase for auth and sync.
+Stack: React 19 + TypeScript + Vite. Tailwind CSS v4. Firebase for Google Auth & Real-Time Co-op Sync.
 
 ```bash
 npm install
@@ -73,22 +73,7 @@ npm test          # 73 Vitest unit tests
 npm run test:e2e  # 27 Playwright E2E tests at 1920×1080
 ```
 
-Unit tests cover the bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips, and notes init logic. The E2E suite covers the 69-pick flow and the auth hash race condition above.
+Unit tests cover the core bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips, and notes init logic. 
 
-CI runs both before building. Deploy only happens if they pass.
-
-```sql
-CREATE TABLE disney_bracket (
-  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  notes jsonb NOT NULL DEFAULT '{}',
-  state jsonb NOT NULL DEFAULT '{}',
-  updated_at timestamptz DEFAULT now()
-);
-
-ALTER TABLE disney_bracket ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can manage own bracket data"
-  ON disney_bracket FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-```
+> [!NOTE]
+> **E2E Testing is currently paused in CI**. The entire Playwright suite (which historically covered the 69-pick traversal flow) is disabled pending a refactor to accommodate the new Firebase/Co-op architectural changes. Deployments currently rely purely on the Vitest unit tests passing.

@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 interface MobileMenuModalProps {
   onClose: () => void;
   showFullBracket: boolean;
@@ -20,6 +22,77 @@ export function MobileMenuModal({
   customName, setCustomName, defaultName, roomCode, connected, onReset,
   fbUser, syncStatus, onSignInClick
 }: MobileMenuModalProps) {
+  const [activePage, setActivePage] = useState<'menu' | 'changelog'>('menu');
+  const [recentRooms, setRecentRooms] = useState<string[]>([]);
+  
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('dbk-recent-rooms') || "[]");
+      if (Array.isArray(stored)) setRecentRooms(stored);
+    } catch(e) {}
+  }, []);
+
+  useEffect(() => {
+    if (roomCode) {
+      setRecentRooms(prev => {
+        const next = [roomCode, ...prev.filter(r => r !== roomCode)].slice(0, 4);
+        localStorage.setItem('dbk-recent-rooms', JSON.stringify(next));
+        return next;
+      });
+    }
+  }, [roomCode]);
+
+  if (activePage === 'changelog') {
+    return (
+      <div className="fixed inset-0 z-[1000] bg-[#06060f]/95 backdrop-blur-md flex flex-col p-[20px] pb-[env(safe-area-inset-bottom)] animate-[fi_.2s]">
+        <div className="flex justify-between items-center mb-[24px] mt-[10px]">
+          <h2 className="text-[22px] font-bold tracking-wide">What's New</h2>
+          <button onClick={() => setActivePage('menu')} className="px-[14px] h-[36px] rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[13px] font-bold text-[#8a8aae]">Back</button>
+        </div>
+
+        <div className="flex flex-col gap-[32px] overflow-y-auto pb-[60px] scrollbar-none pr-[8px]">
+          
+          <div className="flex flex-col gap-[12px]">
+             <div className="flex justify-between items-end border-b border-white/10 pb-[8px]">
+               <h3 className="text-[18px] font-bold text-[#4fc3f7]">v1.0.1</h3>
+               <span className="text-[12px] text-[#4fc3f7] font-bold uppercase tracking-wider">Current</span>
+             </div>
+             <ul className="text-[#a0a0c0] text-[14px] leading-[1.6] list-disc pl-[20px] flex flex-col gap-[6px]">
+               <li>Added one-tap <b>Recent Rooms</b> memory to the Co-op menu to easily jump back into active sessions.</li>
+               <li>Rolled out a sleek geometric <b>"Magazine Float"</b> layout for movie cards to perfectly preserve native poster aspect ratios without cutting off character art.</li>
+             </ul>
+          </div>
+
+          <div className="flex flex-col gap-[12px]">
+             <div className="flex justify-between items-end border-b border-white/10 pb-[8px]">
+               <h3 className="text-[18px] font-bold text-white">v1.0.0</h3>
+               <span className="text-[12px] text-[#8a8aae]">The Mobile Update</span>
+             </div>
+             <ul className="text-[#a0a0c0] text-[14px] leading-[1.6] list-disc pl-[20px] flex flex-col gap-[6px]">
+               <li>Implemented <b>horizontal swipe-to-reveal gestures</b> for movie stats, trivia, and admin actions using CSS snap targets.</li>
+               <li>Deep redesign of the primary Header with a vertically-centered premium layout and neon progress tracking.</li>
+               <li>Centralized all sync/login utilities into this mobile modal to declutter the matchups.</li>
+             </ul>
+          </div>
+
+          <div className="flex flex-col gap-[12px]">
+             <div className="flex justify-between items-end border-b border-white/10 pb-[8px]">
+               <h3 className="text-[18px] font-bold text-white">v0.9.0</h3>
+               <span className="text-[12px] text-[#8a8aae]">The Co-op Sync Update</span>
+             </div>
+             <ul className="text-[#a0a0c0] text-[14px] leading-[1.6] list-disc pl-[20px] flex flex-col gap-[6px]">
+               <li>Migrated backend architecture natively to Firebase context.</li>
+               <li>Introduced real-time <b>2-Player Sync</b> logic that allows friends/couples to jump into a room and run brackets simultaneously.</li>
+               <li>Added "Blind Voting" logic that refuses to advance the bracket until both connected players have made their picks.</li>
+               <li>Created instant <b>Fix Metadata</b> capabilities utilizing on-the-fly TMDB scraping.</li>
+             </ul>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[1000] bg-[#06060f]/95 backdrop-blur-md flex flex-col p-[20px] pb-[env(safe-area-inset-bottom)] animate-[fi_.2s]">
       <div className="flex justify-between items-center mb-[24px] mt-[10px]">
@@ -27,8 +100,17 @@ export function MobileMenuModal({
         <button onClick={onClose} className="w-[40px] h-[40px] rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[18px]">✕</button>
       </div>
 
-      <div className="flex flex-col gap-[16px] overflow-y-auto pb-[40px]">
+      <div className="flex flex-col gap-[16px] overflow-y-auto pb-[40px] scrollbar-none">
         
+        {/* Changelog Banner */}
+        <button
+          onClick={() => setActivePage('changelog')}
+          className="w-full p-[14px] rounded-[14px] bg-gradient-to-r from-[#ce93d8]/10 to-[#4fc3f7]/10 border border-[#ce93d8]/20 flex items-center justify-between hover:brightness-125 transition-all shadow-[0_0_15px_rgba(206,147,216,0.15)]"
+        >
+          <span className="font-bold text-[14px] text-white">✨ What's New? <span className="text-[#ce93d8] ml-2 text-[12px]">v1.0.1</span></span>
+          <span className="text-[#ce93d8] font-bold pr-1">›</span>
+        </button>
+
         {/* View Toggles */}
         <div className="grid grid-cols-2 gap-[12px]">
           <button
@@ -81,30 +163,49 @@ export function MobileMenuModal({
           />
           
           {!roomCode ? (
-            <div className="grid grid-cols-2 gap-[12px]">
-              <button
-                onClick={() => {
-                   const prefixes = ["BAMB", "SIMB", "HERC", "ARI", "WDW", "TINK", "BUZZ", "NEMO", "MULA", "CRUZ", "OAK", "DPOO", "GENI", "PLUT"];
-                   const pre = prefixes[Math.floor(Math.random() * prefixes.length)];
-                   const num = Math.floor(Math.random() * 89) + 10;
-                   const code = `${pre}-${num}`;
-                   window.location.search = `?room=${code}`;
-                }}
-                className="p-[14px] rounded-[14px] bg-white/5 border border-white/10 text-[#8a8aae] font-bold text-[14px]"
-              >
-                🎮 Create Room
-              </button>
-              <button
-                onClick={() => {
-                   const code = window.prompt("Enter room code:");
-                   if (code && code.trim()) {
-                     window.location.search = `?room=${code.trim().toUpperCase()}`;
-                   }
-                }}
-                className="p-[14px] rounded-[14px] bg-white/5 border border-white/10 text-[#8a8aae] font-bold text-[14px]"
-              >
-                🤝 Join Room
-              </button>
+            <div className="flex flex-col gap-[12px]">
+              <div className="grid grid-cols-2 gap-[12px]">
+                <button
+                  onClick={() => {
+                     const prefixes = ["BAMB", "SIMB", "HERC", "ARI", "WDW", "TINK", "BUZZ", "NEMO", "MULA", "CRUZ", "OAK", "DPOO", "GENI", "PLUT"];
+                     const pre = prefixes[Math.floor(Math.random() * prefixes.length)];
+                     const num = Math.floor(Math.random() * 89) + 10;
+                     const code = `${pre}-${num}`;
+                     window.location.search = `?room=${code}`;
+                  }}
+                  className="p-[14px] rounded-[14px] bg-white/5 border border-white/10 text-[#8a8aae] font-bold text-[14px]"
+                >
+                  🎮 Create Room
+                </button>
+                <button
+                  onClick={() => {
+                     const code = window.prompt("Enter room code:");
+                     if (code && code.trim()) {
+                       window.location.search = `?room=${code.trim().toUpperCase()}`;
+                     }
+                  }}
+                  className="p-[14px] rounded-[14px] bg-white/5 border border-white/10 text-[#8a8aae] font-bold text-[14px]"
+                >
+                  🤝 Join Room
+                </button>
+              </div>
+              
+              {recentRooms.length > 0 && (
+                <div className="flex flex-col gap-[8px] mt-[4px]">
+                   <div className="text-[10px] text-[#5a5a7e] uppercase tracking-[1.5px] font-bold">Recent Rooms</div>
+                   <div className="flex flex-wrap gap-[8px]">
+                     {recentRooms.map(r => (
+                       <button
+                         key={r}
+                         onClick={() => window.location.search = `?room=${r}`}
+                         className="px-[14px] py-[8px] rounded-[10px] bg-white/5 border border-white/10 text-[#a0a0c0] text-[13px] font-bold hover:bg-white/10 transition-colors"
+                       >
+                         {r}
+                       </button>
+                     ))}
+                   </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-[12px]">
