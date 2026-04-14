@@ -60,12 +60,23 @@ export function useCoopRoom(
         return;
       }
 
-      // If we haven't synced yet, and there's a state, pull it
-      if (!syncedInit && data.state) {
-        const ts = new Date().getTime();
-        localStorage.setItem(`dbk-backup-${ts}`, JSON.stringify(serializedState));
-        applyServerState(data.state);
-        setSyncedInit(true);
+      // Continuous sync for advanced state
+      if (data.state) {
+        const remoteStr = JSON.stringify(data.state);
+        const localStr = localStorage.getItem("dbk-last-seen-state") || "";
+        
+        if (!syncedInit) {
+          // First time join
+          const ts = new Date().getTime();
+          localStorage.setItem(`dbk-backup-${ts}`, JSON.stringify(serializedState));
+          localStorage.setItem("dbk-last-seen-state", remoteStr);
+          applyServerState(data.state);
+          setSyncedInit(true);
+        } else if (remoteStr !== localStr) {
+          // State changed significantly on the host! (e.g. they advanced the bracket)
+          localStorage.setItem("dbk-last-seen-state", remoteStr);
+          applyServerState(data.state);
+        }
       }
 
       // Parse picks to figure out what the *other* person picked
@@ -117,13 +128,10 @@ export function useCoopRoom(
       const picksRef = ref(db, `rooms/${roomCode}/picks`);
       set(picksRef, null); // wipe picks
       
-      // Also update the room's master state
       const stateRef = ref(db, `rooms/${roomCode}/state`);
-      // We'll let `App.tsx` passing serialized state continuously sync it via `useFirebaseSync`?
-      // Wait, `useFirebaseSync` saves to the User. The Room is separate.
-      // For simple co-op, we just sync the state manually if we are the host, or just let 'picks' be synced.
-      // To ensure perfectly synced brackets, we upload our local state every time we resolve.
       setTimeout(() => {
+        const remoteStr = JSON.stringify(serializedState);
+        localStorage.setItem("dbk-last-seen-state", remoteStr);
         set(stateRef, serializedState);
       }, 500); 
     }

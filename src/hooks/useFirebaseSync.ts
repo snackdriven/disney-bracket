@@ -32,17 +32,17 @@ export function useFirebaseSync({ serialized, notes, onPull }: SyncProps) {
         
         const userRef = ref(db, `users/${user.uid}`);
         
-        // Listen to the cloud once initially to sync down, 
-        // using onValue with a flag so we only process the first pull.
-        // We do this to replace the supabase.from().select()
-        let pulled = false;
-        
+        // Listen to the cloud and sync down, 
+        // using localStorage comparison to prevent echo loops.
         unsubscribeDB = onValue(userRef, (snapshot) => {
-          if (!pulled) {
-            pulled = true;
-            const data = snapshot.val();
-            if (data) {
-              onPullRef.current(data.state ?? null, data.notes ?? null);
+          const data = snapshot.val();
+          if (data) {
+            const remoteStr = JSON.stringify(data.state);
+            const localStr = localStorage.getItem("dbk-last-upload-state") || "";
+            // Only pull if the server state is different from what we last pushed/pulled
+            if (remoteStr !== localStr) {
+               localStorage.setItem("dbk-last-upload-state", remoteStr);
+               onPullRef.current(data.state ?? null, data.notes ?? null);
             }
           }
         });
@@ -66,6 +66,8 @@ export function useFirebaseSync({ serialized, notes, onPull }: SyncProps) {
     syncTimerRef.current = setTimeout(async () => {
       setSyncStatus("syncing");
       try {
+        const remoteStr = JSON.stringify(serialized);
+        localStorage.setItem("dbk-last-upload-state", remoteStr);
         const userRef = ref(db, `users/${fbUser.uid}`);
         await set(userRef, {
           notes,
