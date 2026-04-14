@@ -38,8 +38,7 @@ export function FixMetaModal({ movie, onSave, onClose, mob }: FixMetaModalProps)
       previouslyFocused?.focus();
     };
   }, []);
-
-  const tmdbKey = sessionStorage.getItem("tmdb-key") || "";
+  const tmdbKey = sessionStorage.getItem("tmdb-key") || import.meta.env.VITE_TMDB_KEY || "fa8cad87275234c1faee168084b21941";
 
   useEffect(() => {
     if (mode === "posters" && posters.length === 0 && tmdbKey) {

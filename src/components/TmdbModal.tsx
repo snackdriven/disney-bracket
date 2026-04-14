@@ -7,8 +7,8 @@ interface TmdbModalProps {
 }
 
 export function TmdbModal({ onSave, onClose }: TmdbModalProps) {
-  const [tmdb, setTmdb] = useState(sessionStorage.getItem("tmdb-key") || "");
-  const [omdb, setOmdb] = useState(sessionStorage.getItem("omdb-key") || "");
+  const [tmdb, setTmdb] = useState(sessionStorage.getItem("tmdb-key") || import.meta.env.VITE_TMDB_KEY || "fa8cad87275234c1faee168084b21941");
+  const [omdb, setOmdb] = useState(sessionStorage.getItem("omdb-key") || import.meta.env.VITE_OMDB_KEY || "");
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   useLayoutEffect(() => { onCloseRef.current = onClose; });

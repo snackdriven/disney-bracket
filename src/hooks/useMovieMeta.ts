@@ -15,7 +15,7 @@ export function useMovieMeta() {
   const [showTmdbModal, setShowTmdbModal] = useState(false);
 
   const handleFetchMeta = async (overrideTmdb?: string | null, overrideOmdb?: string | null) => {
-    const tmdbKey = overrideTmdb !== undefined ? overrideTmdb : sessionStorage.getItem("tmdb-key");
+    const tmdbKey = overrideTmdb !== undefined ? overrideTmdb : (sessionStorage.getItem("tmdb-key") || import.meta.env.VITE_TMDB_KEY || "fa8cad87275234c1faee168084b21941");
     const omdbKey = overrideOmdb !== undefined ? overrideOmdb : sessionStorage.getItem("omdb-key");
     if (!tmdbKey && !omdbKey) { setShowTmdbModal(true); return; }
     setTmdbStatus("fetching");
