@@ -30,7 +30,7 @@ export function SyncStrip({ mob, fbUser, syncStatus, onSignInClick }: SyncStripP
         <div className="flex items-center gap-[8px] bg-white/[0.03] border border-white/[0.08] rounded-full px-[12px] py-[4px] min-h-[28px]">
           <div className="flex items-center gap-[6px] text-[#8a8aae]" style={{ fontSize: mob ? 12 : 11 }}>
             <span className={syncStatus === "error" ? "text-[#ff8a65]" : "text-[#ce93d8]"}>
-              {syncStatus === "syncing" ? "⏳" : syncStatus === "synced" ? "✓" : syncStatus === "error" ? "⚠" : "☁"}
+              {syncStatus === "syncing" ? "⏳" : syncStatus === "synced" ? "✓" : syncStatus === "error" ? "⚠" : "🔄"}
             </span>
             <span className="font-semibold text-[#a0a0c0] max-w-[100px] truncate">{fbUser.email?.split('@')[0] || "Account"}</span>
           </div>
@@ -47,11 +47,10 @@ export function SyncStrip({ mob, fbUser, syncStatus, onSignInClick }: SyncStripP
       ) : (
         <button
           onClick={onSignInClick}
-          className="flex items-center gap-[6px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-[#4fc3f7]/40 text-[#8a8aae] hover:text-[#d0d0e8] rounded-full transition-all cursor-pointer min-h-[28px] px-[12px]"
-          style={{ fontSize: mob ? 12 : 11 }}
+          className="flex items-center justify-center w-[28px] h-[28px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] rounded-full transition-all cursor-pointer text-[#8a8aae] hover:text-[#d0d0e8]"
+          title="Sign In / Sync Bracket"
         >
-          <span className="text-[#4fc3f7] opacity-80">☁</span>
-          <span className="font-medium tracking-[0.3px]">Save & Sync</span>
+          <span style={{ fontSize: 14 }}>👤</span>
         </button>
       )}
     </div>
