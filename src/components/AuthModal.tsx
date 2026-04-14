@@ -47,9 +47,10 @@ export function AuthModal({ onClose }: AuthModalProps) {
     try {
       await signInWithPopup(auth, googleProvider);
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      setErr(error.message || "Failed to sign in. Please try again.");
+      const e = error as Error;
+      setErr(e.message || "Failed to sign in. Please try again.");
       setLoading(false);
     }
   };

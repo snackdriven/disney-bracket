@@ -25,14 +25,16 @@ export function useCoopRoom(
   const [connected, setConnected] = useState(false);
   const [syncedInit, setSyncedInit] = useState(false);
 
-  // Sync effect when activeMatch changes (i.e. we advanced)
+  const p1 = activeMatch?.players[0]?.seed;
+  const p2 = activeMatch?.players[1]?.seed;
+  
   useEffect(() => {
     setCoopState(prev => ({
       ...prev,
       myPick: null,
       theirPick: null
     }));
-  }, [activeMatch?.players[0]?.seed, activeMatch?.players[1]?.seed]);
+  }, [p1, p2]);
 
   useEffect(() => {
     if (!roomCode) {
@@ -85,9 +87,10 @@ export function useCoopRoom(
         let foundTheirPick: number | null = null;
         let foundTheirName = "Friend";
         
-        Object.entries(data.picks).forEach(([name, pickData]: [string, any]) => {
+        Object.entries(data.picks).forEach(([name, pickData]: [string, unknown]) => {
+          const pd = pickData as { seed: number };
           if (name !== myName) {
-            foundTheirPick = pickData.seed;
+            foundTheirPick = pd.seed;
             foundTheirName = name;
           }
         });
@@ -111,6 +114,7 @@ export function useCoopRoom(
     return () => {
       unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomCode, myName, syncedInit, applyServerState]); // intentionally excluded serializedState from deps so it doesn't infinite loop on host seed
 
   const lockPick = (seed: number) => {
