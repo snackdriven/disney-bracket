@@ -9,7 +9,6 @@ import { MAIN } from './lib/data.js';
 import { saveLS, isNotes } from './lib/utils.js';
 import { Dots } from './components/Dots.js';
 import { AuthModal } from './components/AuthModal.js';
-import { TmdbModal } from './components/TmdbModal.js';
 import { NotesPanel } from './components/NotesPanel.js';
 import { FullBracket } from './components/FullBracket.js';
 import { SyncStrip } from './components/SyncStrip.js';
@@ -41,6 +40,7 @@ export default function App() {
   const [showBracketPanel, setShowBracketPanel] = useState(false);
   const [showFullBracket, setShowFullBracket] = useState(false);
   const [fixingMovie, setFixingMovie] = useState<Movie | null>(null);
+  const [customName, setCustomName] = useState(() => localStorage.getItem('dbk-custom-name') || "");
 
   const { copiedLink, copiedBracket, copyLink, copyBracket } = useShareClipboard(playInMatches, rounds, champion);
 
@@ -65,7 +65,8 @@ export default function App() {
   // Make sure guests don't clobber each other if testing locally in different tabs
   const guestIdCheck = sessionStorage.getItem('dbk-guest-name') || `Guest-${Math.floor(Math.random()*1000)}`;
   if (!sessionStorage.getItem('dbk-guest-name')) sessionStorage.setItem('dbk-guest-name', guestIdCheck);
-  const myName = fbUser?.email?.split('@')[0] || guestIdCheck;
+  const defaultName = fbUser?.email?.split('@')[0] || guestIdCheck;
+  const myName = customName || defaultName;
 
   const { connected, coopState, lockPick, forceResolve } = useCoopRoom(
     roomCode, myName, activeMatch, applyServerState, serialized
@@ -84,10 +85,7 @@ export default function App() {
     rawPick(winner);
   };
 
-  const {
-    movieMeta, tmdbStatus, showTmdbModal, setShowTmdbModal,
-    handleFetchMeta, updateSingleMeta, metaCount,
-  } = useMovieMeta();
+  const { movieMeta, updateSingleMeta } = useMovieMeta();
 
   const m64 = [...MAIN, ...playInMatches.map(m => m.winner).filter((w): w is Movie => !!w)];
 
@@ -102,7 +100,6 @@ export default function App() {
       >
         Skip to content
       </a>
-      {showTmdbModal && <TmdbModal onSave={(t,o)=>{ setShowTmdbModal(false); handleFetchMeta(t,o); }} onClose={()=>setShowTmdbModal(false)}/>}
       {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)}/>}
       {fixingMovie && <FixMetaModal mob={mob} movie={fixingMovie} onClose={() => setFixingMovie(null)} onSave={updateSingleMeta} />}
       <Dots mob={mob}/>
@@ -166,10 +163,7 @@ export default function App() {
           mob={mob}
           fbUser={fbUser}
           syncStatus={syncStatus}
-          tmdbStatus={tmdbStatus}
-          metaCount={metaCount}
           onSignInClick={() => setShowAuthModal(true)}
-          onTmdbClick={() => { if (tmdbStatus === "fetching") return; if (!sessionStorage.getItem("tmdb-key")) setShowTmdbModal(true); else handleFetchMeta(); }}
         />
 
         {/* Full Bracket + Notes toggles */}
@@ -209,6 +203,38 @@ export default function App() {
           >
             {showNotes ? "Hide Notes" : "📝 Notes"}
           </button>
+          
+          <div className="flex items-center" style={{ margin: mob ? "0" : "0 4px" }}>
+             <input
+               type="text"
+               placeholder={defaultName}
+               value={customName}
+               onChange={(e) => {
+                  const val = e.target.value.trimStart();
+                  setCustomName(val);
+                  localStorage.setItem('dbk-custom-name', val);
+               }}
+               maxLength={12}
+               style={{
+                 background: "rgba(255,255,255,.02)",
+                 border: "1px dashed rgba(255,255,255,.15)",
+                 color: customName ? "#fff" : "#8a8aae",
+                 padding: mob ? "10px 14px" : "6px 14px",
+                 borderRadius: 10,
+                 fontSize: mob ? 13 : 12,
+                 fontWeight: 600,
+                 letterSpacing: 0.5,
+                 outline: "none",
+                 width: "120px",
+                 minHeight: mob ? 48 : undefined,
+                 textAlign: "center",
+                 transition: "all 0.2s"
+               }}
+               title="Set your display name for Co-op!"
+               onFocus={(e) => { e.currentTarget.style.border = "1px solid #ce93d8"; e.currentTarget.style.background = "rgba(206,147,216,0.1)"; }}
+               onBlur={(e) => { e.currentTarget.style.border = "1px dashed rgba(255,255,255,.15)"; e.currentTarget.style.background = "rgba(255,255,255,.02)"; }}
+             />
+          </div>
           
           {!roomCode ? (
             <>

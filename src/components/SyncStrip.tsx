@@ -4,13 +4,10 @@ interface SyncStripProps {
   mob: boolean;
   fbUser: { uid: string; email?: string | null } | null;
   syncStatus: string;
-  tmdbStatus: string | null;
-  metaCount: number;
   onSignInClick: () => void;
-  onTmdbClick: () => void;
 }
 
-export function SyncStrip({ mob, fbUser, syncStatus, tmdbStatus, metaCount, onSignInClick, onTmdbClick }: SyncStripProps) {
+export function SyncStrip({ mob, fbUser, syncStatus, onSignInClick }: SyncStripProps) {
   return (
     <div
       className={[
@@ -52,14 +49,6 @@ export function SyncStrip({ mob, fbUser, syncStatus, tmdbStatus, metaCount, onSi
       >
         💀
       </a>
-      <span className="text-[#4a4a65]">·</span>
-      <button
-        onClick={onTmdbClick}
-        className="bg-none border-none cursor-pointer"
-        style={{ color: metaCount > 0 ? "#6a6a8e" : "#4fc3f7", fontSize: mob ? 12 : 11 }}
-      >
-        {tmdbStatus === "fetching" ? "⏳ Fetching..." : metaCount > 0 ? `🎬 ${metaCount} movies loaded` : "🎬 Add posters & ratings"}
-      </button>
     </div>
   );
 }
