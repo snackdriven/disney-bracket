@@ -11,13 +11,13 @@ import { serMatch } from '../lib/utils';
 // Firebase mocks
 vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(() => ({})),
-  onAuthStateChanged: vi.fn((auth, cb) => {
+  onAuthStateChanged: vi.fn((_auth: unknown, cb: (user: unknown) => void) => {
     cb(null);
     return vi.fn(); // unsubscribe
   }),
   signInWithPopup: vi.fn().mockResolvedValue({ user: { uid: '123', displayName: 'Test User' } }),
   GoogleAuthProvider: class {},
-  signOut: vi.fn().mockResolvedValue(),
+  signOut: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('firebase/database', () => ({
