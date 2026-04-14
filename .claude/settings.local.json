@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npx vite build:*)",
+      "Bash(node -e:*)",
+      "Bash(cd:*)",
+      "Bash(wsl -e bash -c \"cd /home/kg/disney-bracket && git status\")",
+      "Bash(wsl -e bash -c \"cd /home/kg/disney-bracket && git log --oneline -5\")",
+      "Bash(wsl -e bash -c \"cd /home/kg/disney-bracket && git show f42c639 --stat\")",
+      "Bash(wsl -e bash -c \"cd /home/kg/disney-bracket && git diff f42c639~1..f42c639\")",
+      "Bash(wsl -e bash -c \"cd /home/kg/disney-bracket && npm run lint 2>&1\")",
+      "Bash(wsl -e bash -c:*)",
+      "mcp__Windows-MCP__Wait",
+      "mcp__playwright__playwright_screenshot",
+      "mcp__playwright__playwright_click",
+      "mcp__playwright__playwright_fill",
+      "mcp__playwright__playwright_close",
+      "mcp__playwright__playwright_console_logs",
+      "mcp__playwright__playwright_evaluate",
+      "Bash(wc:*)"
+    ]
+  }
+}

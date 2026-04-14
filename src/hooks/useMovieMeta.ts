@@ -1,16 +1,8 @@
 import { useState, useEffect } from "react";
 import { ALL_MOVIES, STATIC_META } from '../lib/data.js';
 import { loadLS } from '../lib/utils.js';
-import { fetchMovieMeta, loadImages } from '../lib/meta.js';
-import { drawBracket } from '../lib/canvas.js';
-import type { Movie, Match, MovieMeta, ImgCache, UpsetEntry } from '../types.js';
-
-interface BracketSnapshot {
-  rounds: Match[][];
-  playInMatches: Match[];
-  ch: Movie | null;
-  upsets: UpsetEntry[];
-}
+import { fetchMovieMeta } from '../lib/meta.js';
+import type { MovieMeta } from '../types.js';
 
 export function useMovieMeta() {
   const [movieMeta, setMovieMeta] = useState<Record<number, MovieMeta>>(() => {
@@ -21,7 +13,6 @@ export function useMovieMeta() {
   });
   const [tmdbStatus, setTmdbStatus] = useState<string | null>(null);
   const [showTmdbModal, setShowTmdbModal] = useState(false);
-  const [pngStatus, setPngStatus] = useState<string | null>(null);
 
   const handleFetchMeta = async (overrideTmdb?: string | null, overrideOmdb?: string | null) => {
     const tmdbKey = overrideTmdb !== undefined ? overrideTmdb : sessionStorage.getItem("tmdb-key");
@@ -38,6 +29,17 @@ export function useMovieMeta() {
     setTimeout(() => setTmdbStatus(null), 3000);
   };
 
+  const updateSingleMeta = (seed: number, patch: Partial<MovieMeta>) => {
+    setMovieMeta(prev => {
+      const next = { ...prev, [seed]: { ...(prev[seed] || {}), ...patch } };
+      // Save to localStorage so it persists
+      const fromLS = loadLS<Record<number, MovieMeta>>("tmdb-meta-v1", {});
+      fromLS[seed] = { ...(fromLS[seed] || {}), ...patch };
+      localStorage.setItem("tmdb-meta-v1", JSON.stringify(fromLS));
+      return next;
+    });
+  };
+
   // Auto-fetch on mount if API keys exist and cache is incomplete
   useEffect(() => {
     const tmdbKey = sessionStorage.getItem("tmdb-key");
@@ -52,33 +54,6 @@ export function useMovieMeta() {
     }
   }, []); // intentional: mount-only, reads sessionStorage not state
 
-  const handleDownloadPng = async (bracket: BracketSnapshot) => {
-    setPngStatus("fetching");
-    let imgs: ImgCache = {};
-    try {
-      const hasPoster = Object.values(movieMeta).some(m => m?.poster);
-      const metaToUse = hasPoster
-        ? movieMeta
-        : await fetchMovieMeta(
-            sessionStorage.getItem("tmdb-key"),
-            sessionStorage.getItem("omdb-key"),
-          );
-      if (!hasPoster) setMovieMeta(metaToUse as Record<number, MovieMeta>);
-      imgs = await loadImages(metaToUse as Record<number, MovieMeta>);
-    } catch { /* text-only fallback */ }
-    setPngStatus("drawing");
-    await new Promise(r => setTimeout(r, 20));
-    const canvas = document.createElement("canvas");
-    canvas.width = 1920; canvas.height = 1080;
-    drawBracket(canvas, { rounds: bracket.rounds, playInMatches: bracket.playInMatches, ch: bracket.ch, upsets: bracket.upsets, imgs });
-    const a = document.createElement("a");
-    a.href = canvas.toDataURL("image/png");
-    a.download = "disney-and-pixar-bracket.png";
-    a.click();
-    setPngStatus("done");
-    setTimeout(() => setPngStatus(null), 2000);
-  };
-
   const metaCount = Object.values(movieMeta).filter(m => m?.poster || m?.rating).length;
 
   return {
@@ -86,9 +61,8 @@ export function useMovieMeta() {
     tmdbStatus,
     showTmdbModal,
     setShowTmdbModal,
-    pngStatus,
     handleFetchMeta,
-    handleDownloadPng,
+    updateSingleMeta,
     metaCount,
   };
 }

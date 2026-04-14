@@ -83,29 +83,3 @@ test('champion view shows after completing bracket', async ({ page }) => {
   await expect(page.getByText('👑')).toBeVisible();
 });
 
-test('PNG download triggered from champion view', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === 'mobile', 'Download events not reliable on mobile');
-  test.setTimeout(180000);
-
-  await completeFullBracket(page);
-  await expect(page.locator('[data-testid="champion-label"]')).toBeVisible({ timeout: 10000 });
-
-  // Set up download listener immediately before clicking so the 30s timeout is fresh
-  const pngBtn = page.getByRole('button', { name: /PNG/i });
-  await expect(pngBtn).toBeVisible({ timeout: 3000 });
-  const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
-  await pngBtn.click();
-
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe('disney-and-pixar-bracket.png');
-  const downloadPath = await download.path();
-  const buf = fs.readFileSync(downloadPath);
-  // PNG magic bytes
-  expect(buf[0]).toBe(0x89);
-  expect(buf.slice(1, 4).toString('ascii')).toBe('PNG');
-  // PNG dimensions are at bytes 16–23 (big-endian uint32 width, uint32 height)
-  const width = buf.readUInt32BE(16);
-  const height = buf.readUInt32BE(20);
-  expect(width).toBe(1920);
-  expect(height).toBe(1080);
-});

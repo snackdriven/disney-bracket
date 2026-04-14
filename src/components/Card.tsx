@@ -15,9 +15,10 @@ interface CardProps {
   updateNote: (seed: number, text: string) => void;
   mob?: boolean;
   movieMeta: Record<number, MovieMeta>;
+  onFixMovie?: (movie: Movie) => void;
 }
 
-export function Card({ movie, hovered, animating, disabled, onHover, onPick, notes, updateNote, mob = false, movieMeta }: CardProps) {
+export function Card({ movie, hovered, animating, disabled, onHover, onPick, notes, updateNote, mob = false, movieMeta, onFixMovie }: CardProps) {
   const c = CLR[movie.studio];
   const [showCardNotes, setShowCardNotes] = useState(false);
   const note = notes?.[movie.seed] || "";
@@ -234,7 +235,7 @@ export function Card({ movie, hovered, animating, disabled, onHover, onPick, not
         )}
       </div>
 
-      <div className="text-center" style={{ marginTop: showCardNotes ? 0 : (mob ? 3 : 3) }}>
+      <div className="text-center flex justify-center items-center" style={{ marginTop: showCardNotes ? 0 : (mob ? 3 : 3) }}>
         <button
           aria-expanded={showCardNotes}
           aria-label={showCardNotes ? `Hide notes for ${movie.name}` : `Add notes for ${movie.name}`}
@@ -246,6 +247,18 @@ export function Card({ movie, hovered, animating, disabled, onHover, onPick, not
         >
           {showCardNotes ? "hide notes ▲" : "notes ▼"}
         </button>
+        {onFixMovie && (
+          <button
+            onClick={e => { e.stopPropagation(); onFixMovie(movie); }}
+            className={[
+              "bg-transparent border-none text-[#4fc3f7] opacity-60 hover:opacity-100 cursor-pointer tracking-[0.5px]",
+              mob ? "text-[11px] px-[14px] py-[5px] min-h-[32px]" : "text-[10px] px-[8px] py-[2px]",
+            ].join(" ")}
+            title="Fix wrong movie or tricky poster"
+          >
+            ✏️ fix
+          </button>
+        )}
       </div>
       {showCardNotes && (
         <CardNotes seed={movie.seed} note={note} updateNote={updateNote} ac={c.accent} bg={c.bg} mob={mob} transparent />

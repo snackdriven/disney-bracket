@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
-import { supabase } from '../lib/supabase.js';
+import { auth, googleProvider } from '../lib/firebase.js';
+import { signInWithPopup } from "firebase/auth";
 import { Btn } from './Btn.js';
 
 interface AuthModalProps {
@@ -7,12 +8,12 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ onClose }: AuthModalProps) {
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   useLayoutEffect(() => { onCloseRef.current = onClose; });
+
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
     dialogRef.current?.focus();
@@ -39,18 +40,20 @@ export function AuthModal({ onClose }: AuthModalProps) {
       previouslyFocused?.focus();
     };
   }, []);
-  const sendLink = async () => {
+
+  const signIn = async () => {
     setErr(null);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin + window.location.pathname },
-    });
-    if (error) {
-      setErr(error.status === 429 ? "Too many requests — wait a minute and try again." : error.message);
-    } else {
-      setSent(true);
+    setLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      onClose();
+    } catch (error: any) {
+      console.error(error);
+      setErr(error.message || "Failed to sign in. Please try again.");
+      setLoading(false);
     }
   };
+
   return (
     <div
       onClick={onClose}
@@ -66,37 +69,32 @@ export function AuthModal({ onClose }: AuthModalProps) {
         className="bg-[#12122a] border border-white/10 rounded-[16px] p-[28px_24px] max-w-[380px] w-[90%] outline-none animate-[su_0.2s_ease-out]"
       >
         <h3 id="auth-modal-title" className="text-[#f0f0ff] mt-0 mb-[8px] text-[18px] font-semibold">
-          Sync Across Devices
+          Sign In to Sync
         </h3>
-        {sent ? (
-          <p className="text-[#8a8aa8] text-[14px] leading-[1.6] m-0">
-            Check your email for a magic link. Close this when you're signed in.
-          </p>
-        ) : (
-          <>
-            <p className="text-[#8a8aa8] text-[13px] mt-0 mb-[16px] leading-[1.6]">
-              Enter your email — we'll send a link. Your bracket and notes sync automatically once you're signed in.
-            </p>
-            {err && <p className="text-[#ff8a65] text-[13px] mt-0 mb-[12px] leading-[1.5]">{err}</p>}
-            <input
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && sendLink()}
-              type="email"
-              placeholder="you@example.com"
-              className="w-full box-border bg-black/30 border border-white/10 rounded-[8px] px-[12px] py-[10px] text-[#e0e0f0] text-[14px] outline-none mb-[16px]"
-            />
-            <div className="flex gap-[8px] justify-end">
-              <Btn mob={false} s mu onClick={onClose}>Cancel</Btn>
-              <Btn mob={false} s onClick={sendLink}>Send Magic Link</Btn>
-            </div>
-          </>
-        )}
-        {sent && (
-          <div className="mt-[12px] text-right">
-            <Btn mob={false} s mu onClick={onClose}>Close</Btn>
-          </div>
-        )}
+        
+        <p className="text-[#8a8aa8] text-[13px] mt-0 mb-[24px] leading-[1.6]">
+          Sign in with Google to automatically save your bracket and notes to the cloud, so you can resume on any device.
+        </p>
+        
+        {err && <p className="text-[#ff8a65] text-[13px] mt-0 mb-[16px] leading-[1.5]">{err}</p>}
+        
+        <div className="flex flex-col gap-[12px]">
+          <button 
+            disabled={loading}
+            onClick={signIn}
+            className="w-full relative flex items-center justify-center gap-[12px] bg-white text-black font-semibold text-[14px] py-[12px] rounded-[8px] cursor-pointer hover:bg-gray-100 transition-colors disabled:opacity-50"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            {loading ? "Signing in..." : "Continue with Google"}
+          </button>
+
+          <Btn mob={false} s mu onClick={onClose}>Cancel</Btn>
+        </div>
       </div>
     </div>
   );

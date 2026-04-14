@@ -1,0 +1,134 @@
+import { useState, useEffect } from "react";
+import { db } from "../lib/firebase.js";
+import { ref, onValue, set } from "firebase/database";
+import type { Match } from "../types.js";
+
+interface CoopState {
+  myPick: number | null;
+  theirPick: number | null;
+  theirName: string;
+}
+
+export function useCoopRoom(
+  roomCode: string | null,
+  myName: string,
+  activeMatch: Match | undefined,
+  applyServerState: (state: unknown) => void,
+  serializedState: unknown
+) {
+  const [coopState, setCoopState] = useState<CoopState>({
+    myPick: null,
+    theirPick: null,
+    theirName: "Friend",
+  });
+  
+  const [connected, setConnected] = useState(false);
+  const [syncedInit, setSyncedInit] = useState(false);
+
+  // Sync effect when activeMatch changes (i.e. we advanced)
+  useEffect(() => {
+    setCoopState(prev => ({
+      ...prev,
+      myPick: null,
+      theirPick: null
+    }));
+  }, [activeMatch?.players[0]?.seed, activeMatch?.players[1]?.seed]);
+
+  useEffect(() => {
+    if (!roomCode) {
+      setConnected(false);
+      return;
+    }
+
+    const roomRef = ref(db, `rooms/${roomCode}`);
+    
+    // When we disconnect, we could optionally clear our pick, but 
+    // for a simple bracket app it's better to just leave it.
+
+    const unsubscribe = onValue(roomRef, (snapshot) => {
+      const data = snapshot.val();
+      setConnected(true);
+      
+      if (!data) {
+        // Room doesn't exist yet, we are the host! Let's seed it.
+        set(roomRef, {
+          host: myName,
+          state: serializedState,
+          picks: {}
+        });
+        setSyncedInit(true);
+        return;
+      }
+
+      // If we haven't synced yet, and there's a state, pull it
+      if (!syncedInit && data.state) {
+        const ts = new Date().getTime();
+        localStorage.setItem(`dbk-backup-${ts}`, JSON.stringify(serializedState));
+        applyServerState(data.state);
+        setSyncedInit(true);
+      }
+
+      // Parse picks to figure out what the *other* person picked
+      // We look for picks made by a name that isn't ours.
+      if (data.picks) {
+        let foundTheirPick: number | null = null;
+        let foundTheirName = "Friend";
+        
+        Object.entries(data.picks).forEach(([name, pickData]: [string, any]) => {
+          if (name !== myName) {
+            foundTheirPick = pickData.seed;
+            foundTheirName = name;
+          }
+        });
+
+        // Also if we have a match pick locally but DB reset it, clear ours.
+        // Actually to keep it simple, we just read theirs.
+        setCoopState(prev => ({
+          ...prev,
+          theirPick: foundTheirPick,
+          theirName: foundTheirName
+        }));
+      } else {
+        // Picks were cleared
+        setCoopState(prev => ({
+          ...prev,
+          theirPick: null
+        }));
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [roomCode, myName, syncedInit, applyServerState]); // intentionally excluded serializedState from deps so it doesn't infinite loop on host seed
+
+  const lockPick = (seed: number) => {
+    setCoopState(prev => ({ ...prev, myPick: seed }));
+    if (roomCode) {
+      const myPickRef = ref(db, `rooms/${roomCode}/picks/${myName}`);
+      set(myPickRef, { seed, timestamp: Date.now() });
+    }
+  };
+
+  const forceResolve = (_winnerResultSeed: number) => {
+    // Both clients will call this locally when they agree,
+    // so we should clear the picks in the DB to reset the state for the next match.
+    if (roomCode) {
+      const picksRef = ref(db, `rooms/${roomCode}/picks`);
+      set(picksRef, null); // wipe picks
+      
+      // Also update the room's master state
+      const stateRef = ref(db, `rooms/${roomCode}/state`);
+      // We'll let `App.tsx` passing serialized state continuously sync it via `useFirebaseSync`?
+      // Wait, `useFirebaseSync` saves to the User. The Room is separate.
+      // For simple co-op, we just sync the state manually if we are the host, or just let 'picks' be synced.
+      // To ensure perfectly synced brackets, we upload our local state every time we resolve.
+      setTimeout(() => {
+        set(stateRef, serializedState);
+      }, 500); 
+    }
+     setCoopState(prev => ({ ...prev, myPick: null, theirPick: null }));
+  };
+
+  return { connected, coopState, lockPick, forceResolve };
+}

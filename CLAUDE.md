@@ -34,7 +34,7 @@ disney-bracket/
 │   ├── hooks/
 │   │   ├── useBracketState.ts  # Bracket state, localStorage, URL hash
 │   │   ├── useIsMobile.ts
-│   │   ├── useMovieMeta.ts     # TMDB fetch + PNG export
+│   │   ├── useMovieMeta.ts     # TMDB fetch
 │   │   ├── useNotes.ts
 │   │   ├── useShareClipboard.ts  # Copy link / copy bracket text
 │   │   ├── useSupabaseSync.ts
@@ -43,7 +43,6 @@ disney-bracket/
 │   │       └── useNotes.test.ts
 │   ├── lib/
 │   │   ├── bracket.ts        # Pure bracket state transitions
-│   │   ├── canvas.ts         # PNG export / canvas rendering
 │   │   ├── colors.ts         # Shared studio color constants (CLR, BADGE_CLR)
 │   │   ├── data.ts           # Movie data, seedings, round config
 │   │   ├── meta.ts           # fetchMovieMeta — TMDB + OMDB API calls, writes tmdb-meta-v1
@@ -76,7 +75,7 @@ disney-bracket/
 ├── e2e/
 │   ├── auth.spec.js          # Auth modal, session injection
 │   ├── bracket.spec.js       # Pick flow, undo, reset, progress
-│   ├── exports.spec.js       # Share URL, text export, PNG download
+│   ├── exports.spec.js       # Share URL, text export
 │   ├── notes.spec.js         # Card notes, global notes panel
 │   ├── persistence.spec.js   # localStorage, URL hash, share links
 │   └── helpers.js            # Shared Playwright utilities
@@ -112,10 +111,9 @@ npm run test:e2e      # Run 27 Playwright E2E tests (requires dev server or auto
 Business logic lives in `src/lib/` as pure TypeScript functions. State lives in `src/hooks/`. Components are in `src/components/`.
 
 - **`bracket.ts`** — All bracket state transitions: `applyPick`, `applyUndo`, `resetState`, `buildDisplayRds`, `exportBracketText`. All pure functions.
-- **`canvas.ts`** — Canvas rendering for the PNG export at 1920×1080.
 - **`colors.ts`** — Shared color constants (`CLR`, `BADGE_CLR`) for both React components and canvas. `theme.ts` re-exports from here.
 - **`data.ts`** — Movie data (70 movies), seeding constants (`MAIN`, `PLAYIN`, `PIP`, `R1`), round/region names, trivia, static metadata.
-- **`meta.ts`** — `fetchMovieMeta(tmdbKey, omdbKey)` fetches poster/rating/runtime/plot from TMDB and OMDB APIs in batches of 20, reads/writes `tmdb-meta-v1` in localStorage.
+- **`meta.ts`** — `fetchMovieMeta(tmdbKey, omdbKey)` fetches poster/rating/runtime/plot from TMDB and OMDB APIs in batches of 20, reads/writes `tmdb-meta-v1` in localStorage. Skips movies that already have both poster and plot. OMDB plot takes priority over TMDB overview. `fetchSingleMovieMeta` does the same for one movie without touching the cache. `loadImages(metaMap)` preloads poster URLs as `HTMLImageElement` objects into an `ImgCache` keyed by seed.
 - **`supabase.ts`** — Supabase client initialization.
 - **`utils.ts`** — `loadLS`/`saveLS` for localStorage, `serMatch`/`desMatch` for match serialization, `extractImdbId`.
 
@@ -211,7 +209,7 @@ npm test
 npm run test:e2e
 ```
 
-Coverage areas: full 69-pick flow, undo/reset, progress bar, auth modal open/close/escape, injected session behavior, sync network request on pick, localStorage persistence across reload, URL hash share links, text export, PNG download, notes (card-level and global panel).
+Coverage areas: full 69-pick flow, undo/reset, progress bar, auth modal open/close/escape, injected session behavior, sync network request on pick, localStorage persistence across reload, URL hash share links, text export, notes (card-level and global panel).
 
 ### CI
 

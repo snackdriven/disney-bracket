@@ -3,7 +3,7 @@ import { useIsMobile } from './hooks/useIsMobile.js';
 import { useBracketState } from './hooks/useBracketState.js';
 import { useShareClipboard } from './hooks/useShareClipboard.js';
 import { useNotes } from './hooks/useNotes.js';
-import { useSupabaseSync } from './hooks/useSupabaseSync.js';
+import { useFirebaseSync } from './hooks/useFirebaseSync.js';
 import { useMovieMeta } from './hooks/useMovieMeta.js';
 import { MAIN } from './lib/data.js';
 import { saveLS, isNotes } from './lib/utils.js';
@@ -14,7 +14,11 @@ import { NotesPanel } from './components/NotesPanel.js';
 import { FullBracket } from './components/FullBracket.js';
 import { SyncStrip } from './components/SyncStrip.js';
 import { MatchView } from './components/MatchView.js';
+import { FixMetaModal } from './components/FixMetaModal.js';
+
 import { ChampionScreen } from './components/ChampionScreen.js';
+import { RevealModal } from './components/RevealModal.js';
+import { useCoopRoom } from './hooks/useCoopRoom.js';
 import type { Movie } from './types.js';
 
 export default function App() {
@@ -30,12 +34,13 @@ export default function App() {
     animatingSeed,
     upFlash,
     serialized, applyServerState,
-    pick, undo, reset,
+    pick: rawPick, undo, reset,
   } = useBracketState();
 
   const [hoveredSeed, setHoveredSeed] = useState<number | null>(null);
   const [showBracketPanel, setShowBracketPanel] = useState(false);
   const [showFullBracket, setShowFullBracket] = useState(false);
+  const [fixingMovie, setFixingMovie] = useState<Movie | null>(null);
 
   const { copiedLink, copiedBracket, copyLink, copyBracket } = useShareClipboard(playInMatches, rounds, champion);
 
@@ -45,7 +50,7 @@ export default function App() {
     setShowFullBracket(false);
   };
 
-  const { sbUser, syncStatus, showAuthModal, setShowAuthModal } = useSupabaseSync({
+  const { fbUser, syncStatus, showAuthModal, setShowAuthModal } = useFirebaseSync({
     serialized,
     notes,
     onPull: (state, serverNotes) => {
@@ -54,9 +59,30 @@ export default function App() {
     },
   });
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomCode = urlParams.get('room');
+  const myName = fbUser?.email?.split('@')[0] || "Guest";
+
+  const { connected, coopState, lockPick, forceResolve } = useCoopRoom(
+    roomCode, myName, activeMatch, applyServerState, serialized
+  );
+
+  const pick = (w: Movie) => {
+    if (connected && roomCode) {
+      lockPick(w.seed);
+    } else {
+      rawPick(w);
+    }
+  };
+
+  const handleResolve = (winner: Movie) => {
+    forceResolve(winner.seed);
+    rawPick(winner);
+  };
+
   const {
     movieMeta, tmdbStatus, showTmdbModal, setShowTmdbModal,
-    pngStatus, handleFetchMeta, handleDownloadPng, metaCount,
+    handleFetchMeta, updateSingleMeta, metaCount,
   } = useMovieMeta();
 
   const m64 = [...MAIN, ...playInMatches.map(m => m.winner).filter((w): w is Movie => !!w)];
@@ -74,6 +100,7 @@ export default function App() {
       </a>
       {showTmdbModal && <TmdbModal onSave={(t,o)=>{ setShowTmdbModal(false); handleFetchMeta(t,o); }} onClose={()=>setShowTmdbModal(false)}/>}
       {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)}/>}
+      {fixingMovie && <FixMetaModal mob={mob} movie={fixingMovie} onClose={() => setFixingMovie(null)} onSave={updateSingleMeta} />}
       <Dots mob={mob}/>
 
       <div
@@ -133,7 +160,7 @@ export default function App() {
 
         <SyncStrip
           mob={mob}
-          sbUser={sbUser}
+          fbUser={fbUser}
           syncStatus={syncStatus}
           tmdbStatus={tmdbStatus}
           metaCount={metaCount}
@@ -178,6 +205,85 @@ export default function App() {
           >
             {showNotes ? "Hide Notes" : "📝 Notes"}
           </button>
+          
+          {!roomCode ? (
+            <>
+              <button
+                className={mob ? "mob-btn" : ""}
+                onClick={() => {
+                   const prefixes = ["BAMB", "SIMB", "HERC", "ARI", "WDW", "TINK", "BUZZ", "NEMO", "MULA", "CRUZ", "OAK", "DPOO", "GENI", "PLUT"];
+                   const pre = prefixes[Math.floor(Math.random() * prefixes.length)];
+                   const num = Math.floor(Math.random() * 89) + 10;
+                   const code = `${pre}-${num}`;
+                   window.location.search = `?room=${code}`;
+                }}
+                style={{
+                  background: "rgba(255,255,255,.04)",
+                  border: "1px solid rgba(255,255,255,.08)",
+                  color: "#8a8aae",
+                  padding: mob ? "10px 18px" : "6px 18px", borderRadius: 10,
+                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
+                  transition: "all .15s", minHeight: mob ? 48 : undefined,
+                }}
+              >
+                🎮 Create Room
+              </button>
+              <button
+                className={mob ? "mob-btn" : ""}
+                onClick={() => {
+                   const code = window.prompt("Enter room code:");
+                   if (code && code.trim()) {
+                     window.location.search = `?room=${code.trim().toUpperCase()}`;
+                   }
+                }}
+                style={{
+                  background: "rgba(255,255,255,.04)",
+                  border: "1px solid rgba(255,255,255,.08)",
+                  color: "#8a8aae",
+                  padding: mob ? "10px 18px" : "6px 18px", borderRadius: 10,
+                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
+                  transition: "all .15s", minHeight: mob ? 48 : undefined,
+                }}
+              >
+                🤝 Join Room
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className={mob ? "mob-btn" : ""}
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href).then(() => {
+                    alert("Copied room link to clipboard!");
+                  });
+                }}
+                style={{
+                  background: "rgba(79, 195, 247, 0.2)",
+                  border: "1px solid #4fc3f7",
+                  color: "#fff",
+                  padding: mob ? "10px 18px" : "6px 18px", borderRadius: 10,
+                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
+                  transition: "all .15s", minHeight: mob ? 48 : undefined,
+                }}
+              >
+                {connected ? `🟢 Room: ${roomCode} 📋` : `🟡 Room: ${roomCode} 📋`}
+              </button>
+              <button
+                 className={mob ? "mob-btn" : ""}
+                 onClick={() => { window.location.search = ''; }}
+                 style={{
+                  background: "rgba(255,255,255,.04)",
+                  border: "1px solid rgba(255,255,255,.08)",
+                  color: "#8a8aae",
+                  padding: mob ? "10px 18px" : "6px 18px", borderRadius: 10,
+                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
+                  transition: "all .15s", minHeight: mob ? 48 : undefined,
+                }}
+              >
+                ✖ Leave
+              </button>
+            </>
+          )}
         </div>
 
         {showNotes && <NotesPanel mob={mob} notes={notes} updateNote={updateNote}/>}
@@ -204,7 +310,6 @@ export default function App() {
             upsets={upsets}
             copiedLink={copiedLink}
             copiedBracket={copiedBracket}
-            pngStatus={pngStatus}
             showBracketPanel={showBracketPanel}
             playInMatches={playInMatches}
             rounds={rounds}
@@ -212,7 +317,6 @@ export default function App() {
             onToggleBracket={() => setShowBracketPanel(!showBracketPanel)}
             copyLink={copyLink}
             copyBracket={copyBracket}
-            onDownloadPng={() => handleDownloadPng({ rounds, playInMatches, ch: champion, upsets })}
           />
         ) : activeMatch ? (
           <MatchView
@@ -231,7 +335,6 @@ export default function App() {
             upFlash={upFlash}
             history={history}
             copiedLink={copiedLink}
-            pngStatus={pngStatus}
             showBracketPanel={showBracketPanel}
             playInMatches={playInMatches}
             rounds={rounds}
@@ -244,9 +347,23 @@ export default function App() {
             undo={undo}
             reset={handleReset}
             copyLink={copyLink}
-            onDownloadPng={() => handleDownloadPng({ rounds, playInMatches, ch: champion, upsets })}
+            onFixMovie={setFixingMovie}
+            partnerVoted={connected ? !!coopState.theirPick : false}
+            partnerName={connected ? coopState.theirName : undefined}
           />
         ) : null}
+
+        {connected && activeMatch && (coopState.myPick || coopState.theirPick) && (
+          <RevealModal
+            myPick={coopState.myPick}
+            theirPick={coopState.theirPick}
+            myName={myName}
+            theirName={coopState.theirName}
+            players={[activeMatch.players[0], activeMatch.players[1]] as [Movie, Movie]}
+            onResolve={handleResolve}
+            onCancel={() => forceResolve(0)}
+          />
+        )}
       </div>
     </div>
   );

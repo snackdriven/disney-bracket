@@ -8,7 +8,6 @@ interface ChampionScreenProps {
   upsets: { seedDiff: number; winner: Movie; loser: Movie; round: string }[];
   copiedLink: boolean;
   copiedBracket: boolean;
-  pngStatus: string | null;
   showBracketPanel: boolean;
   playInMatches: Match[];
   rounds: Match[][];
@@ -16,13 +15,12 @@ interface ChampionScreenProps {
   onToggleBracket: () => void;
   copyLink: () => void;
   copyBracket: () => void;
-  onDownloadPng: () => void;
 }
 
 export function ChampionScreen({
-  mob, champion, upsets, copiedLink, copiedBracket, pngStatus,
+  mob, champion, upsets, copiedLink, copiedBracket,
   showBracketPanel, playInMatches, rounds,
-  reset, onToggleBracket, copyLink, copyBracket, onDownloadPng,
+  reset, onToggleBracket, copyLink, copyBracket,
 }: ChampionScreenProps) {
   return (
     <div
@@ -74,9 +72,6 @@ export function ChampionScreen({
         <Btn mob={mob} onClick={onToggleBracket}>{showBracketPanel ? "Hide" : "View"} Bracket</Btn>
         <Btn mob={mob} s mu onClick={copyLink}>{copiedLink ? "✓ Linked!" : "🔗 Share"}</Btn>
         <Btn mob={mob} s mu onClick={copyBracket}>{copiedBracket ? "✓ Copied!" : "📋 Export"}</Btn>
-        <Btn mob={mob} s mu onClick={onDownloadPng}>
-          {pngStatus === "fetching" ? "⏳ Fetching..." : pngStatus === "drawing" ? "⏳ Drawing..." : pngStatus === "done" ? "✓ Saved!" : "⬇ PNG"}
-        </Btn>
       </div>
 
       {showBracketPanel && <BV mob={mob} playInMatches={playInMatches} rounds={rounds}/>}

@@ -1,6 +1,6 @@
 import { ALL_MOVIES } from './data.js';
 import { extractImdbId } from './utils.js';
-import type { Movie, MovieMeta, ImgCache } from '../types.js';
+import type { Movie, MovieMeta } from '../types.js';
 
 export async function fetchMovieMeta(tmdbKey: string | null, omdbKey: string | null): Promise<Record<number, MovieMeta>> {
   const cache: Record<number, MovieMeta> = (() => { try { return JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}") as Record<number, MovieMeta>; } catch { return {}; } })();
@@ -46,7 +46,7 @@ export async function fetchSingleMovieMeta(movie: Movie, tmdbKey: string | null,
       });
       const d = await r.json() as { movie_results?: Array<{ poster_path?: string; overview?: string }> };
       const mov = d.movie_results?.[0];
-      if (mov?.poster_path) result.poster = `https://image.tmdb.org/t/p/w92${mov.poster_path}`;
+      if (mov?.poster_path) result.poster = `https://image.tmdb.org/t/p/w185${mov.poster_path}`;
       if (mov?.overview) result.plot = mov.overview;
     }
     if (omdbKey) {
@@ -61,17 +61,46 @@ export async function fetchSingleMovieMeta(movie: Movie, tmdbKey: string | null,
   return result;
 }
 
-export async function loadImages(metaMap: Record<number, MovieMeta>): Promise<ImgCache> {
-  const imgs: ImgCache = {};
-  await Promise.all(Object.entries(metaMap).map(([seed, meta]) => {
-    if (!meta?.poster) return Promise.resolve();
-    return new Promise<void>(res => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => { imgs[Number(seed)] = img; res(); };
-      img.onerror = () => res();
-      img.src = meta.poster!;
+export async function getTmdbIdFromImdb(imdbId: string, tmdbKey: string): Promise<number | null> {
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id`, {
+      headers: { Authorization: `Bearer ${tmdbKey}` },
     });
-  }));
-  return imgs;
+    const d = await r.json() as { movie_results?: Array<{ id: number }> };
+    return d.movie_results?.[0]?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchTmdbPosters(tmdbId: number, tmdbKey: string): Promise<string[]> {
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/images?include_image_language=en,null`, {
+      headers: { Authorization: `Bearer ${tmdbKey}` },
+    });
+    const d = await r.json() as { posters?: Array<{ file_path: string }> };
+    return (d.posters || []).slice(0, 16).map(p => `https://image.tmdb.org/t/p/w185${p.file_path}`);
+  } catch {
+    return [];
+  }
+}
+
+export interface TmdbSearchResult {
+  id: number;
+  title: string;
+  release_date?: string;
+  poster_path?: string;
+  overview?: string;
+}
+
+export async function fetchTmdbSearch(query: string, tmdbKey: string): Promise<TmdbSearchResult[]> {
+  try {
+    const r = await fetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`, {
+      headers: { Authorization: `Bearer ${tmdbKey}` },
+    });
+    const d = await r.json() as { results?: TmdbSearchResult[] };
+    return (d.results || []).slice(0, 10);
+  } catch {
+    return [];
+  }
 }

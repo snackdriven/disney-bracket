@@ -36,7 +36,6 @@ Did you know Toy Story 2 was almost entirely deleted by accident and only surviv
 - Upset tracking. Counts every time you pick the lower seed and judges you for it.
 - Undo any pick. Reset the whole bracket. No judgment.
 - Shareable link with your full bracket encoded in the URL.
-- PNG export at 1920×1080 with all the poster art, when you're done.
 
 ---
 

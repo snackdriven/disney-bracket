@@ -1,8 +1,8 @@
-import { supabase } from '../lib/supabase.js';
+import { auth } from '../lib/firebase.js';
 
 interface SyncStripProps {
   mob: boolean;
-  sbUser: { id: string; email?: string } | null;
+  fbUser: { uid: string; email?: string | null } | null;
   syncStatus: string;
   tmdbStatus: string | null;
   metaCount: number;
@@ -10,7 +10,7 @@ interface SyncStripProps {
   onTmdbClick: () => void;
 }
 
-export function SyncStrip({ mob, sbUser, syncStatus, tmdbStatus, metaCount, onSignInClick, onTmdbClick }: SyncStripProps) {
+export function SyncStrip({ mob, fbUser, syncStatus, tmdbStatus, metaCount, onSignInClick, onTmdbClick }: SyncStripProps) {
   return (
     <div
       className={[
@@ -18,14 +18,14 @@ export function SyncStrip({ mob, sbUser, syncStatus, tmdbStatus, metaCount, onSi
         mob ? "mb-[8px] text-[12px]" : "mb-[10px] text-[11px]",
       ].join(" ")}
     >
-      {sbUser ? (
+      {fbUser ? (
         <>
           <span className="text-[#6a6a8e]">
             {syncStatus === "syncing" ? "⏳ Syncing..." : syncStatus === "synced" ? "✓ Synced" : syncStatus === "error" ? "⚠ Sync error" : "☁ Synced"}
-            {" "}{sbUser.email}
+            {" "}{fbUser.email}
           </span>
           <button
-            onClick={() => supabase.auth.signOut()}
+            onClick={() => auth.signOut()}
             className="bg-none border-none text-[#5a5a7e] cursor-pointer"
             style={{ fontSize: mob ? 12 : 11 }}
           >
