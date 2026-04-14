@@ -189,12 +189,6 @@ export function Card({ movie, hovered, animating, disabled, onHover, onPick, not
                 {FACTS[movie.name]}
               </div>
             )}
-
-            {mob && (
-              <div style={{ fontSize: 9, color: c.accent, fontWeight: 700, letterSpacing: 1.8, textTransform: "uppercase", opacity: 0.4 }}>
-                Tap to pick
-              </div>
-            )}
           </div>
 
           {/* Hover: left accent bar */}
@@ -225,7 +219,7 @@ export function Card({ movie, hovered, animating, disabled, onHover, onPick, not
             onClick={e => e.stopPropagation()}
             style={{
               position: "absolute", bottom: sparkling ? 10 : 8, right: sparkling ? 10 : 8,
-              padding: "1px 5px", borderRadius: 3, background: "#e5b80010", color: "#c49a00",
+              padding: mob ? "4px 8px" : "1px 5px", borderRadius: mob ? 6 : 3, background: "#e5b80010", color: "#c49a00",
               fontSize: 9, fontWeight: 700, textDecoration: "none",
               border: "1px solid #e5b80018", letterSpacing: 0.3, zIndex: 1,
             }}

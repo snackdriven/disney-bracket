@@ -12,43 +12,48 @@ export function SyncStrip({ mob, fbUser, syncStatus, onSignInClick }: SyncStripP
     <div
       className={[
         "flex justify-end items-center gap-[8px] flex-wrap",
-        mob ? "mb-[8px] text-[12px]" : "mb-[10px] text-[11px]",
+        mob ? "mb-[12px]" : "mb-[16px]",
       ].join(" ")}
     >
-      {fbUser ? (
-        <>
-          <span className="text-[#6a6a8e]">
-            {syncStatus === "syncing" ? "⏳ Syncing..." : syncStatus === "synced" ? "✓ Synced" : syncStatus === "error" ? "⚠ Sync error" : "☁ Synced"}
-            {" "}{fbUser.email}
-          </span>
-          <button
-            onClick={() => auth.signOut()}
-            className="bg-none border-none text-[#5a5a7e] cursor-pointer"
-            style={{ fontSize: mob ? 12 : 11 }}
-          >
-            Sign out
-          </button>
-        </>
-      ) : (
-        <button
-          onClick={onSignInClick}
-          className="bg-none border-none text-[#6a6a8e] cursor-pointer tracking-[0.5px]"
-          style={{ fontSize: mob ? 12 : 11 }}
-        >
-          ☁ Sync across devices
-        </button>
-      )}
       <a
         href="https://snackdriven.github.io/bad-movie-bracket/"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Visit Bad Movie Bracket"
         title="something worse this way comes"
-        className="no-underline opacity-50 text-[#3a3a52]"
-        style={{ fontSize: mob ? 12 : 11 }}
+        className="flex items-center justify-center w-[28px] h-[28px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] rounded-full no-underline opacity-50 hover:opacity-100 transition-all text-[#3a3a52]"
       >
-        💀
+        <span style={{ fontSize: 14 }}>💀</span>
       </a>
+
+      {fbUser ? (
+        <div className="flex items-center gap-[8px] bg-white/[0.03] border border-white/[0.08] rounded-full px-[12px] py-[4px] min-h-[28px]">
+          <div className="flex items-center gap-[6px] text-[#8a8aae]" style={{ fontSize: mob ? 12 : 11 }}>
+            <span className={syncStatus === "error" ? "text-[#ff8a65]" : "text-[#ce93d8]"}>
+              {syncStatus === "syncing" ? "⏳" : syncStatus === "synced" ? "✓" : syncStatus === "error" ? "⚠" : "☁"}
+            </span>
+            <span className="font-semibold text-[#a0a0c0] max-w-[100px] truncate">{fbUser.email?.split('@')[0] || "Account"}</span>
+          </div>
+          <div className="w-[1px] h-[12px] bg-white/[0.1]"/>
+          <button
+            onClick={() => auth.signOut()}
+            className="bg-transparent border-none text-[#5a5a7e] hover:text-[#ff8a65] cursor-pointer p-0 font-medium transition-colors"
+            style={{ fontSize: mob ? 12 : 11 }}
+            title="Sign out"
+          >
+            Sign out
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={onSignInClick}
+          className="flex items-center gap-[6px] bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-[#4fc3f7]/40 text-[#8a8aae] hover:text-[#d0d0e8] rounded-full transition-all cursor-pointer min-h-[28px] px-[12px]"
+          style={{ fontSize: mob ? 12 : 11 }}
+        >
+          <span className="text-[#4fc3f7] opacity-80">☁</span>
+          <span className="font-medium tracking-[0.3px]">Save & Sync</span>
+        </button>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { Movie } from "../types.js";
+import type { Movie, MovieMeta } from "../types.js";
 import { Btn } from "./Btn.js";
 
 interface RevealModalProps {
@@ -7,6 +7,7 @@ interface RevealModalProps {
   theirName: string;
   myName: string;
   players: [Movie, Movie];
+  movieMeta: Record<number, MovieMeta>;
   onResolve: (winner: Movie) => void;
   onCancel?: () => void;
 }
@@ -17,6 +18,7 @@ export function RevealModal({
   theirName,
   myName,
   players,
+  movieMeta,
   onResolve,
   onCancel,
 }: RevealModalProps) {
@@ -38,6 +40,9 @@ export function RevealModal({
   const myMovie = players.find((p) => p.seed === myPick)!;
   const theirMovie = players.find((p) => p.seed === theirPick)!;
 
+  const myMeta = movieMeta[myMovie.seed];
+  const theirMeta = movieMeta[theirMovie.seed];
+
   const isMatch = myMovie.seed === theirMovie.seed;
 
   return (
@@ -50,8 +55,12 @@ export function RevealModal({
         {/* My Pick */}
         <div className="flex flex-col items-center flex-1">
           <div className="text-[#8080a0] text-[14px] uppercase tracking-[2px] mb-4 font-bold">{myName} (You)</div>
-          <div className="bg-[#1a1a2e] border-2 border-[#4fc3f7] rounded-[16px] p-[20px] w-full aspect-[2/3] flex flex-col justify-end relative overflow-hidden shadow-[0_0_30px_rgba(79,195,247,0.3)]">
-             <div className="font-extrabold text-[#fff] text-[24px] z-10 drop-shadow-md text-center">{myMovie.name}</div>
+          <div className="bg-[#1a1a2e] border-2 border-[#4fc3f7] rounded-[16px] p-[0] w-full aspect-[2/3] flex flex-col justify-end relative overflow-hidden shadow-[0_0_30px_rgba(79,195,247,0.3)]">
+             {myMeta?.poster && (
+               <img src={myMeta.poster} alt={myMovie.name} className="absolute inset-0 w-full h-full object-cover object-center" />
+             )}
+             <div className="absolute inset-x-0 bottom-0 top-[40%] bg-gradient-to-t from-[#1a1a2e] to-transparent pointer-events-none" />
+             <div className="font-extrabold text-[#fff] text-[24px] z-10 p-[20px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-center leading-tight">{myMovie.name}</div>
           </div>
           {!isMatch && (
             <div className="mt-6">
@@ -69,8 +78,12 @@ export function RevealModal({
         {/* Their Pick */}
         <div className="flex flex-col items-center flex-1">
           <div className="text-[#8080a0] text-[14px] uppercase tracking-[2px] mb-4 font-bold">{theirName}</div>
-          <div className="bg-[#1a1a2e] border-2 border-[#ce93d8] rounded-[16px] p-[20px] w-full aspect-[2/3] flex flex-col justify-end relative overflow-hidden shadow-[0_0_30px_rgba(206,147,216,0.3)]">
-             <div className="font-extrabold text-[#fff] text-[24px] z-10 drop-shadow-md text-center">{theirMovie.name}</div>
+          <div className="bg-[#1a1a2e] border-2 border-[#ce93d8] rounded-[16px] p-[0] w-full aspect-[2/3] flex flex-col justify-end relative overflow-hidden shadow-[0_0_30px_rgba(206,147,216,0.3)]">
+             {theirMeta?.poster && (
+               <img src={theirMeta.poster} alt={theirMovie.name} className="absolute inset-0 w-full h-full object-cover object-center" />
+             )}
+             <div className="absolute inset-x-0 bottom-0 top-[40%] bg-gradient-to-t from-[#1a1a2e] to-transparent pointer-events-none" />
+             <div className="font-extrabold text-[#fff] text-[24px] z-10 p-[20px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-center leading-tight">{theirMovie.name}</div>
           </div>
           {!isMatch && (
              <div className="mt-6">

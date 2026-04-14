@@ -45,9 +45,11 @@ export default function App() {
   const { copiedLink, copiedBracket, copyLink, copyBracket } = useShareClipboard(playInMatches, rounds, champion);
 
   const handleReset = () => {
-    reset();
-    setShowBracketPanel(false);
-    setShowFullBracket(false);
+    if (window.confirm("Are you sure you want to reset your bracket? This cannot be undone.")) {
+      reset();
+      setShowBracketPanel(false);
+      setShowFullBracket(false);
+    }
   };
 
   const { fbUser, syncStatus, showAuthModal, setShowAuthModal } = useFirebaseSync({
@@ -112,7 +114,7 @@ export default function App() {
         ].join(" ")}
       >
         {/* Header */}
-        <div className={["text-center", mob ? "mb-[20px]" : "mb-[28px]"].join(" ")}>
+        <div className={["text-center", mob ? "mb-[12px]" : "mb-[28px]"].join(" ")}>
           <div className={[
             "uppercase text-[#6a6a8e] text-[11px]",
             mob ? "tracking-[5px] mb-[4px]" : "tracking-[7px] mb-[6px]",
@@ -140,7 +142,7 @@ export default function App() {
           aria-valuemax={100}
           aria-label="Bracket completion"
           className="bg-white/[0.05] rounded-[20px] overflow-hidden"
-          style={{ height: mob ? 6 : 5, marginBottom: mob ? 6 : 6 }}
+          style={{ height: mob ? 8 : 5, marginBottom: mob ? 6 : 6 }}
         >
           <div
             className="h-full rounded-[20px] transition-[width_.5s]"
@@ -169,10 +171,15 @@ export default function App() {
         {/* Full Bracket + Notes toggles */}
         <div
           className={[
-            "text-center flex justify-center flex-wrap",
-            mob ? "mb-[14px] gap-[10px]" : "mb-[16px] gap-[8px]",
+            "flex overflow-x-auto pb-[6px] gap-[8px] items-center",
+            mob ? "mb-[12px] px-[16px] -mx-[16px]" : "mb-[16px] justify-center flex-wrap",
           ].join(" ")}
+          style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
+          <style>{`
+            #main-content > div.flex.overflow-x-auto::-webkit-scrollbar { display: none; }
+          `}</style>
+          
           <button
             aria-expanded={showFullBracket}
             className={mob ? "mob-btn" : ""}
@@ -181,9 +188,10 @@ export default function App() {
               background: showFullBracket ? "rgba(79,195,247,.12)" : "rgba(255,255,255,.04)",
               border: showFullBracket ? "1px solid rgba(79,195,247,.3)" : "1px solid rgba(255,255,255,.08)",
               color: showFullBracket ? "#4fc3f7" : "#8a8aae",
-              padding: mob ? "10px 18px" : "6px 18px", borderRadius: 10,
+              padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
               fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-              transition: "all .15s", minHeight: mob ? 48 : undefined,
+              transition: "all .15s", minHeight: mob ? 40 : undefined,
+              whiteSpace: "nowrap", flexShrink: 0,
             }}
           >
             {showFullBracket ? "Hide Bracket" : "📋 Full Bracket"}
@@ -196,15 +204,16 @@ export default function App() {
               background: showNotes ? "rgba(206,147,216,.12)" : "rgba(255,255,255,.04)",
               border: showNotes ? "1px solid rgba(206,147,216,.3)" : "1px solid rgba(255,255,255,.08)",
               color: showNotes ? "#ce93d8" : "#8a8aae",
-              padding: mob ? "10px 18px" : "6px 18px", borderRadius: 10,
+              padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
               fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-              transition: "all .15s", minHeight: mob ? 48 : undefined,
+              transition: "all .15s", minHeight: mob ? 40 : undefined,
+              whiteSpace: "nowrap", flexShrink: 0,
             }}
           >
             {showNotes ? "Hide Notes" : "📝 Notes"}
           </button>
           
-          <div className="flex items-center" style={{ margin: mob ? "0" : "0 4px" }}>
+          <div className="flex items-center" style={{ margin: mob ? "0" : "0 4px", flexShrink: 0 }}>
              <input
                type="text"
                placeholder={defaultName}
@@ -216,23 +225,23 @@ export default function App() {
                }}
                maxLength={12}
                style={{
-                 background: "rgba(255,255,255,.02)",
-                 border: "1px dashed rgba(255,255,255,.15)",
-                 color: customName ? "#fff" : "#8a8aae",
-                 padding: mob ? "10px 14px" : "6px 14px",
+                 background: mob ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.02)",
+                 border: mob ? "1px solid rgba(255,255,255,.1)" : "1px dashed rgba(255,255,255,.15)",
+                 color: customName ? "#fff" : (mob ? "#d0d0e8" : "#8a8aae"),
+                 padding: mob ? "8px 14px" : "6px 14px",
                  borderRadius: 10,
                  fontSize: mob ? 13 : 12,
                  fontWeight: 600,
                  letterSpacing: 0.5,
                  outline: "none",
                  width: "120px",
-                 minHeight: mob ? 48 : undefined,
+                 minHeight: mob ? 40 : undefined,
                  textAlign: "center",
-                 transition: "all 0.2s"
+                 transition: "all 0.2s",
                }}
                title="Set your display name for Co-op!"
                onFocus={(e) => { e.currentTarget.style.border = "1px solid #ce93d8"; e.currentTarget.style.background = "rgba(206,147,216,0.1)"; }}
-               onBlur={(e) => { e.currentTarget.style.border = "1px dashed rgba(255,255,255,.15)"; e.currentTarget.style.background = "rgba(255,255,255,.02)"; }}
+               onBlur={(e) => { e.currentTarget.style.border = mob ? "1px solid rgba(255,255,255,.1)" : "1px dashed rgba(255,255,255,.15)"; e.currentTarget.style.background = mob ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.02)"; }}
              />
           </div>
           
@@ -251,9 +260,10 @@ export default function App() {
                   background: "rgba(255,255,255,.04)",
                   border: "1px solid rgba(255,255,255,.08)",
                   color: "#8a8aae",
-                  padding: mob ? "10px 18px" : "6px 18px", borderRadius: 10,
+                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
                   fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 48 : undefined,
+                  transition: "all .15s", minHeight: mob ? 40 : undefined,
+                  whiteSpace: "nowrap", flexShrink: 0,
                 }}
               >
                 🎮 Create Room
@@ -270,9 +280,10 @@ export default function App() {
                   background: "rgba(255,255,255,.04)",
                   border: "1px solid rgba(255,255,255,.08)",
                   color: "#8a8aae",
-                  padding: mob ? "10px 18px" : "6px 18px", borderRadius: 10,
+                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
                   fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 48 : undefined,
+                  transition: "all .15s", minHeight: mob ? 40 : undefined,
+                  whiteSpace: "nowrap", flexShrink: 0,
                 }}
               >
                 🤝 Join Room
@@ -291,9 +302,10 @@ export default function App() {
                   background: "rgba(79, 195, 247, 0.2)",
                   border: "1px solid #4fc3f7",
                   color: "#fff",
-                  padding: mob ? "10px 18px" : "6px 18px", borderRadius: 10,
+                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
                   fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 48 : undefined,
+                  transition: "all .15s", minHeight: mob ? 40 : undefined,
+                  whiteSpace: "nowrap", flexShrink: 0,
                 }}
               >
                 {connected ? `🟢 Room: ${roomCode} 📋` : `🟡 Room: ${roomCode} 📋`}
@@ -305,9 +317,10 @@ export default function App() {
                   background: "rgba(255,255,255,.04)",
                   border: "1px solid rgba(255,255,255,.08)",
                   color: "#8a8aae",
-                  padding: mob ? "10px 18px" : "6px 18px", borderRadius: 10,
+                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
                   fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 48 : undefined,
+                  transition: "all .15s", minHeight: mob ? 40 : undefined,
+                  whiteSpace: "nowrap", flexShrink: 0,
                 }}
               >
                 ✖ Leave
@@ -390,6 +403,7 @@ export default function App() {
             myName={myName}
             theirName={coopState.theirName}
             players={[activeMatch.players[0], activeMatch.players[1]] as [Movie, Movie]}
+            movieMeta={movieMeta}
             onResolve={handleResolve}
             onCancel={() => forceResolve(0)}
           />
