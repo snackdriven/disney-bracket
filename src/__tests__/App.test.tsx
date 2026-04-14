@@ -8,36 +8,30 @@ import App from '../App';
 import { applyPick, resetState } from '../lib/bracket';
 import { serMatch } from '../lib/utils';
 
-// Supabase is created at module scope in App.tsx — mock the whole module.
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: () => ({
-    auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
-      signOut: vi.fn().mockResolvedValue({ error: null }),
-      signInWithOtp: vi.fn().mockResolvedValue({ error: null }),
-    },
-    from: vi.fn().mockReturnValue({
-      upsert: vi.fn().mockResolvedValue({ error: null }),
-      select: vi.fn().mockReturnValue({
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      }),
-    }),
+// Firebase mocks
+vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(() => ({})),
+  onAuthStateChanged: vi.fn((auth, cb) => {
+    cb(null);
+    return vi.fn(); // unsubscribe
   }),
+  signInWithPopup: vi.fn().mockResolvedValue({ user: { uid: '123', displayName: 'Test User' } }),
+  GoogleAuthProvider: class {},
+  signOut: vi.fn().mockResolvedValue(),
 }));
 
-// canvas.getContext is not implemented in jsdom — stub it.
-HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
-  fillRect: vi.fn(), fillText: vi.fn(), clearRect: vi.fn(), measureText: vi.fn(() => ({ width: 0 })),
-  save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(),
-  stroke: vi.fn(), fill: vi.fn(), arc: vi.fn(), clip: vi.fn(), scale: vi.fn(), translate: vi.fn(),
-  drawImage: vi.fn(), roundRect: vi.fn(), createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
-  set fillStyle(_: unknown) {}, set strokeStyle(_: unknown) {}, set font(_: unknown) {},
-  set textAlign(_: unknown) {}, set lineWidth(_: unknown) {}, set globalAlpha(_: unknown) {},
-  set shadowColor(_: unknown) {}, set shadowBlur(_: unknown) {},
-}) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+vi.mock('firebase/database', () => ({
+  getDatabase: vi.fn(() => ({})),
+  ref: vi.fn(() => ({})),
+  onValue: vi.fn(() => vi.fn()),
+  set: vi.fn().mockResolvedValue(undefined),
+  get: vi.fn().mockResolvedValue({ val: () => null, exists: () => false }),
+  remove: vi.fn().mockResolvedValue(undefined),
+  onDisconnect: vi.fn(() => ({
+    remove: vi.fn().mockResolvedValue(undefined),
+  })),
+}));
 
-// jsdom doesn't implement matchMedia — stub it.
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
@@ -51,6 +45,9 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+// Mock window.confirm (used by the reset handler)
+window.confirm = vi.fn().mockReturnValue(true);
 
 /** Serialize bracket state for localStorage seeding in tests. */
 function serializeState(s: ReturnType<typeof resetState>) {
@@ -77,10 +74,10 @@ describe('App — initial render', () => {
     });
   });
 
-  it('shows sync button when not authenticated', async () => {
+  it('shows desktop sync strip when loaded', async () => {
     render(<App />);
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Sync across devices/i })).toBeInTheDocument();
+      expect(screen.getByTitle(/Sign In \/ Sync Bracket/i)).toBeInTheDocument();
     });
   });
 
@@ -194,17 +191,17 @@ describe('App — notes', () => {
     await user.click(screen.getAllByRole('button', { name: /Add notes for/i })[0]);
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Your thoughts/i)).toBeInTheDocument();
     });
   });
 });
 
-describe('App — auth modal', () => {
-  it('opens auth modal when sync button is clicked', async () => {
+describe('App — desktop sync and auth', () => {
+  it('opens auth modal when sync icon is clicked', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await waitFor(() => screen.getByRole('button', { name: /Sync across devices/i }));
-    await user.click(screen.getByRole('button', { name: /Sync across devices/i }));
+    await waitFor(() => screen.getByTitle(/Sign In \/ Sync Bracket/i));
+    await user.click(screen.getByTitle(/Sign In \/ Sync Bracket/i));
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
@@ -213,8 +210,8 @@ describe('App — auth modal', () => {
   it('auth modal closes when Cancel is clicked', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await waitFor(() => screen.getByRole('button', { name: /Sync across devices/i }));
-    await user.click(screen.getByRole('button', { name: /Sync across devices/i }));
+    await waitFor(() => screen.getByTitle(/Sign In \/ Sync Bracket/i));
+    await user.click(screen.getByTitle(/Sign In \/ Sync Bracket/i));
     await waitFor(() => screen.getByRole('dialog'));
 
     await user.click(screen.getByRole('button', { name: /Cancel/i }));
@@ -251,7 +248,7 @@ describe('App — animation timing', () => {
   it('delays counter update by 320ms animation window', async () => {
     vi.useFakeTimers();
     render(<App />);
-    // Flush supabase mock promises (microtasks, unaffected by fake timers)
+    // Flush firebase mock promises (microtasks, unaffected by fake timers)
     await act(async () => {});
 
     const cards = screen.getAllByTestId('movie-card');
