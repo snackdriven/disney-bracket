@@ -61,7 +61,11 @@ export default function App() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const roomCode = urlParams.get('room');
-  const myName = fbUser?.email?.split('@')[0] || "Guest";
+  
+  // Make sure guests don't clobber each other if testing locally in different tabs
+  const guestIdCheck = sessionStorage.getItem('dbk-guest-name') || `Guest-${Math.floor(Math.random()*1000)}`;
+  if (!sessionStorage.getItem('dbk-guest-name')) sessionStorage.setItem('dbk-guest-name', guestIdCheck);
+  const myName = fbUser?.email?.split('@')[0] || guestIdCheck;
 
   const { connected, coopState, lockPick, forceResolve } = useCoopRoom(
     roomCode, myName, activeMatch, applyServerState, serialized

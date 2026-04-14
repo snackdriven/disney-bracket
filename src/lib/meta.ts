@@ -12,8 +12,9 @@ export async function fetchMovieMeta(tmdbKey: string | null, omdbKey: string | n
       cache[m.seed] = cache[m.seed] || {};
       try {
         if (tmdbKey) {
-          const r = await fetch(`https://api.themoviedb.org/3/find/${id}?external_source=imdb_id`, {
-            headers: { Authorization: `Bearer ${tmdbKey}` },
+          const isBearer = tmdbKey.length > 50;
+          const r = await fetch(`https://api.themoviedb.org/3/find/${id}?external_source=imdb_id` + (isBearer ? "" : `&api_key=${tmdbKey}`), {
+            headers: isBearer ? { Authorization: `Bearer ${tmdbKey}` } : undefined,
           });
           const d = await r.json() as { movie_results?: Array<{ poster_path?: string; overview?: string }> };
           const mov = d.movie_results?.[0];
@@ -41,8 +42,9 @@ export async function fetchSingleMovieMeta(movie: Movie, tmdbKey: string | null,
   if (!id) return result;
   try {
     if (tmdbKey) {
-      const r = await fetch(`https://api.themoviedb.org/3/find/${id}?external_source=imdb_id`, {
-        headers: { Authorization: `Bearer ${tmdbKey}` },
+      const isBearer = tmdbKey.length > 50;
+      const r = await fetch(`https://api.themoviedb.org/3/find/${id}?external_source=imdb_id` + (isBearer ? "" : `&api_key=${tmdbKey}`), {
+        headers: isBearer ? { Authorization: `Bearer ${tmdbKey}` } : undefined,
       });
       const d = await r.json() as { movie_results?: Array<{ poster_path?: string; overview?: string }> };
       const mov = d.movie_results?.[0];
@@ -63,8 +65,9 @@ export async function fetchSingleMovieMeta(movie: Movie, tmdbKey: string | null,
 
 export async function getTmdbIdFromImdb(imdbId: string, tmdbKey: string): Promise<number | null> {
   try {
-    const r = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id`, {
-      headers: { Authorization: `Bearer ${tmdbKey}` },
+    const isBearer = tmdbKey.length > 50;
+    const r = await fetch(`https://api.themoviedb.org/3/find/${imdbId}?external_source=imdb_id` + (isBearer ? "" : `&api_key=${tmdbKey}`), {
+      headers: isBearer ? { Authorization: `Bearer ${tmdbKey}` } : undefined,
     });
     const d = await r.json() as { movie_results?: Array<{ id: number }> };
     return d.movie_results?.[0]?.id || null;
@@ -75,8 +78,9 @@ export async function getTmdbIdFromImdb(imdbId: string, tmdbKey: string): Promis
 
 export async function fetchTmdbPosters(tmdbId: number, tmdbKey: string): Promise<string[]> {
   try {
-    const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/images?include_image_language=en,null`, {
-      headers: { Authorization: `Bearer ${tmdbKey}` },
+    const isBearer = tmdbKey.length > 50;
+    const r = await fetch(`https://api.themoviedb.org/3/movie/${tmdbId}/images?include_image_language=en,null` + (isBearer ? "" : `&api_key=${tmdbKey}`), {
+      headers: isBearer ? { Authorization: `Bearer ${tmdbKey}` } : undefined,
     });
     const d = await r.json() as { posters?: Array<{ file_path: string }> };
     return (d.posters || []).slice(0, 16).map(p => `https://image.tmdb.org/t/p/w185${p.file_path}`);
@@ -95,8 +99,9 @@ export interface TmdbSearchResult {
 
 export async function fetchTmdbSearch(query: string, tmdbKey: string): Promise<TmdbSearchResult[]> {
   try {
-    const r = await fetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`, {
-      headers: { Authorization: `Bearer ${tmdbKey}` },
+    const isBearer = tmdbKey.length > 50;
+    const r = await fetch(`https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1` + (isBearer ? "" : `&api_key=${tmdbKey}`), {
+      headers: isBearer ? { Authorization: `Bearer ${tmdbKey}` } : undefined,
     });
     const d = await r.json() as { results?: TmdbSearchResult[] };
     return (d.results || []).slice(0, 10);
