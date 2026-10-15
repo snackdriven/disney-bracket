@@ -46,6 +46,11 @@ export default function App() {
 
   const { copiedLink, copiedBracket, copyLink, copyBracket } = useShareClipboard(playInMatches, rounds, champion);
 
+  const handleSignOut = async () => {
+    await forcePush();
+    import("./lib/firebase.js").then(m => m.auth.signOut());
+  };
+
   const handleReset = () => {
     if (window.confirm("Are you sure you want to reset your bracket? This cannot be undone.")) {
       reset();
@@ -54,7 +59,7 @@ export default function App() {
     }
   };
 
-  const { fbUser, syncStatus, showAuthModal, setShowAuthModal } = useFirebaseSync({
+  const { fbUser, syncStatus, showAuthModal, setShowAuthModal, forcePush } = useFirebaseSync({
     serialized,
     notes,
     onPull: (state, serverNotes) => {
@@ -107,7 +112,7 @@ export default function App() {
              customName={customName} setCustomName={setCustomName}
              defaultName={defaultName} roomCode={roomCode} connected={connected}
              onReset={handleReset} 
-             fbUser={fbUser} syncStatus={syncStatus} onSignInClick={() => setShowAuthModal(true)}
+             fbUser={fbUser} syncStatus={syncStatus} onSignInClick={() => setShowAuthModal(true)} onSignOutClick={handleSignOut}
           />
         )}
         
@@ -258,6 +263,7 @@ export default function App() {
           fbUser={fbUser}
           syncStatus={syncStatus}
           onSignInClick={() => setShowAuthModal(true)}
+          onSignOutClick={handleSignOut}
         />
 
         {/* Full Bracket + Notes toggles */}

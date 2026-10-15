@@ -5,9 +5,10 @@ interface SyncStripProps {
   fbUser: { uid: string; email?: string | null } | null;
   syncStatus: string;
   onSignInClick: () => void;
+  onSignOutClick?: () => void;
 }
 
-export function SyncStrip({ mob, fbUser, syncStatus, onSignInClick }: SyncStripProps) {
+export function SyncStrip({ mob, fbUser, syncStatus, onSignInClick, onSignOutClick }: SyncStripProps) {
   return (
     <div
       className={[
@@ -36,7 +37,7 @@ export function SyncStrip({ mob, fbUser, syncStatus, onSignInClick }: SyncStripP
           </div>
           <div className="w-[1px] h-[12px] bg-white/[0.1]"/>
           <button
-            onClick={() => auth.signOut()}
+            onClick={() => { if (onSignOutClick) onSignOutClick(); else auth.signOut(); }}
             className="bg-transparent border-none text-[#5a5a7e] hover:text-[#ff8a65] cursor-pointer p-0 font-medium transition-colors"
             style={{ fontSize: mob ? 12 : 11 }}
             title="Sign out"
