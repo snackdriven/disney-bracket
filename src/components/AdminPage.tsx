@@ -1,7 +1,10 @@
 import { useState, useCallback } from "react";
 import { ALL_MOVIES } from '../lib/data.js';
+
 import { fetchMovieMeta, fetchSingleMovieMeta } from '../lib/meta.js';
 import type { Movie, MovieMeta } from '../types.js';
+
+const MOVIES_BY_SEED = new Map(ALL_MOVIES.map(m => [m.seed, m]));
 
 function loadCache(): Record<number, MovieMeta> {
   try { return JSON.parse(localStorage.getItem("tmdb-meta-v1") || "{}") as Record<number, MovieMeta>; }
@@ -111,7 +114,7 @@ export function AdminPage() {
       },
     };
     updateCache(updated);
-    const name = ALL_MOVIES.find(m => m.seed === seed)?.name ?? `seed ${seed}`;
+    const name = MOVIES_BY_SEED.get(seed)?.name ?? `seed ${seed}`;
     addLog(`Saved manual edits for ${name}.`);
     setEditingSeed(null);
   };
@@ -120,7 +123,7 @@ export function AdminPage() {
     const updated = { ...cache };
     delete updated[seed];
     updateCache(updated);
-    const name = ALL_MOVIES.find(m => m.seed === seed)?.name ?? `seed ${seed}`;
+    const name = MOVIES_BY_SEED.get(seed)?.name ?? `seed ${seed}`;
     addLog(`Cleared cache for ${name}.`);
     if (editingSeed === seed) setEditingSeed(null);
   };
