@@ -5,9 +5,12 @@ import type { Movie, MovieMeta } from '../types.js';
 export async function fetchMovieMeta(tmdbKey: string | null, omdbKey: string | null): Promise<Record<number, MovieMeta>> {
   const cache: Record<number, MovieMeta> = (() => { try { return JSON.parse(localStorage.getItem("tmdb-meta-v1")||"{}") as Record<number, MovieMeta>; } catch { return {}; } })();
   const missing = ALL_MOVIES.filter(m => (!cache[m.seed]?.poster || !cache[m.seed]?.plot) && extractImdbId(m.imdb));
-  const BATCH = 20;
-  for (let i = 0; i < missing.length; i += BATCH) {
-    await Promise.all(missing.slice(i, i + BATCH).map(async m => {
+  const CONCURRENCY_LIMIT = 20;
+  const queue = [...missing];
+
+  const worker = async () => {
+    while (queue.length > 0) {
+      const m = queue.shift()!;
       const id = extractImdbId(m.imdb);
       cache[m.seed] = cache[m.seed] || {};
       try {
@@ -30,8 +33,10 @@ export async function fetchMovieMeta(tmdbKey: string | null, omdbKey: string | n
           if (d.Plot && d.Plot !== "N/A") cache[m.seed].plot = d.Plot; // OMDB wins — shorter and cleaner
         }
       } catch { /* silent per-movie failure */ }
-    }));
-  }
+    }
+  };
+
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY_LIMIT, missing.length) }).map(worker));
   localStorage.setItem("tmdb-meta-v1", JSON.stringify(cache));
   return cache;
 }
