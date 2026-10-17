@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { Btn } from './Btn.js';
 import { getTmdbIdFromImdb, fetchTmdbPosters, fetchTmdbSearch, TmdbSearchResult } from '../lib/meta.js';
 import type { Movie, MovieMeta } from '../types.js';
@@ -22,6 +22,7 @@ export function FixMetaModal({ movie, onSave, onClose, mob }: FixMetaModalProps)
   const [results, setResults] = useState<TmdbSearchResult[]>([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
 
+  const prevModeRef = useRef(mode);
   const dialogRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   useLayoutEffect(() => { onCloseRef.current = onClose; });
@@ -56,21 +57,21 @@ export function FixMetaModal({ movie, onSave, onClose, mob }: FixMetaModalProps)
     }
   }, [mode, movie.imdb, posters.length, tmdbKey]);
 
-  const handleSearch = async (e?: React.FormEvent) => {
+  const handleSearch = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!query.trim() || !tmdbKey) return;
     setLoadingSearch(true);
     const res = await fetchTmdbSearch(query, tmdbKey);
     setResults(res);
     setLoadingSearch(false);
-  };
+  }, [query, tmdbKey]);
 
   useEffect(() => {
-    if (mode === "search" && results.length === 0 && query && tmdbKey) {
+    if (mode === "search" && prevModeRef.current !== "search" && results.length === 0 && query && tmdbKey) {
       handleSearch();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+    prevModeRef.current = mode;
+  }, [mode, query, results.length, tmdbKey, handleSearch]);
 
   const handlePickPoster = (posterUrl: string) => {
     onSave(movie.seed, { poster: posterUrl });
