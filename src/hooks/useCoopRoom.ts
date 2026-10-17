@@ -27,6 +27,13 @@ export function useCoopRoom(
 
   const p1 = activeMatch?.players[0]?.seed;
   const p2 = activeMatch?.players[1]?.seed;
+
+  // Validate roomCode to prevent Firebase path injection
+  const isValidRoomCode = roomCode && /^[a-zA-Z0-9_-]+$/.test(roomCode);
+
+  // Sanitize myName to prevent path injection in picks ref
+  const safeName = myName.replace(/[^a-zA-Z0-9_-]/g, "_");
+
   
   useEffect(() => {
     setCoopState(prev => ({
@@ -37,7 +44,7 @@ export function useCoopRoom(
   }, [p1, p2]);
 
   useEffect(() => {
-    if (!roomCode) {
+    if (!isValidRoomCode) {
       setConnected(false);
       return;
     }
@@ -120,8 +127,8 @@ export function useCoopRoom(
 
   const lockPick = (seed: number) => {
     setCoopState(prev => ({ ...prev, myPick: seed }));
-    if (roomCode) {
-      const myPickRef = ref(db, `rooms/${roomCode}/picks/${myName}`);
+    if (isValidRoomCode) {
+      const myPickRef = ref(db, `rooms/${roomCode}/picks/${safeName}`);
       set(myPickRef, { seed, timestamp: Date.now() });
     }
   };
@@ -129,7 +136,7 @@ export function useCoopRoom(
   const forceResolve = (_winnerResultSeed: number) => {
     // Both clients will call this locally when they agree,
     // so we should clear the picks in the DB to reset the state for the next match.
-    if (roomCode) {
+    if (isValidRoomCode) {
       const picksRef = ref(db, `rooms/${roomCode}/picks`);
       set(picksRef, null); // wipe picks
       
