@@ -15,7 +15,6 @@ interface MobileMenuModalProps {
   fbUser: { uid: string; email?: string | null } | null;
   syncStatus: string | null;
   onSignInClick: () => void;
-  onSignOutClick?: () => void;
 }
 
 export function MobileMenuModal({

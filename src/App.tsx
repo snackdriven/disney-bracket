@@ -111,7 +111,7 @@ export default function App() {
              customName={customName} setCustomName={setCustomName}
              defaultName={defaultName} roomCode={roomCode} connected={connected}
              onReset={handleReset} 
-             fbUser={fbUser} syncStatus={syncStatus} onSignInClick={() => setShowAuthModal(true)} onSignOutClick={handleSignOut}
+             fbUser={fbUser} syncStatus={syncStatus} onSignInClick={() => setShowAuthModal(true)}
           />
         )}
         

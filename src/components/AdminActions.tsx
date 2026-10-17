@@ -1,4 +1,3 @@
-import React from 'react';
 import { MovieMeta } from '../types.js';
 
 interface AdminActionsProps {
