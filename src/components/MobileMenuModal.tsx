@@ -12,7 +12,7 @@ interface MobileMenuModalProps {
   roomCode: string | null;
   connected: boolean;
   onReset: () => void;
-  fbUser: any;
+  fbUser: { uid: string; email?: string | null } | null;
   syncStatus: string | null;
   onSignInClick: () => void;
 }
