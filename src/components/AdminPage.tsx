@@ -1,3 +1,4 @@
+import React from "react";
 import { useState, useCallback } from "react";
 import { ALL_MOVIES } from '../lib/data.js';
 
@@ -227,7 +228,7 @@ export function AdminPage() {
                 );
 
                 return (
-                  <>
+                  <React.Fragment key={m.seed}>
                     <tr key={m.seed} style={{ borderBottom: isEditing ? "none" : rowBorder, background: isEditing ? "rgba(159,139,224,0.06)" : rowBg }}>
                       <td style={{ padding: "8px 12px", color: "#4a4a6e", fontFamily: "monospace" }}>{m.seed}</td>
                       <td style={{ padding: "8px 12px", color: "#e0e0f0", fontWeight: 500, maxWidth: 200 }}>
@@ -308,7 +309,7 @@ export function AdminPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </tbody>
