@@ -87,13 +87,14 @@ export function useCoopRoom(
         let foundTheirPick: number | null = null;
         let foundTheirName = "Friend";
         
-        Object.entries(data.picks).forEach(([name, pickData]: [string, unknown]) => {
+        for (const [name, pickData] of Object.entries(data.picks)) {
           const pd = pickData as { seed: number };
           if (name !== myName) {
             foundTheirPick = pd.seed;
             foundTheirName = name;
+            break;
           }
-        });
+        }
 
         // Also if we have a match pick locally but DB reset it, clear ours.
         // Actually to keep it simple, we just read theirs.
