@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { loadLS, saveLS, extractImdbId, serMatch, desMatch } from '../utils.js';
+import { loadLS, saveLS, extractImdbId, serMatch, desMatch, isPhase } from '../utils.js';
 import type { Match, SerializedMatch } from '../../types.js';
 
 afterEach(() => localStorage.clear());
@@ -129,5 +129,26 @@ describe('desMatch edge cases', () => {
 
   it('skips entries with null participants gracefully', () => {
     expect(desMatch([{ p: null, w: null }])).toEqual([]);
+  });
+});
+
+
+describe('isPhase', () => {
+  it('returns true for valid phases', () => {
+    expect(isPhase('pi')).toBe(true);
+    expect(isPhase('m')).toBe(true);
+  });
+
+  it('returns false for invalid strings', () => {
+    expect(isPhase('other')).toBe(false);
+    expect(isPhase('')).toBe(false);
+  });
+
+  it('returns false for non-string types', () => {
+    expect(isPhase(123)).toBe(false);
+    expect(isPhase(null)).toBe(false);
+    expect(isPhase(undefined)).toBe(false);
+    expect(isPhase({})).toBe(false);
+    expect(isPhase([])).toBe(false);
   });
 });
