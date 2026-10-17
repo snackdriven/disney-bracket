@@ -25,13 +25,23 @@ function stateAfterPlayin(): BracketState {
 }
 
 describe('buildInitialRounds', () => {
-  it('includes play-in winners in the correct slots', () => {
+  it('returns exactly one round containing exactly 32 matches', () => {
+    const winners = makePlayinWinners();
+    const rounds = buildInitialRounds(winners);
+    expect(rounds.length).toBe(1);
+    expect(rounds[0].length).toBe(32);
+  });
+
+  it('places MAIN movies and play-in winners in the correct slots based on R1 mappings', () => {
     const winners = makePlayinWinners();
     const [r64] = buildInitialRounds(winners);
-    // R1 indices >= 58 map to play-in winners (index - 58)
+
     R1.forEach(([a, b], i) => {
-      if (a >= 58) expect(r64[i].players[0]).toBe(winners[a - 58]);
-      if (b >= 58) expect(r64[i].players[1]).toBe(winners[b - 58]);
+      if (a < 58) expect(r64[i].players[0]).toBe(MAIN[a]);
+      else expect(r64[i].players[0]).toBe(winners[a - 58]);
+
+      if (b < 58) expect(r64[i].players[1]).toBe(MAIN[b]);
+      else expect(r64[i].players[1]).toBe(winners[b - 58]);
     });
   });
 });
