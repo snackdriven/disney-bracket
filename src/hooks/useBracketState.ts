@@ -37,6 +37,8 @@ function parseState(d: Record<string, unknown>): Partial<BracketState> {
   };
 }
 
+export type UseBracketStateReturn = ReturnType<typeof useBracketState>;
+
 export function useBracketState() {
   const [init] = useState<Partial<BracketState> | null>(() => {
     try {

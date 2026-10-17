@@ -1,34 +1,20 @@
 import { Btn } from './Btn.js';
 import { Card } from './Card.js';
 import { BV } from './BV.js';
-import type { Movie, Match, Notes, MovieMeta, HistoryEntry } from '../types.js';
+import type { Movie, Notes, MovieMeta } from '../types.js';
+import type { UseBracketStateReturn } from '../hooks/useBracketState.js';
 
 interface MatchViewProps {
   mob: boolean;
-  phase: string;
-  isPlayIn: boolean;
-  playInIndex: number;
-  currentRound: number;
-  currentMatch: number;
-  matchNumber: number;
-  matchTotal: number;
-  activeMatch: Match;
-  animatingSeed: number | null;
+  bracket: UseBracketStateReturn;
   hoveredSeed: number | null;
   setHoveredSeed: (seed: number | null) => void;
-  upFlash: boolean;
-  history: HistoryEntry[];
   copiedLink: boolean;
   showBracketPanel: boolean;
-  playInMatches: Match[];
-  rounds: Match[][];
-  upNextPool: Match[] | undefined;
-  upNextIndex: number;
   notes: Notes;
   movieMeta: Record<number, MovieMeta>;
   updateNote: (seed: number, text: string) => void;
   pick: (w: Movie) => void;
-  undo: () => void;
   reset: () => void;
   copyLink: () => void;
   onFixMovie: (m: Movie) => void;
@@ -37,14 +23,21 @@ interface MatchViewProps {
 }
 
 export function MatchView({
-  mob, phase, isPlayIn, playInIndex, currentRound, currentMatch,
-  matchNumber, matchTotal, activeMatch, animatingSeed, hoveredSeed, setHoveredSeed,
-  upFlash, history, copiedLink,
-  showBracketPanel, playInMatches, rounds,
-  upNextPool, upNextIndex, notes, movieMeta, updateNote,
-  pick, undo, reset, copyLink, onFixMovie,
+  mob, bracket, hoveredSeed, setHoveredSeed,
+  copiedLink, showBracketPanel,
+  notes, movieMeta, updateNote,
+  pick, reset, copyLink, onFixMovie,
   partnerVoted, partnerName,
 }: MatchViewProps) {
+  const {
+    phase, isPlayIn, playInIndex, currentRound, currentMatch,
+    matchNumber, matchTotal, activeMatch, animatingSeed,
+    upFlash, history, playInMatches, rounds,
+    upNextPool, upNextIndex, undo
+  } = bracket;
+
+  if (!activeMatch) return null;
+
   return (
     <div key={`${phase}-${isPlayIn ? playInIndex : `${currentRound}-${currentMatch}`}`} className={`animate-[su_.3s_ease-out] ${mob ? 'flex-1 flex flex-col h-full w-full' : ''}`}>
       {!mob && (
