@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { loadLS, saveLS, extractImdbId, serMatch, desMatch, isHistoryEntry } from '../utils.js';
+import { loadLS, saveLS, extractImdbId, serMatch, desMatch, isNotes, isHistoryEntry } from '../utils.js';
 import type { Match, SerializedMatch } from '../../types.js';
 
 afterEach(() => localStorage.clear());
@@ -129,6 +129,34 @@ describe('desMatch edge cases', () => {
 
   it('skips entries with null participants gracefully', () => {
     expect(desMatch([{ p: null, w: null }])).toEqual([]);
+  });
+});
+
+describe('isNotes', () => {
+  it('returns true for a valid Notes object', () => {
+    expect(isNotes({ 1: "test note", 2: "another note" })).toBe(true);
+  });
+
+  it('returns true for an empty object', () => {
+    expect(isNotes({})).toBe(true);
+  });
+
+  it('returns false for null or undefined', () => {
+    expect(isNotes(null)).toBe(false);
+    expect(isNotes(undefined)).toBe(false);
+  });
+
+  it('returns false for an array', () => {
+    expect(isNotes([])).toBe(false);
+    expect(isNotes(['note'])).toBe(false);
+  });
+
+  it('returns false if any key is not a number', () => {
+    expect(isNotes({ 1: "test", "abc": "invalid key" })).toBe(false);
+  });
+
+  it('returns false if any value is not a string', () => {
+    expect(isNotes({ 1: "test", 2: 123 })).toBe(false);
   });
 });
 
