@@ -37,8 +37,8 @@ export function RevealModal({
     return null;
   }
 
-  const myMovie = players.find((p) => p.seed === myPick)!;
-  const theirMovie = players.find((p) => p.seed === theirPick)!;
+  const myMovie = players[0].seed === myPick ? players[0] : players[1];
+  const theirMovie = players[0].seed === theirPick ? players[0] : players[1];
 
   const myMeta = movieMeta[myMovie.seed];
   const theirMeta = movieMeta[theirMovie.seed];
