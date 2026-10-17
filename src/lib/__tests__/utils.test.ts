@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { loadLS, saveLS, extractImdbId, serMatch, desMatch, isNotes, isUpsetEntry, isHistoryEntry } from '../utils.js';
+import { loadLS, saveLS, extractImdbId, serMatch, desMatch, isNotes, isUpsetEntry, isHistoryEntry, isPhase } from '../utils.js';
 import type { Match, SerializedMatch } from '../../types.js';
 
 afterEach(() => localStorage.clear());
@@ -232,6 +232,19 @@ describe('isHistoryEntry validation', () => {
       { ...valid, wasUpset: 'false' }, { ...valid, wasUpset: undefined },
     ]) {
       expect(isHistoryEntry(invalid)).toBe(false);
+    }
+  });
+});
+
+describe('isPhase', () => {
+  it('accepts the play-in and main phases', () => {
+    expect(isPhase('pi')).toBe(true);
+    expect(isPhase('m')).toBe(true);
+  });
+
+  it('rejects other strings and non-string values', () => {
+    for (const value of ['other', '', 123, null, undefined, {}, []]) {
+      expect(isPhase(value)).toBe(false);
     }
   });
 });
