@@ -26,16 +26,15 @@ export default function App() {
 
   const { notes, setNotes, showNotes, setShowNotes, updateNote } = useNotes();
 
+  const bracketState = useBracketState();
   const {
-    phase, playInMatches, playInIndex, rounds, currentRound, currentMatch,
+    playInMatches, rounds, currentRound, currentMatch,
     champion, history, upsets,
-    isPlayIn, activeMatch, progress, roundLabel, matchNumber, matchTotal,
-    regionName, upNextPool, upNextIndex,
-    animatingSeed,
-    upFlash,
+    isPlayIn, activeMatch, progress, roundLabel,
+    regionName,
     serialized, applyServerState,
     pick: rawPick, undo, reset,
-  } = useBracketState();
+  } = bracketState;
 
   const [hoveredSeed, setHoveredSeed] = useState<number | null>(null);
   const [showBracketPanel, setShowBracketPanel] = useState(false);
@@ -151,12 +150,9 @@ export default function App() {
             ) :
             activeMatch ? (
               <MatchView
-                mob={mob} phase={phase} isPlayIn={isPlayIn} playInIndex={playInIndex} currentRound={currentRound}
-                currentMatch={currentMatch} matchNumber={matchNumber} matchTotal={matchTotal} activeMatch={activeMatch}
-                animatingSeed={animatingSeed} hoveredSeed={hoveredSeed} setHoveredSeed={setHoveredSeed} upFlash={upFlash}
-                history={history} copiedLink={copiedLink} showBracketPanel={showBracketPanel} playInMatches={playInMatches}
-                rounds={rounds} upNextPool={upNextPool} upNextIndex={upNextIndex} notes={notes} movieMeta={movieMeta}
-                updateNote={updateNote} pick={pick} undo={undo} reset={handleReset} copyLink={copyLink} onFixMovie={setFixingMovie}
+                mob={mob} bracket={bracketState} hoveredSeed={hoveredSeed} setHoveredSeed={setHoveredSeed}
+                copiedLink={copiedLink} showBracketPanel={showBracketPanel} notes={notes} movieMeta={movieMeta}
+                updateNote={updateNote} pick={pick} reset={handleReset} copyLink={copyLink} onFixMovie={setFixingMovie}
                 partnerVoted={connected ? !!coopState.theirPick : false} partnerName={connected ? coopState.theirName : undefined}
               />
             ) : null}
@@ -462,30 +458,15 @@ export default function App() {
         ) : activeMatch ? (
           <MatchView
             mob={mob}
-            phase={phase}
-            isPlayIn={isPlayIn}
-            playInIndex={playInIndex}
-            currentRound={currentRound}
-            currentMatch={currentMatch}
-            matchNumber={matchNumber}
-            matchTotal={matchTotal}
-            activeMatch={activeMatch}
-            animatingSeed={animatingSeed}
+            bracket={bracketState}
             hoveredSeed={hoveredSeed}
             setHoveredSeed={setHoveredSeed}
-            upFlash={upFlash}
-            history={history}
             copiedLink={copiedLink}
             showBracketPanel={showBracketPanel}
-            playInMatches={playInMatches}
-            rounds={rounds}
-            upNextPool={upNextPool}
-            upNextIndex={upNextIndex}
             notes={notes}
             movieMeta={movieMeta}
             updateNote={updateNote}
             pick={pick}
-            undo={undo}
             reset={handleReset}
             copyLink={copyLink}
             onFixMovie={setFixingMovie}
