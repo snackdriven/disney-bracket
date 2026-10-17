@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { Btn } from './Btn.js';
 import { getTmdbIdFromImdb, fetchTmdbPosters, fetchTmdbSearch, TmdbSearchResult } from '../lib/meta.js';
 import type { Movie, MovieMeta } from '../types.js';
@@ -11,11 +11,12 @@ interface FixMetaModalProps {
 }
 
 export function FixMetaModal({ movie, onSave, onClose, mob }: FixMetaModalProps) {
+  const tmdbKey = sessionStorage.getItem("tmdb-key") || import.meta.env.VITE_TMDB_KEY || "";
   const [mode, setMode] = useState<"posters" | "search">("posters");
   
   // Posters mode
   const [posters, setPosters] = useState<string[]>([]);
-  const [loadingPosters, setLoadingPosters] = useState(false);
+  const [loadingPosters, setLoadingPosters] = useState(Boolean(tmdbKey));
   
   // Search mode
   const [query, setQuery] = useState(movie.name);
@@ -38,11 +39,8 @@ export function FixMetaModal({ movie, onSave, onClose, mob }: FixMetaModalProps)
       previouslyFocused?.focus();
     };
   }, []);
-  const tmdbKey = sessionStorage.getItem("tmdb-key") || import.meta.env.VITE_TMDB_KEY || "fa8cad87275234c1faee168084b21941";
-
   useEffect(() => {
     if (mode === "posters" && posters.length === 0 && tmdbKey) {
-      setLoadingPosters(true);
       getTmdbIdFromImdb(movie.imdb.replace("https://www.imdb.com/title/", "").replace("/", ""), tmdbKey).then(id => {
         if (id) {
           fetchTmdbPosters(id, tmdbKey).then(p => {
@@ -56,21 +54,14 @@ export function FixMetaModal({ movie, onSave, onClose, mob }: FixMetaModalProps)
     }
   }, [mode, movie.imdb, posters.length, tmdbKey]);
 
-  const handleSearch = async (e?: React.FormEvent) => {
+  const handleSearch = useCallback(async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!query.trim() || !tmdbKey) return;
     setLoadingSearch(true);
     const res = await fetchTmdbSearch(query, tmdbKey);
     setResults(res);
     setLoadingSearch(false);
-  };
-
-  useEffect(() => {
-    if (mode === "search" && results.length === 0 && query && tmdbKey) {
-      handleSearch();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [query, tmdbKey]);
 
   const handlePickPoster = (posterUrl: string) => {
     onSave(movie.seed, { poster: posterUrl });
@@ -108,13 +99,13 @@ export function FixMetaModal({ movie, onSave, onClose, mob }: FixMetaModalProps)
             <div className="flex bg-black/30 rounded-[8px] p-[4px] mb-[16px]">
               <button
                 className={`flex-1 py-[8px] rounded-[6px] text-[13px] font-semibold transition-colors ${mode === "posters" ? "bg-[#4fc3f722] text-[#4fc3f7]" : "text-[#7a7a9e] hover:text-[#a0a0c0]"}`}
-                onClick={() => setMode("posters")}
+                onClick={() => { if (mode !== "posters" && posters.length === 0) setLoadingPosters(true); setMode("posters"); }}
               >
                 Alternate Posters
               </button>
               <button
                 className={`flex-1 py-[8px] rounded-[6px] text-[13px] font-semibold transition-colors ${mode === "search" ? "bg-[#4fc3f722] text-[#4fc3f7]" : "text-[#7a7a9e] hover:text-[#a0a0c0]"}`}
-                onClick={() => setMode("search")}
+                onClick={() => { setMode("search"); if (results.length === 0) void handleSearch(); }}
               >
                 Wrong Movie?
               </button>

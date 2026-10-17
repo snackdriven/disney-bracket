@@ -93,8 +93,8 @@ export function useBracketState() {
         }
       } catch { /* btoa failure */ }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serialized, champion]); // history.length omitted: serialized already captures history
+
+  }, [serialized, champion, history.length]);
 
   // Easter egg: press ? to open the repo
   useEffect(() => {
