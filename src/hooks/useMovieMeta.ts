@@ -7,7 +7,11 @@ export function useMovieMeta() {
   const [movieMeta, setMovieMeta] = useState<Record<number, MovieMeta>>(() => {
     const fromLS = loadLS<Record<number, MovieMeta>>("tmdb-meta-v1", {});
     const merged: Record<number, MovieMeta> = {};
-    ALL_MOVIES.forEach(m => { merged[m.seed] = { ...STATIC_META[m.seed], ...fromLS[m.seed] }; });
+    for (let i = 0; i < ALL_MOVIES.length; i++) {
+      const seed = ALL_MOVIES[i].seed;
+      const lsMeta = fromLS[seed];
+      merged[seed] = lsMeta ? { ...STATIC_META[seed], ...lsMeta } : STATIC_META[seed];
+    }
     return merged;
   });
 
