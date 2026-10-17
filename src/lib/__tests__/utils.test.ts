@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { loadLS, saveLS, extractImdbId, serMatch, desMatch } from '../utils.js';
+import { loadLS, saveLS, extractImdbId, serMatch, desMatch, isHistoryEntry } from '../utils.js';
 import type { Match, SerializedMatch } from '../../types.js';
 
 afterEach(() => localStorage.clear());
@@ -129,5 +129,52 @@ describe('desMatch edge cases', () => {
 
   it('skips entries with null participants gracefully', () => {
     expect(desMatch([{ p: null, w: null }])).toEqual([]);
+  });
+});
+
+describe('isHistoryEntry validation', () => {
+  it('returns true for a valid HistoryEntry with phase "pi"', () => {
+    const entry = { phase: "pi", matchIndex: 0, round: 1, wasUpset: false };
+    expect(isHistoryEntry(entry)).toBe(true);
+  });
+
+  it('returns true for a valid HistoryEntry with phase "m"', () => {
+    const entry = { phase: "m", matchIndex: 5, round: 2, wasUpset: true };
+    expect(isHistoryEntry(entry)).toBe(true);
+  });
+
+  it('returns false for null or undefined', () => {
+    expect(isHistoryEntry(null)).toBe(false);
+    expect(isHistoryEntry(undefined)).toBe(false);
+  });
+
+  it('returns false for primitive types', () => {
+    expect(isHistoryEntry('string')).toBe(false);
+    expect(isHistoryEntry(123)).toBe(false);
+    expect(isHistoryEntry(true)).toBe(false);
+  });
+
+  it('returns false for arrays', () => {
+    expect(isHistoryEntry([{ phase: "m", matchIndex: 5, round: 2, wasUpset: true }])).toBe(false);
+  });
+
+  it('returns false if phase is invalid or missing', () => {
+    expect(isHistoryEntry({ phase: "invalid", matchIndex: 0, round: 1, wasUpset: false })).toBe(false);
+    expect(isHistoryEntry({ matchIndex: 0, round: 1, wasUpset: false })).toBe(false);
+  });
+
+  it('returns false if matchIndex is missing or wrong type', () => {
+    expect(isHistoryEntry({ phase: "m", round: 1, wasUpset: false })).toBe(false);
+    expect(isHistoryEntry({ phase: "m", matchIndex: "0", round: 1, wasUpset: false })).toBe(false);
+  });
+
+  it('returns false if round is missing or wrong type', () => {
+    expect(isHistoryEntry({ phase: "m", matchIndex: 0, wasUpset: false })).toBe(false);
+    expect(isHistoryEntry({ phase: "m", matchIndex: 0, round: "1", wasUpset: false })).toBe(false);
+  });
+
+  it('returns false if wasUpset is missing or wrong type', () => {
+    expect(isHistoryEntry({ phase: "m", matchIndex: 0, round: 1 })).toBe(false);
+    expect(isHistoryEntry({ phase: "m", matchIndex: 0, round: 1, wasUpset: "false" })).toBe(false);
   });
 });
