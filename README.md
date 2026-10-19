@@ -32,21 +32,22 @@ Did you know Toy Story 2 was almost entirely deleted by accident and only surviv
 
 ## Features
 
-- **Mobile First Gestures**: Swipe left/right on cards native CSS snap-scrolling to flip between gorgeous hero artwork and extensive movie plot/trivia details.
-- **On-the-fly Metadata Repair**: Catch an error in a summary or notice a low-res poster? The app has native TMDB search integration built right in to hot-swap movie details instantly.
+- **Swipe through the cards.** Move between artwork, plot summaries, and trivia with left/right swipes on mobile.
+- **Fix movie details.** Search TMDB from the app to replace a summary or a low-resolution poster.
 - **Notes on any movie.** Write down your reasoning, confront it later.
 - **Upset tracking.** Counts every time you pick the lower seed and judges you for it.
 - **Undo any pick.** Reset the whole bracket. No judgment.
 
 ---
 
-## 2-Player Co-op Sync
+## Play together
 
-Sign in with Google OAuth to persist your bracket to the cloud natively—because **this is not a one-session experience**, and anyone who tells you they finished it in one sitting is lying or didn't think hard enough.
+Sign in with Google to sync your bracket across devices. This is not a one-session experience, and anyone who tells you they finished it in one sitting is lying or didn't think hard enough.
 
-Or better yet: Generate a Room Code and invite a friend. The app connects you both peer-to-peer via Firebase Realtime. When a matchup is live, the app enforces **Blind Voting**—it won't reveal or advance the bracket until *both* players have submitted their picks anonymously. If you disagree, work it out.
+Create a room code and invite a friend to play through Firebase Realtime Database. Each player locks in a pick before the app reveals both choices. If you disagree, work it out.
 
-If you don't log in, your bracket lives securely in local storage until you clear it.
+Solo play works without signing in. Your bracket saves in this browser until you clear its site storage; signing out does not clear the local copy.
+
 ---
 
 If 70 movies of genuine heartfelt cinema is too much and you need a palate cleanser, there's also a [Worst Movie Tournament](https://github.com/snackdriven/bad-movie-bracket) where nobody cries (on purpose).
@@ -55,7 +56,7 @@ If 70 movies of genuine heartfelt cinema is too much and you need a palate clean
 
 ## Dev
 
-Stack: React 19 + TypeScript + Vite. Tailwind CSS v4. Firebase for Google Auth & Real-Time Co-op Sync.
+Stack: React 19, TypeScript, Vite, and Tailwind CSS v4. Firebase handles Google sign-in and real-time sync.
 
 ```bash
 npm install
@@ -66,14 +67,14 @@ npm run dev
 
 The app started as a single 1,600-line component. All logic, all data, all canvas rendering in one file. Fine for moving fast, bad for knowing whether anything works.
 
-To get it testable, I pulled the pure logic into `src/lib/` modules (bracket state transitions, data constants, canvas math, localStorage helpers) without touching behavior, then wrote tests against those instead of against React.
+The pure logic now lives in `src/lib/`: bracket state transitions, data constants, canvas math, and localStorage helpers. Tests cover those modules, along with hooks and components.
 
 ```bash
-npm test          # 73 Vitest unit tests
-npm run test:e2e  # 27 Playwright E2E tests at 1920×1080
+npm test          # Vitest unit and integration tests
+npm run test:e2e  # Playwright browser tests
 ```
 
-Unit tests cover the core bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips, and notes init logic. 
+Unit tests cover the core bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips, and notes init logic.
 
 > [!NOTE]
-> **E2E Testing is currently paused in CI**. The entire Playwright suite (which historically covered the 69-pick traversal flow) is disabled pending a refactor to accommodate the new Firebase/Co-op architectural changes. Deployments currently rely purely on the Vitest unit tests passing.
+> **Browser tests are paused in CI** while the suite is updated for Firebase and co-op play. The existing suite includes the 69-pick flow; it does not establish coverage of the new co-op behavior. Deployment runs source and E2E type checks, Vitest, and the production build, but does not run Playwright.
