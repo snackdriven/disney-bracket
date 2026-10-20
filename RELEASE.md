@@ -1,35 +1,68 @@
-# Release Process
+# Commits and releases
 
-This document outlines the standard operating procedure for pushing new updates and version milestones for the Disney Bracket application. 
+Notable changes go in [CHANGELOG.md](CHANGELOG.md); use
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) categories: Added,
+Changed, Deprecated, Removed, Fixed and Security. Keep an Unreleased section,
+omit empty categories, and write changes for users rather than copying git logs.
+Preserve historical entries and dates.
 
-By standardizing this, we ensure a clean, chronological history of features that users can easily digest from the in-app Changelog.
+## Commitizen
 
-## 1. Versioning
-We use basic [SemVer](https://semver.org/).
-- **v1.X.0** (Minor): Significant new features (e.g. adding Co-op Sync).
-- **v1.0.X** (Patch): UI fixes, small isolated features (e.g. Recent Rooms).
-
-## 2. Pre-Release Checklist
-Before you tag a release, you MUST:
-1. Ensure all code compiles cleanly (`npx tsc --noEmit`).
-2. Hardcode the new patch notes into the `MobileMenuModal.tsx` Changelog component so users see it immediately.
-3. Ensure no local dev-only values are hardcoded in prod URLs.
-
-## 3. The Release Flow
-Once your feature is merged or committed locally, use `git` and `gh` to trigger the actual version:
+Use Python 3.10+ and [uv](https://docs.astral.sh/uv/getting-started/installation/),
+or install the same pinned Commitizen with pip in a virtual environment.
+Run these commands from the repository root:
 
 ```sh
-# 1. Update the frontend Changelog UI in the code! Then commit it.
-git commit -am "chore: prep v1.1.0 release"
-
-# 2. Tag the snapshot
-git tag v1.1.0
-
-# 3. Push it directly to Github
-git push --tags
-
-# 4. Use the GitHub CLI to generate a formal release for players
-gh release create v1.1.0 --title "v1.1.0: The Amazing Update" --notes "Short 1 sentence summary goes here."
+uvx --from commitizen==4.19.2 cz commit
+uvx --from commitizen==4.19.2 cz check --message "feat: describe the change"
+uvx --from commitizen==4.19.2 cz version --project
 ```
 
-By enforcing this flow, all future contributors (or LLM agents) can quickly wrap up a milestone with a single unified command chain and keep the UI in sync!
+Stage the intended files before `cz commit`. Regular git commits remain available.
+Use `feat:` for compatible features, `fix:` for compatible fixes, and `!` or a
+`BREAKING CHANGE:` footer for incompatible changes. Other maintenance types include
+`docs:`, `chore:`, `test:`, `ci:`, `build:`, `refactor:` and `perf:`.
+CI also verifies that pushed `v*` tags match the configured version and have
+a dated release entry. CI checks PR titles as future squash commit subjects, including title edits;
+it does not reject historical commits or routine automated direct pushes.
+When merging, preserve the validated title as the squash commit subject.
+
+## Semantic Versioning
+
+The version source is package.json (with package-lock.json/npm-shrinkwrap.json synchronized by the npm provider), currently `1.0.0`.
+This is a development/configuration baseline, not a declaration of a new release.
+Only existing release tags and dated release notes establish published history.
+
+Documented commands, persisted data formats, public URLs and supported application behavior form the compatibility contract. Dependency and independently versioned subcomponent releases keep their own versions.
+
+For numbered releases, choose MAJOR for incompatible contract changes, MINOR for
+compatible features, and PATCH for compatible fixes. While below 1.0.0, the
+interface is experimental; document breaking changes and deliberately choose the
+next version. A release never changes the meaning of an already published version.
+
+## Prepare an approved release
+
+Start from a clean branch with current tests passing and full release tags fetched
+(`git fetch --tags`). Preview an explicit increment, then update version files:
+
+```sh
+uvx --from commitizen==4.19.2 cz bump --increment PATCH --dry-run --check-consistency
+uvx --from commitizen==4.19.2 cz bump --increment PATCH --version-files-only --check-consistency
+```
+
+Use MINOR or MAJOR when appropriate. For the first deliberately numbered release,
+pass its chosen version instead of `--increment PATCH`. If that first version
+already matches the baseline, skip the bump and prepare its dated release notes. The version-files-only
+command changes files without creating a commit or tag. Review the diff.
+
+Move only shipped Unreleased notes into `## [X.Y.Z] - YYYY-MM-DD` with the actual
+release date, newest first; retain pending work in Unreleased. Add/update comparison
+links between release tags and point Unreleased to `compare/vX.Y.Z...HEAD`.
+Keep the notes curated: automatic changelog generation is disabled, so do not run
+`cz changelog` or `cz bump --changelog` against this file.
+
+Run the repository checks, stage the changed version files and changelog explicitly,
+then create a `chore(release): X.Y.Z` commit. Review/merge through the usual process.
+Only after release approval, tag that reviewed release commit with `vX.Y.Z` and
+push that specific tag. Tag creation, package publication and deployment remain
+explicit actions; this policy workflow only validates and has read-only permissions.
