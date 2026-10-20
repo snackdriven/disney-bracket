@@ -78,3 +78,7 @@ Unit tests cover the core bracket engine: state transitions, upset detection, pl
 
 > [!NOTE]
 > **Browser tests are paused in CI** while the suite is updated for Firebase and co-op play. The existing suite includes the 69-pick flow; it does not establish coverage of the new co-op behavior. Deployment runs source and E2E type checks, Vitest, and the production build, but does not run Playwright.
+
+## Commits and releases
+
+See [RELEASE.md](RELEASE.md) for Commitizen commands, SemVer and changelog maintenance.
