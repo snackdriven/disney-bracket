@@ -71,7 +71,6 @@ export default function App() {
   const roomCode = urlParams.get('room');
   
   // Make sure guests don't clobber each other if testing locally in different tabs
-  // Make sure guests don't clobber each other if testing locally in different tabs
   const guestIdCheck = React.useMemo(() => sessionStorage.getItem('dbk-guest-name') || `Guest-${Math.floor(Math.random()*1000)}`, []);
   if (!sessionStorage.getItem('dbk-guest-name')) sessionStorage.setItem('dbk-guest-name', guestIdCheck);
   const defaultName = fbUser?.email?.split('@')[0] || guestIdCheck;
