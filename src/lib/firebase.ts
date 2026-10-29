@@ -3,14 +3,14 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDb3FjfOyXLrWq1tadMv8NIlTyH5u-gEUM",
-  authDomain: "disney-bracket1.firebaseapp.com",
-  projectId: "disney-bracket1",
-  storageBucket: "disney-bracket1.firebasestorage.app",
-  messagingSenderId: "495239904339",
-  appId: "1:495239904339:web:aafbc5c45a323cf67adaa6",
-  measurementId: "G-H0LGMVP8LJ",
-  databaseURL: "https://disney-bracket1-default-rtdb.firebaseio.com"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL
 };
 
 const app = initializeApp(firebaseConfig);
