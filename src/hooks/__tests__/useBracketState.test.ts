@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useBracketState } from '../useBracketState.js';
 import type { Movie } from '../../types.js';
 
@@ -61,5 +61,29 @@ describe('useBracketState — migrateV1', () => {
     seedV1({ upsets });
     const { result } = renderHook(() => useBracketState());
     expect(result.current.upsets).toHaveLength(1);
+  });
+});
+
+describe('useBracketState — reset', () => {
+  it('should reset state, local storage, and window hash', () => {
+    const historyEntry = { phase: 'pi', matchIndex: 0, round: 0, wasUpset: false };
+    seedV1({ ph: 'm', ch: validMovie, hi: [historyEntry] });
+    window.location.hash = '#some-hash';
+
+    const { result } = renderHook(() => useBracketState());
+
+    act(() => {
+      result.current.reset();
+    });
+
+    expect(result.current.phase).toBe('pi');
+    expect(result.current.champion).toBeNull();
+    expect(result.current.history).toHaveLength(0);
+    expect(result.current.upsets).toHaveLength(0);
+    expect(result.current.upFlash).toBe(false);
+    // After reset, localStorage is removed, but the component's useEffect re-runs and saves the new empty state.
+    // Check that it's a new empty state, not the old seeded state.
+    expect(localStorage.getItem('dbk-state')).toContain('"history":[]');
+    expect(window.location.hash).toBe('');
   });
 });
