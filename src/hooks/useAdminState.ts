@@ -121,10 +121,17 @@ export function useAdminState() {
     if (editingSeed === seed) setEditingSeed(null);
   };
 
-  const withPoster = ALL_MOVIES.filter(m => cache[m.seed]?.poster).length;
-  const withRating = ALL_MOVIES.filter(m => cache[m.seed]?.rating).length;
-  const withRuntime = ALL_MOVIES.filter(m => cache[m.seed]?.runtime).length;
-  const withPlot = ALL_MOVIES.filter(m => cache[m.seed]?.plot).length;
+  const { withPoster, withRating, withRuntime, withPlot } = ALL_MOVIES.reduce(
+    (acc, m) => {
+      const meta = cache[m.seed];
+      if (meta?.poster) acc.withPoster++;
+      if (meta?.rating) acc.withRating++;
+      if (meta?.runtime) acc.withRuntime++;
+      if (meta?.plot) acc.withPlot++;
+      return acc;
+    },
+    { withPoster: 0, withRating: 0, withRuntime: 0, withPlot: 0 }
+  );
   const total = ALL_MOVIES.length;
   const isBulkFetching = bulkStatus === "fetching";
 
