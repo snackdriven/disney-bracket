@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useBracketState } from '../useBracketState.js';
 import type { Movie } from '../../types.js';
 
@@ -61,5 +61,35 @@ describe('useBracketState — migrateV1', () => {
     seedV1({ upsets });
     const { result } = renderHook(() => useBracketState());
     expect(result.current.upsets).toHaveLength(1);
+  });
+});
+
+describe('useBracketState — applyServerState', () => {
+  it('does not crash when passed malformed data', () => {
+    const { result } = renderHook(() => useBracketState());
+
+    expect(() => {
+      act(() => {
+        result.current.applyServerState("malformed string");
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      act(() => {
+        result.current.applyServerState(123);
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      act(() => {
+        result.current.applyServerState(null);
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      act(() => {
+        result.current.applyServerState({ _v: 2, phase: 123 });
+      });
+    }).not.toThrow();
   });
 });
