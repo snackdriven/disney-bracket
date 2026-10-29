@@ -67,12 +67,14 @@ describe('useBracketState — migrateV1', () => {
 describe('useBracketState — applyServerState', () => {
   it('does not crash when passed malformed data', () => {
     const { result } = renderHook(() => useBracketState());
+    const initialPhase = result.current.phase;
 
     expect(() => {
       act(() => {
         result.current.applyServerState("malformed string");
       });
     }).not.toThrow();
+    expect(result.current.phase).toBe(initialPhase);
 
     expect(() => {
       act(() => {
