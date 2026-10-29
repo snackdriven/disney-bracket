@@ -64,13 +64,49 @@ describe('useBracketState — migrateV1', () => {
   });
 });
 
+describe('useBracketState — applyServerState', () => {
+  it('does not crash when passed malformed data', () => {
+    const { result } = renderHook(() => useBracketState());
+    const initialPhase = result.current.phase;
+
+    expect(() => {
+      act(() => {
+        result.current.applyServerState("malformed string");
+      });
+    }).not.toThrow();
+    expect(result.current.phase).toBe(initialPhase);
+
+    expect(() => {
+      act(() => {
+        result.current.applyServerState(123);
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      act(() => {
+        result.current.applyServerState(null);
+      });
+    }).not.toThrow();
+
+    expect(() => {
+      act(() => {
+        result.current.applyServerState({ _v: 2, phase: 123 });
+      });
+    }).not.toThrow();
+  });
+});
+
 describe('useBracketState — reset', () => {
   it('should reset state, local storage, and window hash', () => {
     const historyEntry = { phase: 'pi', matchIndex: 0, round: 0, wasUpset: false };
-    seedV1({ ph: 'm', ch: validMovie, hi: [historyEntry] });
+    seedV1({ ph: 'm', ch: validMovie, hi: [historyEntry], upsets: [{ winner: validMovie, loser: validMovie2, round: 'Play-In', seedDiff: 1 }] });
     window.location.hash = '#some-hash';
 
     const { result } = renderHook(() => useBracketState());
+    expect(result.current.phase).toBe('m');
+    expect(result.current.champion).toEqual(validMovie);
+    expect(result.current.history).toHaveLength(1);
+    expect(result.current.upsets).toHaveLength(1);
 
     act(() => {
       result.current.reset();
