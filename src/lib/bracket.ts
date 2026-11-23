@@ -1,6 +1,71 @@
 import { MAIN, PLAYIN, PIP, R1, RND, REG } from './data.js';
 import type { Movie, Match, DisplayMatch, BracketState, Phase } from '../types.js';
 
+function pairKey(matches: Match[]): string {
+  return matches.map(m => m.players.map(p => p.seed).sort((a, b) => a - b).join('-')).sort().join('|');
+}
+
+/** Validate the completed source rounds without excluding later progress. */
+export function canRerollSweet16(state: BracketState): boolean {
+  if (state.phase !== 'm' || state.currentRound < 2 || state.currentRound > 5) return false;
+  const validCompleted = (matches: Match[] | undefined, count: number) =>
+    matches?.length === count && matches.every(m => m.players?.length === 2 &&
+      m.players[0]?.seed !== m.players[1]?.seed && m.winner &&
+      m.players.some(p => p?.seed === m.winner?.seed));
+  if (!validCompleted(state.playInMatches, 6) || !validCompleted(state.rounds[0], 32) || !validCompleted(state.rounds[1], 16)) return false;
+  const winners = state.rounds[1].map(m => m.winner!.seed);
+  if (new Set(winners).size !== 16) return false;
+  const sourceWinners = state.rounds[0].map(m => m.winner!.seed).sort((a, b) => a - b);
+  const sourcePlayers = state.rounds[1].flatMap(m => m.players.map(p => p.seed)).sort((a, b) => a - b);
+  if (new Set(sourceWinners).size !== 32 || sourceWinners.join() !== sourcePlayers.join()) return false;
+  const draw = state.rounds[2];
+  if (draw?.length !== 8 || draw.some(m => m.players?.length !== 2 || !m.players[0] || !m.players[1])) return false;
+  if (draw.flatMap(m => m.players.map(p => p.seed)).sort((a, b) => a - b).join() !== [...winners].sort((a, b) => a - b).join()) return false;
+  const earlier = state.history.filter(e => e.phase === 'pi' || e.round < 2);
+  if (earlier.length !== 54) return false;
+  return earlier.every((e, i) => i < 6
+    ? e.phase === 'pi' && e.matchIndex === i
+    : e.phase === 'm' && e.round === (i < 38 ? 0 : 1) && e.matchIndex === (i < 38 ? i - 6 : i - 38));
+}
+
+/** Preview only: preserve the active bracket until the player confirms. */
+export function buildSweet16Preview(state: BracketState, random: () => number = Math.random, previousPreview?: Match[]): Match[] {
+  if (!canRerollSweet16(state)) return [];
+  const players = state.rounds[1].map(m => m.winner!);
+  for (let i = players.length - 1; i > 0; i--) {
+    const j = Math.min(i, Math.max(0, Math.floor(random() * (i + 1))));
+    [players[i], players[j]] = [players[j], players[i]];
+  }
+  const candidate: Match[] = [];
+  for (let i = 0; i < players.length; i += 2) candidate.push({ players: [players[i], players[i + 1]] });
+  const forbidden = new Set([pairKey(state.rounds[2]), ...(previousPreview ? [pairKey(previousPreview)] : [])]);
+  if (!forbidden.has(pairKey(candidate))) return candidate;
+  for (let i = 1; i < candidate.length; i++) {
+    const alternative = candidate.map(m => ({ players: [...m.players] as [Movie, Movie] }));
+    [alternative[0].players[1], alternative[i].players[1]] = [alternative[i].players[1], alternative[0].players[1]];
+    if (!forbidden.has(pairKey(alternative))) return alternative;
+  }
+  return [];
+}
+
+/** Replace only Sweet 16 onward with the exact confirmed candidate. */
+export function applySweet16Reroll(state: BracketState, candidate: Match[]): BracketState {
+  if (!canRerollSweet16(state) || candidate.length !== 8 || candidate.some(m => m.winner || m.players?.length !== 2 || !m.players[0] || !m.players[1])) return state;
+  const winners = state.rounds[1].map(m => m.winner!);
+  const seeds = candidate.flatMap(m => m.players.map(p => p.seed));
+  if (new Set(seeds).size !== 16 || seeds.sort((a, b) => a - b).join() !== winners.map(p => p.seed).sort((a, b) => a - b).join()) return state;
+  if (pairKey(candidate) === pairKey(state.rounds[2])) return state;
+  // Source winners remain authoritative for metadata as well as identity.
+  const bySeed = new Map(winners.map(p => [p.seed, p]));
+  const draw = candidate.map(m => ({ players: m.players.map(p => bySeed.get(p.seed)!) as [Movie, Movie] }));
+  return {
+    ...state, rounds: [...state.rounds.slice(0, 2), draw], currentRound: 2, currentMatch: 0,
+    champion: null, sweet16Rerolled: true,
+    history: state.history.filter(e => e.phase === 'pi' || e.round < 2),
+    upsets: state.upsets.filter(u => ['Play-In', RND[0], RND[1]].includes(u.round)),
+  };
+}
+
 /**
  * Build the initial Round of 64 matches from 6 play-in winners.
  */
@@ -75,14 +140,14 @@ export function applyUndo(state: BracketState): BracketState {
       if (i !== lastEntry.matchIndex) return m;
       return { players: m.players }; // drop winner
     });
-    return { ...state, playInMatches: newPlayInMatches, playInIndex: lastEntry.matchIndex, phase: "pi", rounds: [], champion: null, history: newHistory, upsets: newUpsets };
+    return { ...state, sweet16Rerolled: false, playInMatches: newPlayInMatches, playInIndex: lastEntry.matchIndex, phase: "pi", rounds: [], champion: null, history: newHistory, upsets: newUpsets };
   }
 
   const newRounds = rounds.slice(0, lastEntry.round + 1).map((r, ri) => r.map((m, mi) => {
     if (ri !== lastEntry.round || mi !== lastEntry.matchIndex) return m;
     return { players: m.players }; // drop winner
   }));
-  return { ...state, rounds: newRounds, currentRound: lastEntry.round, currentMatch: lastEntry.matchIndex, champion: null, history: newHistory, upsets: newUpsets };
+  return { ...state, sweet16Rerolled: lastEntry.round >= 2 && state.sweet16Rerolled, rounds: newRounds, currentRound: lastEntry.round, currentMatch: lastEntry.matchIndex, champion: null, history: newHistory, upsets: newUpsets };
 }
 
 /**
