@@ -11,7 +11,7 @@ export interface SyncConflict { local: CloudSave; cloud: CloudSave }
 interface SyncProps {
   serialized: object;
   notes: Notes;
-  onPull: (state: unknown, notes: unknown) => void;
+  onPull: (state: unknown, notes: unknown) => boolean | void;
   enabled?: boolean;
 }
 
@@ -106,6 +106,19 @@ export function useFirebaseSync({ serialized, notes, onPull, enabled = true }: S
     setSyncError(null);
   }, []);
 
+  const applyRemote = useCallback((remote: CloudSave): boolean => {
+    const previous = latest.current.save;
+    // Another snapshot may arrive before React commits the requested restore.
+    latest.current.save = remote;
+    if (latest.current.onPull(remote.state, remote.notes) !== false) return true;
+    latest.current.save = previous;
+    session.current.ready = false;
+    setSyncReady(false);
+    setSyncStatus('error');
+    setSyncError('The cloud bracket could not be accepted for restore. Your local bracket is preserved and cloud saving is paused.');
+    return false;
+  }, []);
+
   useEffect(() => {
     const currentSession = session.current;
     let unsubscribeDB = () => {};
@@ -174,11 +187,7 @@ export function useFirebaseSync({ serialized, notes, onPull, enabled = true }: S
         const sameBase = base !== null && fingerprint(local) === fingerprint(base);
         const unchangedRemote = base !== null && fingerprint(remote) === fingerprint(base);
         if (sameLocal || (!foreignDraft && (sameBase || (firstRead && pristine(local))))) {
-          if (!sameLocal) {
-            // Firebase can deliver another snapshot before React commits the requested restore.
-            latest.current.save = remote;
-            latest.current.onPull(remote.state, remote.notes);
-          }
+          if (!sameLocal && !applyRemote(remote)) return;
           confirm(user.uid, remote);
         } else if (!foreignDraft && unchangedRemote) {
           // Local unsent work is based on this exact cloud version, so it may upload after hydration.
@@ -208,7 +217,7 @@ export function useFirebaseSync({ serialized, notes, onPull, enabled = true }: S
       unsubscribeAuth();
       unsubscribeDB();
     };
-  }, [enabled, retryAttempt, confirm, showConflict]);
+  }, [enabled, retryAttempt, confirm, showConflict, applyRemote]);
 
   const writeSave = useCallback(async (save: CloudSave, expected: CloudSave | null): Promise<boolean> => {
     const current = session.current;
@@ -278,8 +287,7 @@ export function useFirebaseSync({ serialized, notes, onPull, enabled = true }: S
     }
     setSyncRecovery(recovery);
     if (choice === 'local') return writeSave(latest.current.save, conflict.cloud);
-    latest.current.save = conflict.cloud;
-    latest.current.onPull(conflict.cloud.state, conflict.cloud.notes);
+    if (!applyRemote(conflict.cloud)) return false;
     confirm(uid, conflict.cloud);
     session.current.conflict = null;
     session.current.ready = true;
@@ -288,7 +296,7 @@ export function useFirebaseSync({ serialized, notes, onPull, enabled = true }: S
     setSyncError(null);
     setSyncStatus('synced');
     return true;
-  }, [confirm, writeSave]);
+  }, [confirm, writeSave, applyRemote]);
 
   const retrySync = useCallback(() => {
     session.current.ready = false;

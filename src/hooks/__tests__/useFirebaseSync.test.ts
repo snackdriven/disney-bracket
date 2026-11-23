@@ -333,4 +333,31 @@ describe('personal cloud state loading', () => {
     expect(result.current.notes).toEqual({ 1: 'second' });
     expect(result.current.syncConflict).toBeNull();
   });
+
+  it('pauses sync immediately when the bracket parser rejects an incoming cloud save', async () => {
+    const { result } = renderHook(() => useFirebaseSync({ serialized: empty, notes: {}, onPull: () => false }));
+    await signIn();
+    await deliver({ state: saved, notes: { 1: 'do not apply' } });
+    expect(result.current.syncReady).toBe(false);
+    expect(result.current.syncStatus).toBe('error');
+    expect(result.current.syncError).toMatch(/accept|read|restore/i);
+    expect(localStorage.getItem('dbk-confirmed-save:alice')).toBeNull();
+    await advance();
+    expect(backend.writes).toEqual([]);
+  });
+
+  it('retains conflict candidates when the bracket parser rejects the chosen cloud version', async () => {
+    const { result } = renderHook(() => useFirebaseSync({ serialized: alternate, notes: { 1: 'local' }, onPull: () => false }));
+    await signIn();
+    await deliver({ state: saved, notes: { 1: 'cloud' } });
+    let success = true;
+    await act(async () => { success = await result.current.resolveSyncConflict('cloud'); });
+    expect(success).toBe(false);
+    expect(result.current.syncReady).toBe(false);
+    expect(result.current.syncConflict?.local.state).toEqual(alternate);
+    expect(result.current.syncRecovery?.cloud.state).toEqual(saved);
+    expect(localStorage.getItem('dbk-confirmed-save:alice')).toBeNull();
+    await advance();
+    expect(backend.writes).toEqual([]);
+  });
 });
