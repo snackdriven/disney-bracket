@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useIsMobile } from './hooks/useIsMobile.js';
 import { useBracketState } from './hooks/useBracketState.js';
 import { useShareClipboard } from './hooks/useShareClipboard.js';
@@ -16,9 +16,7 @@ import { MatchView } from './components/MatchView.js';
 import { FixMetaModal } from './components/FixMetaModal.js';
 
 import { ChampionScreen } from './components/ChampionScreen.js';
-import { RevealModal } from './components/RevealModal.js';
 import { MobileMenuModal } from './components/MobileMenuModal.js';
-import { useCoopRoom } from './hooks/useCoopRoom.js';
 import type { Movie } from './types.js';
 
 export default function App() {
@@ -33,7 +31,7 @@ export default function App() {
     isPlayIn, activeMatch, progress, roundLabel,
     regionName,
     serialized, applyServerState,
-    pick: rawPick, undo, reset,
+    pick, undo, reset,
   } = bracketState;
 
   const [hoveredSeed, setHoveredSeed] = useState<number | null>(null);
@@ -41,7 +39,6 @@ export default function App() {
   const [showFullBracket, setShowFullBracket] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [fixingMovie, setFixingMovie] = useState<Movie | null>(null);
-  const [customName, setCustomName] = useState(() => localStorage.getItem('dbk-custom-name') || "");
 
   const { copiedLink, copiedBracket, copyLink, copyBracket } = useShareClipboard(playInMatches, rounds, champion);
 
@@ -67,32 +64,6 @@ export default function App() {
     },
   });
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const roomCode = urlParams.get('room');
-  
-  // Make sure guests don't clobber each other if testing locally in different tabs
-  const guestIdCheck = React.useMemo(() => sessionStorage.getItem('dbk-guest-name') || `Guest-${Math.floor(Math.random()*1000)}`, []);
-  if (!sessionStorage.getItem('dbk-guest-name')) sessionStorage.setItem('dbk-guest-name', guestIdCheck);
-  const defaultName = fbUser?.email?.split('@')[0] || guestIdCheck;
-  const myName = customName || defaultName;
-
-  const { connected, coopState, lockPick, forceResolve } = useCoopRoom(
-    roomCode, myName, activeMatch, applyServerState, serialized
-  );
-
-  const pick = (w: Movie) => {
-    if (connected && roomCode) {
-      lockPick(w.seed);
-    } else {
-      rawPick(w);
-    }
-  };
-
-  const handleResolve = (winner: Movie) => {
-    forceResolve(winner.seed);
-    rawPick(winner);
-  };
-
   const { movieMeta, updateSingleMeta } = useMovieMeta();
 
   const m64 = [...MAIN, ...playInMatches.map(m => m.winner).filter((w): w is Movie => !!w)];
@@ -107,8 +78,6 @@ export default function App() {
              onClose={() => setShowMobileMenu(false)}
              showFullBracket={showFullBracket} setShowFullBracket={setShowFullBracket}
              showNotes={showNotes} setShowNotes={setShowNotes}
-             customName={customName} setCustomName={setCustomName}
-             defaultName={defaultName} roomCode={roomCode} connected={connected}
              onReset={handleReset} 
              fbUser={fbUser} syncStatus={syncStatus} onSignInClick={() => setShowAuthModal(true)}
           />
@@ -152,17 +121,9 @@ export default function App() {
                 mob={mob} bracket={bracketState} hoveredSeed={hoveredSeed} setHoveredSeed={setHoveredSeed}
                 copiedLink={copiedLink} showBracketPanel={showBracketPanel} notes={notes} movieMeta={movieMeta}
                 updateNote={updateNote} pick={pick} reset={handleReset} copyLink={copyLink} onFixMovie={setFixingMovie}
-                partnerVoted={connected ? !!coopState.theirPick : false} partnerName={connected ? coopState.theirName : undefined}
               />
             ) : null}
             
-           {connected && activeMatch && (coopState.myPick || coopState.theirPick) && (
-             <RevealModal
-                myPick={coopState.myPick} theirPick={coopState.theirPick} myName={myName} theirName={coopState.theirName}
-                players={[activeMatch.players[0], activeMatch.players[1]] as [Movie, Movie]}
-                movieMeta={movieMeta} onResolve={handleResolve} onCancel={() => forceResolve(0)}
-             />
-           )}
         </main>
 
         {/* Bottom Nav */}
@@ -306,120 +267,6 @@ export default function App() {
             {showNotes ? "Hide Notes" : "📝 Notes"}
           </button>
           
-          <div className="flex items-center" style={{ margin: mob ? "0" : "0 4px", flexShrink: 0 }}>
-             <input
-               type="text"
-               placeholder={defaultName}
-               value={customName}
-               onChange={(e) => {
-                  const val = e.target.value.trimStart();
-                  setCustomName(val);
-                  localStorage.setItem('dbk-custom-name', val);
-               }}
-               maxLength={12}
-               style={{
-                 background: mob ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.02)",
-                 border: mob ? "1px solid rgba(255,255,255,.1)" : "1px dashed rgba(255,255,255,.15)",
-                 color: customName ? "#fff" : (mob ? "#d0d0e8" : "#8a8aae"),
-                 padding: mob ? "8px 14px" : "6px 14px",
-                 borderRadius: 10,
-                 fontSize: mob ? 13 : 12,
-                 fontWeight: 600,
-                 letterSpacing: 0.5,
-                 outline: "none",
-                 width: "120px",
-                 minHeight: mob ? 40 : undefined,
-                 textAlign: "center",
-                 transition: "all 0.2s",
-               }}
-               title="Set your display name for Co-op!"
-               onFocus={(e) => { e.currentTarget.style.border = "1px solid #ce93d8"; e.currentTarget.style.background = "rgba(206,147,216,0.1)"; }}
-               onBlur={(e) => { e.currentTarget.style.border = mob ? "1px solid rgba(255,255,255,.1)" : "1px dashed rgba(255,255,255,.15)"; e.currentTarget.style.background = mob ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.02)"; }}
-             />
-          </div>
-          
-          {!roomCode ? (
-            <>
-              <button
-                className={mob ? "mob-btn" : ""}
-                onClick={() => {
-                   const prefixes = ["BAMB", "SIMB", "HERC", "ARI", "WDW", "TINK", "BUZZ", "NEMO", "MULA", "CRUZ", "OAK", "DPOO", "GENI", "PLUT"];
-                   const pre = prefixes[Math.floor(Math.random() * prefixes.length)];
-                   const num = Math.floor(Math.random() * 89) + 10;
-                   const code = `${pre}-${num}`;
-                   window.location.search = `?room=${code}`;
-                }}
-                style={{
-                  background: "rgba(255,255,255,.04)",
-                  border: "1px solid rgba(255,255,255,.08)",
-                  color: "#8a8aae",
-                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
-                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 40 : undefined,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}
-              >
-                🎮 Create Room
-              </button>
-              <button
-                className={mob ? "mob-btn" : ""}
-                onClick={() => {
-                   const code = window.prompt("Enter room code:");
-                   if (code && code.trim()) {
-                     window.location.search = `?room=${code.trim().toUpperCase()}`;
-                   }
-                }}
-                style={{
-                  background: "rgba(255,255,255,.04)",
-                  border: "1px solid rgba(255,255,255,.08)",
-                  color: "#8a8aae",
-                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
-                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 40 : undefined,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}
-              >
-                🤝 Join Room
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                className={mob ? "mob-btn" : ""}
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href).then(() => {
-                    alert("Copied room link to clipboard!");
-                  });
-                }}
-                style={{
-                  background: "rgba(79, 195, 247, 0.2)",
-                  border: "1px solid #4fc3f7",
-                  color: "#fff",
-                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
-                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 40 : undefined,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}
-              >
-                {connected ? `🟢 Room: ${roomCode} 📋` : `🟡 Room: ${roomCode} 📋`}
-              </button>
-              <button
-                 className={mob ? "mob-btn" : ""}
-                 onClick={() => { window.location.search = ''; }}
-                 style={{
-                  background: "rgba(255,255,255,.04)",
-                  border: "1px solid rgba(255,255,255,.08)",
-                  color: "#8a8aae",
-                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
-                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 40 : undefined,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}
-              >
-                ✖ Leave
-              </button>
-            </>
-          )}
         </div>
 
         {showNotes && <NotesPanel mob={mob} notes={notes} updateNote={updateNote}/>}
@@ -469,23 +316,9 @@ export default function App() {
             reset={handleReset}
             copyLink={copyLink}
             onFixMovie={setFixingMovie}
-            partnerVoted={connected ? !!coopState.theirPick : false}
-            partnerName={connected ? coopState.theirName : undefined}
           />
         ) : null}
 
-        {connected && activeMatch && (coopState.myPick || coopState.theirPick) && (
-          <RevealModal
-            myPick={coopState.myPick}
-            theirPick={coopState.theirPick}
-            myName={myName}
-            theirName={coopState.theirName}
-            players={[activeMatch.players[0], activeMatch.players[1]] as [Movie, Movie]}
-            movieMeta={movieMeta}
-            onResolve={handleResolve}
-            onCancel={() => forceResolve(0)}
-          />
-        )}
       </div>
     </div>
   );

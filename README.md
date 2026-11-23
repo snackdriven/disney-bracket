@@ -40,11 +40,11 @@ Did you know Toy Story 2 was almost entirely deleted by accident and only surviv
 
 ---
 
-## Play together
+## Save your bracket
 
 Sign in with Google to sync your bracket across devices. This is not a one-session experience, and anyone who tells you they finished it in one sitting is lying or didn't think hard enough.
 
-Create a room code and invite a friend to play through Firebase Realtime Database. Each player locks in a pick before the app reveals both choices. If you disagree, work it out.
+**Co-op retirement edit by Codex (GPT-6 AI agent), November 23, 2026:** Room co-op is retired in this client. Old room links show a notice before loading a bracket or connecting to Firebase. Continue explicitly to use this device’s saved bracket; the room hash is not imported automatically. A recovery link is saved locally when storage permits. Existing room records, local backups, and personal cloud records are not deleted. Older open clients may still use rooms; backend access has not been shut down.
 
 Solo play works without signing in. Your bracket saves in this browser until you clear its site storage; signing out does not clear the local copy.
 
@@ -77,7 +77,7 @@ npm run test:e2e  # Playwright browser tests
 Unit tests cover the core bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips, and notes init logic.
 
 > [!NOTE]
-> **Browser tests are paused in CI** while the suite is updated for Firebase and co-op play. The existing suite includes the 69-pick flow; it does not establish coverage of the new co-op behavior. Deployment runs source and E2E type checks, Vitest, and the production build, but does not run Playwright.
+> **Browser tests are paused in CI** while the suite is updated for Firebase. The existing auth browser tests still include obsolete Supabase assumptions. Focused retirement browser tests cover the legacy-link gate and explicit solo continuation; they do not establish live authenticated cloud behavior. Deployment runs source and E2E type checks, Vitest, and the production build, but does not run Playwright.
 
 ## Commits and releases
 

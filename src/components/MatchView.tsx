@@ -18,8 +18,6 @@ interface MatchViewProps {
   reset: () => void;
   copyLink: () => void;
   onFixMovie: (m: Movie) => void;
-  partnerVoted?: boolean;
-  partnerName?: string;
 }
 
 export function MatchView({
@@ -27,7 +25,6 @@ export function MatchView({
   copiedLink, showBracketPanel,
   notes, movieMeta, updateNote,
   pick, reset, copyLink, onFixMovie,
-  partnerVoted, partnerName,
 }: MatchViewProps) {
   const {
     phase, isPlayIn, playInIndex, currentRound, currentMatch,
@@ -47,12 +44,6 @@ export function MatchView({
           style={{ marginBottom: mob ? 8 : 16, fontSize: mob ? 12 : 13 }}
         >
           Match {matchNumber} of {matchTotal}
-        </div>
-      )}
-
-      {partnerVoted && partnerName && (
-        <div className="text-center text-[#ce93d8] font-bold uppercase tracking-[1px] animate-pulse" style={{ fontSize: 11, marginBottom: 12 }}>
-          ✓ {partnerName} is waiting for you!
         </div>
       )}
 
