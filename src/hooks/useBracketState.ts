@@ -12,9 +12,14 @@ interface RerollPreview {
   generation: number;
 }
 
+function authCallbackHash() {
+  const hash = new URLSearchParams(window.location.hash.slice(1));
+  return ['access_token', 'token_hash', 'id_token', 'code', 'error', 'error_description'].some(key => hash.has(key));
+}
+
 function initialState() {
   const hash = window.location.hash.slice(1);
-  if (hash && !hash.includes('access_token') && !hash.includes('token_hash')) {
+  if (hash && !authCallbackHash()) {
     try {
       const state = parseBracketState(JSON.parse(atob(hash)));
       if (state) return { state, error: null, rejected: null };
@@ -80,7 +85,7 @@ export function useBracketState() {
     if (restoreError) return;
     try { localStorage.setItem('dbk-state', JSON.stringify(serialized)); }
     catch { queueMicrotask(() => setRestoreError('This device could not save your bracket. Export a recovery copy before closing this page.')); }
-    const hashHasAuth = window.location.hash.includes('access_token') || window.location.hash.includes('token_hash');
+    const hashHasAuth = authCallbackHash();
     if (hashHasAuth) return;
     try {
       const encoded = btoa(JSON.stringify(serialized));
@@ -195,9 +200,9 @@ export function useBracketState() {
   };
   const confirmRerollPreview = () => {
     const preview = previewRef.current;
-    if (!preview || preview.generation !== generation.current || roomPresent() || restoreError) return;
+    if (!preview || preview.generation !== generation.current || roomPresent() || restoreError) return false;
     const next = applySweet16Reroll(stateRef.current, preview.matches);
-    if (next === stateRef.current) return;
+    if (next === stateRef.current) return false;
     if (preview.removedPickCount > 0) {
       try {
         localStorage.setItem('dbk-pre-reroll', JSON.stringify({
@@ -206,11 +211,12 @@ export function useBracketState() {
         setHasRerollBackup(true);
       } catch {
         setRerollError('The recovery backup could not be saved. Your existing bracket has not changed. Free storage or export it and try again.');
-        return;
+        return false;
       }
     }
     applyState(next);
     setRerollError(null);
+    return true;
   };
 
   const { phase, playInMatches, playInIndex, rounds, currentRound, currentMatch, champion, history, sweet16Rerolled } = state;

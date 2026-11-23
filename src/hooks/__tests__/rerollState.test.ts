@@ -123,4 +123,11 @@ describe('reroll state lifecycle', () => {
     act(() => result.current.openRerollPreview());
     expect(result.current.rerollPreview).toBeNull();
   });
+
+  it.each(['access_token=secret', 'token_hash=secret', 'id_token=secret', 'code=auth-code', 'error=access_denied'])('does not overwrite an auth callback fragment: %s', (hash) => {
+    localStorage.setItem('dbk-state', JSON.stringify(fixture(54)));
+    window.location.hash = hash;
+    renderHook(() => useBracketState());
+    expect(window.location.hash).toBe('#' + hash);
+  });
 });

@@ -60,6 +60,43 @@ function serializeState(s: ReturnType<typeof resetState>) {
   });
 }
 
+describe('App — Sweet 16 reroll', () => {
+  function completedBracket() {
+    let state = resetState();
+    while (!state.champion) {
+      const match = state.phase === 'pi' ? state.playInMatches[state.playInIndex] : state.rounds[state.currentRound][state.currentMatch];
+      state = applyPick(state, match.players[0]);
+    }
+    return state;
+  }
+
+  it('can preview, cancel, and confirm a restart from the champion screen', async () => {
+    const state = completedBracket();
+    localStorage.setItem('dbk-state', serializeState(state));
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Reroll Sweet 16' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem('dbk-state')!).champion).toEqual(state.champion);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByTestId('champion-label')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reroll Sweet 16' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply reroll & restart Sweet 16' }));
+    expect(screen.queryByTestId('champion-label')).not.toBeInTheDocument();
+    expect(screen.getByText('54/69 decided')).toBeInTheDocument();
+    expect(screen.getByTestId('round-label')).toHaveTextContent(/^Sweet 16$/);
+    expect(screen.getByRole('status')).toHaveTextContent(/rerolled/i);
+    expect(screen.getByRole('button', { name: /export previous bracket/i })).toBeInTheDocument();
+  });
+
+  it('offers recovery and pauses cloud saving when the stored bracket cannot be parsed', () => {
+    localStorage.setItem('dbk-state', '{bad saved data');
+    render(<App />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/saving is paused/i);
+    expect(screen.getByRole('button', { name: /export recovery copy/i })).toBeInTheDocument();
+    expect(localStorage.getItem('dbk-state')).toBe('{bad saved data');
+  });
+});
+
 beforeEach(() => {
   localStorage.clear();
   window.location.hash = '';

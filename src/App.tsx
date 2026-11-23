@@ -17,6 +17,7 @@ import { FixMetaModal } from './components/FixMetaModal.js';
 
 import { ChampionScreen } from './components/ChampionScreen.js';
 import { MobileMenuModal } from './components/MobileMenuModal.js';
+import { Sweet16RerollModal } from './components/Sweet16RerollModal.js';
 import type { Movie } from './types.js';
 
 export default function App() {
@@ -39,8 +40,10 @@ export default function App() {
   const [showFullBracket, setShowFullBracket] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [fixingMovie, setFixingMovie] = useState<Movie | null>(null);
+  const [rerollNotice, setRerollNotice] = useState('');
+  const [downloadError, setDownloadError] = useState('');
 
-  const { copiedLink, copiedBracket, copyLink, copyBracket } = useShareClipboard(playInMatches, rounds, champion);
+  const { copiedLink, copiedBracket, copyLink, copyBracket, shareError } = useShareClipboard(playInMatches, rounds, champion, serialized);
 
   const handleSignOut = async () => {
     await forcePush();
@@ -68,9 +71,51 @@ export default function App() {
 
   const m64 = [...MAIN, ...playInMatches.map(m => m.winner).filter((w): w is Movie => !!w)];
 
+  const exportRecovery = (previous: boolean) => {
+    try {
+      const raw = previous ? localStorage.getItem('dbk-pre-reroll') : bracketState.rejectedSave || JSON.stringify({ bracket: serialized, notes });
+      if (!raw) throw new Error('No recovery copy is available.');
+      const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = previous ? 'disney-bracket-before-reroll.json' : 'disney-bracket-recovery.json';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setDownloadError('');
+    } catch { setDownloadError('The recovery download could not be created. Keep this page open and try again.'); }
+  };
+  const rerollControls = (
+    <div className="shrink-0 px-[16px] py-[8px] text-center text-[13px]">
+      {bracketState.restoreError && <div role="alert" className="mb-[8px] rounded-[10px] border border-[#ffb4a8]/30 p-[12px] text-[#ffb4a8]">
+        <p>{bracketState.restoreError}</p>
+        <button className="min-h-[44px] underline" onClick={() => exportRecovery(false)}>Export recovery copy</button>
+        <button className="ml-[12px] min-h-[44px] underline" onClick={handleReset}>Reset after keeping recovery</button>
+      </div>}
+      {bracketState.canRerollSweet16 && <button
+        className="min-h-[44px] rounded-[10px] border border-[#ce93d8]/30 bg-[#ce93d8]/10 px-[16px] py-[10px] font-semibold text-[#dfb7e5] disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4fc3f7]"
+        disabled={!!bracketState.animatingSeed} onClick={() => { setRerollNotice(''); bracketState.openRerollPreview(); }}>
+        Reroll Sweet 16
+      </button>}
+      {bracketState.hasRerollBackup && <button className="ml-[12px] min-h-[44px] text-[#b8b8d0] underline" onClick={() => exportRecovery(true)}>Export previous bracket</button>}
+      {rerollNotice && <p role="status" className="mt-[8px] text-[#b6eaff]">{rerollNotice}</p>}
+      {downloadError && <p role="alert" className="mt-[8px] text-[#ffb4a8]">{downloadError}</p>}
+      {shareError && <p role="alert" className="mt-[8px] text-[#ffb4a8]">{shareError} <button className="min-h-[44px] underline" onClick={() => exportRecovery(false)}>Download current bracket</button></p>}
+    </div>
+  );
+  const rerollModal = bracketState.rerollPreview && <Sweet16RerollModal
+    {...bracketState.rerollPreview} pending={bracketState.rerollPending} error={bracketState.rerollError}
+    onShuffle={bracketState.shuffleRerollPreview} onCancel={bracketState.cancelRerollPreview}
+    onConfirm={() => {
+      if (bracketState.confirmRerollPreview()) {
+        setShowFullBracket(false); setShowNotes(false);
+        setRerollNotice('Sweet 16 rerolled. Your Round of 32 winners and earlier choices are saved.');
+      }
+    }} />;
+
   if (mob) {
     return (
       <div className="h-[100dvh] flex flex-col font-[Inter,sans-serif] text-[#e0e0f0] bg-[#06060f] overflow-hidden relative">
+        {rerollModal}
         {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)}/>}
         {fixingMovie && <FixMetaModal mob={mob} movie={fixingMovie} onClose={() => setFixingMovie(null)} onSave={updateSingleMeta} />}
         {showMobileMenu && (
@@ -105,9 +150,10 @@ export default function App() {
            </div>
         </header>
 
+        {rerollControls}
         <main className="flex-1 relative flex flex-col overflow-y-auto w-full">
            {showNotes ? <NotesPanel mob={mob} notes={notes} updateNote={updateNote}/> :
-            showFullBracket ? <FullBracket mob={mob} playInMatches={playInMatches} rounds={rounds} pool64={m64} currentRound={currentRound} currentMatch={currentMatch} isPlayIn={isPlayIn} upsets={upsets}/> :
+            showFullBracket ? <FullBracket mob={mob} sweet16Rerolled={bracketState.sweet16Rerolled} playInMatches={playInMatches} rounds={rounds} pool64={m64} currentRound={currentRound} currentMatch={currentMatch} isPlayIn={isPlayIn} upsets={upsets}/> :
             champion ? (
               <ChampionScreen
                 mob={mob} champion={champion} upsets={upsets} copiedLink={copiedLink} copiedBracket={copiedBracket}
@@ -146,6 +192,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen relative z-[9999] font-[Inter,sans-serif] text-[#e0e0f0]">
+      {rerollModal}
       <a
         href="#main-content"
         onFocus={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
@@ -221,6 +268,7 @@ export default function App() {
           onSignInClick={() => setShowAuthModal(true)}
           onSignOutClick={handleSignOut}
         />
+        {rerollControls}
 
         {/* Full Bracket + Notes toggles */}
         <div
@@ -271,7 +319,7 @@ export default function App() {
 
         {showNotes && <NotesPanel mob={mob} notes={notes} updateNote={updateNote}/>}
 
-        {showFullBracket && <FullBracket mob={mob} playInMatches={playInMatches} rounds={rounds} pool64={m64} currentRound={currentRound} currentMatch={currentMatch} isPlayIn={isPlayIn} upsets={upsets}/>}
+        {showFullBracket && <FullBracket mob={mob} sweet16Rerolled={bracketState.sweet16Rerolled} playInMatches={playInMatches} rounds={rounds} pool64={m64} currentRound={currentRound} currentMatch={currentMatch} isPlayIn={isPlayIn} upsets={upsets}/>}
 
         {/* Play-In badge */}
         {isPlayIn && (
