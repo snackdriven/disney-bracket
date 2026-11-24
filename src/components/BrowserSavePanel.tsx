@@ -58,7 +58,7 @@ export function BrowserSavePanel({ current, blocked, onImport }: {
           else setError('Import could not complete. Existing browser data has been kept.');
         }}>Import {label.toLowerCase()}</button>
       </div>)}
-      <p>Import replaces the active bracket and notes. A recovery copy is kept first; cloud differences require a separate choice.</p>
+      <p>Import replaces the active bracket and notes. A recovery copy is kept first. Cloud sync may upload the imported copy; changed cloud work requires a separate choice.</p>
     </div>}
   </section>;
 }
