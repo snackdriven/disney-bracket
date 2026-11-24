@@ -12,7 +12,10 @@ module.exports = async ({ github, context, core }) => {
   for (const run of data.workflow_runs) {
     if (run.event !== 'pull_request' || run.conclusion !== 'success' || run.head_sha !== pr.head.sha
       || run.head_repository?.full_name !== `${repo.owner}/${repo.repo}`
-      || !run.pull_requests?.some(p => p.number === pr.number)) continue;
+      // GitHub clears this run field after merge. The merged-commit PR lookup above
+      // plus exact head SHA/repository/workflow still establish provenance.
+      || !Array.isArray(run.pull_requests)
+      || (run.pull_requests.length && !run.pull_requests.some(p => p.number === pr.number))) continue;
     const artifacts = await github.actions.listWorkflowRunArtifacts({ ...repo, run_id: run.id });
     if (artifacts.data.artifacts.some(a => a.name === 'verified-site' && !a.expired)) {
       core.setOutput('run-id', String(run.id));
