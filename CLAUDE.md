@@ -75,12 +75,9 @@ disney-bracket/
 ├── src/__tests__/
 │   └── App.test.tsx          # Integration tests (React Testing Library)
 ├── e2e/
-│   ├── auth.spec.js          # Auth modal, session injection
-│   ├── bracket.spec.js       # Pick flow, undo, reset, progress
-│   ├── exports.spec.js       # Share URL, text export
-│   ├── notes.spec.js         # Card notes, global notes panel
-│   ├── persistence.spec.js   # localStorage, URL hash, share links
-│   └── helpers.js            # Shared Playwright utilities
+│   ├── critical.spec.ts     # Three P0/P1 user flows
+│   ├── security.spec.ts     # Two P0 browser security boundaries
+│   └── fixtures.ts          # Shared deterministic browser fixtures
 ├── supabase/                 # Supabase config and migrations
 ├── public/                   # Static assets
 ├── .github/workflows/
@@ -102,8 +99,8 @@ npm run dev           # Start dev server (Vite)
 npm run build         # Production build (output: dist/)
 npm run lint          # Run ESLint
 npm run preview       # Preview production build locally
-npm test              # Run 73 Vitest unit tests
-npm run test:e2e      # Run 27 Playwright E2E tests (requires dev server or auto-starts it)
+npm test              # Critical P0/P1 gate: API contracts plus Playwright TypeScript
+npm run test:e2e      # Five critical browser cases on desktop and mobile
 ```
 
 ## Architecture
@@ -186,36 +183,18 @@ Firebase Auth uses Google popup sign-in. `useFirebaseSync` owns personal `users/
 
 ## Testing
 
-### Unit tests (Vitest)
+Testing edit by Codex (GPT-6 AI agent), November 23, 2026.
 
-73 tests across 8 files.
+Keep the required gate small: nine P0/P1 cases. `npm test` runs three Firebase client API contracts and one account-isolation contract in Vitest, followed by three UI flows and two browser-security cases in Playwright TypeScript. Browser cases run on desktop Chromium and Pixel 5. See README for the coverage matrix.
 
-```bash
-npm test
-```
+- `npm run test:api`: cloud hydration/notes, write confirmation/failure, concurrent-save conflicts.
+- `npm run test:security`: account isolation/denied reads plus unsafe save/import and legacy-room credential/network boundaries.
+- `npm run test:e2e`: only `e2e/critical.spec.ts` and `e2e/security.spec.ts`.
+- `npm run test:unit`: optional original unit/integration coverage, outside the required critical gate.
 
-- `src/lib/__tests__/bracket.test.ts` — State transitions, upset detection, play-in → R64 handoff, undo across phase boundaries, seed-based pick validation
-- `src/lib/__tests__/canvas.test.ts` — drawBracket smoke test (does not throw on post-playin state)
-- `src/lib/__tests__/data.test.ts` — Data integrity (seed uniqueness, required fields, STATIC_META completeness)
-- `src/lib/__tests__/utils.test.ts` — Serialization roundtrips, localStorage helpers
-- `src/hooks/__tests__/useBracketState.test.ts` — Hook integration: state restoration, pick/undo/reset
-- `src/hooks/__tests__/useNotes.test.ts` — Notes init, save, clear
-- `src/components/__tests__/BV.test.tsx` — Bracket visualizer: winner display, upset highlighting
-- `src/__tests__/App.test.tsx` — Integration tests via React Testing Library (14 tests)
+API contract tests use an in-memory Firebase SDK boundary, not production credentials or deployed authorization rules. Never describe a mock pass as live Google-session or cross-device proof. Add tests for concrete P0/P1 failure modes; do not restore cosmetic snapshots, stale Supabase fixtures, or duplicate component checks by default.
 
-### E2E tests (Playwright)
-
-27 test cases in `e2e/`, run against Chromium and Pixel 5 (mobile). Viewport: 1920×1080 on desktop.
-
-```bash
-npm run test:e2e
-```
-
-Coverage areas: full 69-pick flow, undo/reset, progress bar, auth modal open/close/escape, injected session behavior, sync network request on pick, localStorage persistence across reload, URL hash share links, text export, notes (card-level and global panel).
-
-### CI
-
-Deployment currently runs source and E2E TypeScript checks, Vitest, and build. Playwright browser execution is paused in CI; run focused browser checks locally and report live auth/cloud verification separately.
+CI runs the critical suite and source/E2E typechecks and build on PRs and main pushes. It installs Chromium explicitly. Deployment and Pages write permissions are limited to the main-push deploy job.
 
 ## Code Conventions
 
@@ -233,8 +212,8 @@ Deployment currently runs source and E2E TypeScript checks, Vitest, and build. P
 
 Push to `main` → GitHub Actions:
 1. `npm ci`
-2. `npm test` (unit tests)
-3. TypeScript checks for source and E2E tests (Playwright execution is paused)
+2. `npm test` (critical API/security/browser gate)
+3. TypeScript checks for source and E2E tests
 4. `npm run build`
 5. Deploy `dist/` to GitHub Pages
 
