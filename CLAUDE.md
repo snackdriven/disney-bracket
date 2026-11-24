@@ -194,7 +194,7 @@ Keep the required gate small: eleven P0/P1 cases. `npm test` runs four Firebase 
 
 API contract tests use an in-memory Firebase SDK boundary, not production credentials or deployed authorization rules. Never describe a mock pass as live Google-session or cross-device proof. Add tests for concrete P0/P1 failure modes; do not restore cosmetic snapshots, stale Supabase fixtures, or duplicate component checks by default.
 
-CI runs the critical suite and source/E2E typechecks and build on PRs and main pushes. It installs Chromium explicitly. Deployment and Pages write permissions are limited to the main-push deploy job.
+CI runs the critical suite and source/E2E typechecks and build on PRs using the pinned Playwright image, avoiding repeated browser/OS setup. Main pushes reuse a successful same-repository PR artifact only after a successful download and exact Git tree match; all other cases run the full gate. Keep the image version aligned with the package lock. Three fast Node provenance checks guard artifact selection. Deployment and Pages write permissions are limited to the main-push deploy job.
 
 ## Code Conventions
 
@@ -210,12 +210,14 @@ CI runs the critical suite and source/E2E typechecks and build on PRs and main p
 
 ## Deployment
 
-Push to `main` → GitHub Actions:
+PR validation, or a push without an eligible exact-tree artifact → GitHub Actions:
 1. `npm ci`
 2. `npm test` (critical API/security/browser gate)
 3. TypeScript checks for source and E2E tests
 4. `npm run build`
 5. Deploy `dist/` to GitHub Pages
+
+PR builds retain a verified-site artifact without deployment privileges. A main merge can reuse its checked `dist/` only after exact source-tree validation; otherwise all checks run again. Only main pushes deploy.
 
 Vite config sets `base: '/disney-bracket/'` for correct asset paths.
 

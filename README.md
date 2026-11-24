@@ -86,7 +86,9 @@ npm run test:unit               # optional original unit/integration suite
 
 The API contracts use the real sync hook and an in-memory Firebase SDK boundary. They do **not** prove deployed Firebase authorization rules or live Google login/cross-device persistence. Browser security checks use synthetic local fixtures; they do not probe personal cloud data.
 
-Pull requests run the critical gate plus source/E2E typechecks and build. Only a push to `main` deploys to Pages; PR jobs do not receive deployment permissions.
+Pull requests run the critical gate plus source/E2E typechecks and build, using a pinned Playwright image with browsers and OS dependencies preinstalled. When updating the locked Playwright version, update the matching image/version guard in the workflow.
+
+Only a push to `main` deploys to Pages; PR jobs do not receive deployment permissions. A merge reuses a successful same-repository PR build only after its downloaded artifact's Git source tree matches `main` exactly. Missing/expired artifacts, download failures, changed trees, and direct pushes fall back to full validation. The three fast Node provenance checks protect this CI optimization; they are separate from the eleven app P0/P1 cases.
 
 ### Browser saves and Firebase rules
 
