@@ -13,6 +13,7 @@ interface SyncProps {
   notes: Notes;
   onPull: (state: unknown, notes: unknown) => boolean | void;
   enabled?: boolean;
+  hasLocalEdits?: () => boolean;
 }
 
 /** Compare the RTDB representation: empty children disappear and object ordering is immaterial. */
@@ -68,7 +69,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Cloud save failed. Please retry.';
 }
 
-export function useFirebaseSync({ serialized, notes, onPull, enabled = true }: SyncProps) {
+export function useFirebaseSync({ serialized, notes, onPull, enabled = true, hasLocalEdits }: SyncProps) {
   const [fbUser, setFbUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [syncReady, setSyncReady] = useState(false);
@@ -78,13 +79,13 @@ export function useFirebaseSync({ serialized, notes, onPull, enabled = true }: S
   const [syncRecovery, setSyncRecovery] = useState<SyncConflict | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [retryAttempt, setRetryAttempt] = useState(0);
-  const latest = useRef({ save: { state: serialized, notes }, onPull, enabled });
+  const latest = useRef({ save: { state: serialized, notes }, onPull, enabled, hasLocalEdits });
   const session = useRef({ uid: null as string | null, generation: 0, ready: false,
     base: null as CloudSave | null, pending: null as CloudSave | null, conflict: null as SyncConflict | null });
   const localOwner = useRef(readOwner());
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useLayoutEffect(() => { latest.current = { save: { state: serialized, notes }, onPull, enabled }; });
+  useLayoutEffect(() => { latest.current = { save: { state: serialized, notes }, onPull, enabled, hasLocalEdits }; });
 
   const confirm = useCallback((uid: string, save: CloudSave) => {
     session.current.base = save;
@@ -186,7 +187,12 @@ export function useFirebaseSync({ serialized, notes, onPull, enabled = true }: S
         const sameLocal = fingerprint(local) === fingerprint(remote);
         const sameBase = base !== null && fingerprint(local) === fingerprint(base);
         const unchangedRemote = base !== null && fingerprint(remote) === fingerprint(base);
-        if (sameLocal || (!foreignDraft && (sameBase || (firstRead && pristine(local))))) {
+        if (!sameLocal && latest.current.hasLocalEdits?.() && !unchangedRemote) {
+          firstRead = false;
+          showConflict(remote);
+          return;
+        }
+        if (sameLocal || (!foreignDraft && (sameBase || (firstRead && !base && pristine(local) && !latest.current.hasLocalEdits?.())))) {
           if (!sameLocal && !applyRemote(remote)) return;
           confirm(user.uid, remote);
         } else if (!foreignDraft && unchangedRemote) {

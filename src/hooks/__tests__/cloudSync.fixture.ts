@@ -1,6 +1,6 @@
 import { applyPick, resetState } from '../../lib/bracket';
 import { serializeBracketState } from '../../lib/bracketSerialization';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 import type { User } from 'firebase/auth';
@@ -55,14 +55,16 @@ export function harness(state: object = empty, notes: Notes = {}, enabled = true
   return renderHook(({ syncEnabled }) => {
     const [serialized, setSerialized] = useState(state);
     const [currentNotes, setNotes] = useState(notes);
+    const edited = useRef(false);
     const sync = useFirebaseSync({
       serialized, notes: currentNotes, enabled: syncEnabled,
+      hasLocalEdits: () => edited.current,
       onPull: (next, nextNotes) => {
         setSerialized(next as object);
         setNotes(nextNotes as Notes);
       },
     });
-    return { ...sync, serialized, notes: currentNotes, setSerialized, setNotes };
+    return { ...sync, serialized, notes: currentNotes, setSerialized, setNotes, markEdited: () => { edited.current = true; } };
   }, { initialProps: { syncEnabled: enabled } });
 }
 

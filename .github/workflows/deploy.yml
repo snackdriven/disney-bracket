@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  pull-requests: read
 
 concurrency:
   group: pages-${{ github.event.pull_request.number || github.ref }}
@@ -16,23 +18,86 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    # Match package-lock.json. Browsers and OS dependencies are already installed.
+    container: mcr.microsoft.com/playwright:v1.58.2-noble
+    defaults:
+      run:
+        shell: bash
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      PLAYWRIGHT_IMAGE_VERSION: 1.58.2
     steps:
       - uses: actions/checkout@v4
+      - name: Check verified-build provenance boundaries
+        run: node --test .github/tests/verified-build.check.cjs
+      - name: Find a checked build for this merge
+        id: candidate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await require('./.github/scripts/find-verified-build.cjs')({ github, context, core });
+            } catch (error) {
+              core.info(`Verified build unavailable; run full validation: ${error.message}`);
+            }
+      - name: Download candidate verified site
+        if: steps.candidate.outputs.run-id != ''
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: verified-site
+          path: .verified
+          run-id: ${{ steps.candidate.outputs.run-id }}
+          github-token: ${{ github.token }}
+      - name: Require an exact source tree match
+        id: verified
+        run: |
+          if [[ '${{ steps.download.outcome }}' == 'success' && -f .verified/tree.txt && -f .verified/dist/index.html && "$(cat .verified/tree.txt)" == "$(git -c safe.directory="$GITHUB_WORKSPACE" rev-parse 'HEAD^{tree}')" ]]; then
+            mkdir -p dist
+            cp -R .verified/dist/. dist/
+            echo 'reuse=true' >> "$GITHUB_OUTPUT"
+            echo 'Deploying the exact source tree already checked on the pull request.'
+          else
+            echo 'No matching verified artifact; running all critical checks.'
+          fi
       - uses: actions/setup-node@v4
+        if: steps.verified.outputs.reuse != 'true'
         with:
           node-version: 20
           cache: npm
       - run: npm ci
+        if: steps.verified.outputs.reuse != 'true'
+      - name: Verify Playwright image matches the locked test runner
+        if: steps.verified.outputs.reuse != 'true'
+        run: node -e "require('node:assert/strict').equal(require('@playwright/test/package.json').version, process.env.PLAYWRIGHT_IMAGE_VERSION, 'Update the Playwright container when updating the test runner')"
       - name: Type-check source
+        if: steps.verified.outputs.reuse != 'true'
         run: npx tsc --noEmit
       - name: Type-check e2e tests
+        if: steps.verified.outputs.reuse != 'true'
         run: npx tsc --noEmit --project e2e/tsconfig.json
-      - name: Install Chromium for critical browser checks
-        run: npx playwright install --with-deps chromium
       - name: Run P0 and P1 API, security, and browser checks
+        if: steps.verified.outputs.reuse != 'true'
         run: npm test
       - run: npm run build
+        if: steps.verified.outputs.reuse != 'true'
+      - name: Package checked site for an exact-tree deployment
+        if: github.event_name == 'pull_request'
+        run: |
+          mkdir -p .verified
+          cp -R dist .verified/dist
+          git -c safe.directory="$GITHUB_WORKSPACE" rev-parse 'HEAD^{tree}' > .verified/tree.txt
+      - name: Retain checked pull request build
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-site
+          path: .verified/
+          include-hidden-files: true
+          retention-days: 7
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           path: dist
 

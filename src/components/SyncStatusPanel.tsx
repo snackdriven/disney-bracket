@@ -8,6 +8,7 @@ export interface SyncStatusPanelProps {
   syncError: string | null;
   syncConflict: SyncConflict | null;
   syncRecovery?: SyncConflict | null;
+  localTransitionPending?: boolean;
   retrySync: () => void;
   resolveSyncConflict: (choice: 'local' | 'cloud') => Promise<boolean>;
 }
@@ -22,13 +23,13 @@ function describeSave(label: string, save: CloudSave): string {
 
 export function SyncStatusPanel({
   authReady, signedIn, syncReady, syncStatus, syncError, syncConflict, syncRecovery,
-  retrySync, resolveSyncConflict,
+  retrySync, resolveSyncConflict, localTransitionPending = false,
 }: SyncStatusPanelProps) {
   const panelClass = 'my-[12px] rounded-[12px] border border-white/10 bg-[#12122a] p-[14px] text-[13px] text-[#b8b8d0]';
   const buttonClass = 'min-h-[44px] rounded-[8px] border border-white/15 px-[12px] py-[8px] font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4fc3f7] disabled:opacity-50';
-  if (!authReady) return <div role="status" className={panelClass}>Checking sign-in…</div>;
+  if (!authReady) return <div role="status" className={panelClass}>Saving in this browser. Checking sign-in… You can keep playing.</div>;
   if (!signedIn) return null;
-  const pending = syncStatus === 'syncing';
+  const pending = syncStatus === 'syncing' || localTransitionPending;
   return (
     <>
       {syncConflict ? (
@@ -45,11 +46,12 @@ export function SyncStatusPanel({
           {pending && <p role="status">Saving your choice…</p>}
         </section>
       ) : !syncReady && !syncError ? (
-        <div role="status" className={panelClass}>Loading your saved bracket… Your local choices will not be uploaded until loading finishes.</div>
+        <div role="status" className={panelClass}>Saving in this browser while cloud sync loads. You can keep playing; cloud changes will be checked before syncing.</div>
       ) : null}
       {syncError && (
         <div role="alert" className={panelClass}>
           <p className="mt-0 text-[#ffb8a0]">Cloud save needs attention: {syncError}</p>
+          <p>Browser saving stays active. You can keep playing here and retry cloud sync later.</p>
           <button type="button" className={buttonClass} onClick={retrySync}>Retry cloud save</button>
         </div>
       )}
