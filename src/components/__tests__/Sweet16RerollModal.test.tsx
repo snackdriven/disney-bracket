@@ -53,4 +53,13 @@ describe('Sweet16RerollModal', () => {
     expect(screen.getByRole('button', { name: 'Apply reroll & restart Sweet 16' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Shuffle again' })).toBeDisabled();
   });
+
+  it('includes the scrollable matchup list in its keyboard focus loop', () => {
+    render(<Sweet16RerollModal {...props()} />);
+    const apply = screen.getByRole('button', { name: 'Apply reroll & restart Sweet 16' });
+    apply.focus();
+    expect(apply).toHaveFocus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(screen.getByRole('list', { name: 'Proposed Sweet 16 matchups' })).toHaveFocus();
+  });
 });

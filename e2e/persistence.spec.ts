@@ -83,7 +83,7 @@ test('hash not overwritten when access_token is in URL', async ({ page }) => {
   expect(hash).toContain('access_token');
 });
 
-test('URL hash state takes priority over localStorage state', async ({ page }) => {
+test('divergent URL and device state require an explicit import choice', async ({ page }) => {
   // Make 2 picks so hash has state at match 3
   await pickFirst(page);
   await pickFirst(page);
@@ -107,7 +107,11 @@ test('URL hash state takes priority over localStorage state', async ({ page }) =
   await page.goto('about:blank');
   await page.goto(shareUrl);
   await page.waitForLoadState('networkidle');
+  await expect(page.getByRole('alert')).toContainText('Saving is paused');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('dbk-state')!).history.length)).toBe(1);
+  await page.getByRole('button', { name: 'Use link bracket' }).click();
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 3 of 6', { timeout: 5000 });
+  expect(await page.evaluate(() => !!localStorage.getItem('dbk-import-recovery'))).toBe(true);
 });
 
 test('corrupted URL hash is ignored and app loads cleanly', async ({ page }) => {

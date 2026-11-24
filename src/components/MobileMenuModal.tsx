@@ -10,12 +10,13 @@ interface MobileMenuModalProps {
   fbUser: { uid: string; email?: string | null } | null;
   syncStatus: string | null;
   onSignInClick: () => void;
+  onSignOutClick?: () => void;
 }
 
 export function MobileMenuModal({
   onClose, showFullBracket, setShowFullBracket, showNotes, setShowNotes,
   onReset,
-  fbUser, syncStatus, onSignInClick
+  fbUser, syncStatus, onSignInClick, onSignOutClick
 }: MobileMenuModalProps) {
   const [activePage, setActivePage] = useState<'menu' | 'changelog'>('menu');
   if (activePage === 'changelog') {
@@ -112,7 +113,7 @@ export function MobileMenuModal({
           <div className="flex justify-between items-center">
             <span className="text-[13px] text-[#8a8aae]">
               {syncStatus === 'syncing' ? 'Syncing...' : syncStatus === 'error' ? 'Sync failed' :
-               syncStatus === 'synced' ? 'All changes saved' : fbUser ? 'No changes' : 'Not signed in'}
+               syncStatus === 'synced' ? 'All changes saved' : syncStatus === 'loading' ? 'Loading saved bracket…' : syncStatus === 'conflict' ? 'Choose a saved bracket' : fbUser ? 'Ready to save' : 'Not signed in'}
             </span>
             <button
                onClick={() => { onClose(); onSignInClick(); }}
@@ -121,6 +122,7 @@ export function MobileMenuModal({
               {fbUser ? 'Account' : 'Sign In'}
             </button>
           </div>
+          {fbUser && onSignOutClick && <button className="min-h-[44px] text-left text-[#b8b8d0] underline" onClick={() => { onClose(); onSignOutClick(); }}>Sign out</button>}
         </div>
 
         <div className="flex justify-center mt-[12px]">

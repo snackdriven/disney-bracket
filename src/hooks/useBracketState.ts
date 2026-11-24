@@ -12,27 +12,47 @@ interface RerollPreview {
   generation: number;
 }
 
+interface SourceConflict {
+  device: BracketState | null;
+  link: BracketState;
+  deviceRaw: string | null;
+  linkRaw: string;
+}
+
+function bracketFingerprint(state: BracketState) {
+  return JSON.stringify(serializeBracketState(state), (_key, value: unknown) => value && typeof value === 'object' && !Array.isArray(value)
+    ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))) : value);
+}
+
 function authCallbackHash() {
   const hash = new URLSearchParams(window.location.hash.slice(1));
   return ['access_token', 'token_hash', 'id_token', 'code', 'error', 'error_description'].some(key => hash.has(key));
 }
 
-function initialState() {
+function initialState(): { state: BracketState; error: string | null; rejected: string | null; conflict: SourceConflict | null } {
   const hash = window.location.hash.slice(1);
+  let link: BracketState | null = null;
+  let linkRaw = '';
   if (hash && !authCallbackHash()) {
     try {
-      const state = parseBracketState(JSON.parse(atob(hash)));
-      if (state) return { state, error: null, rejected: null };
+      linkRaw = atob(hash);
+      link = parseBracketState(JSON.parse(linkRaw));
     } catch { /* An unrelated or malformed hash must not hide a valid device save. */ }
   }
   let raw: string | null = null;
+  let device: BracketState | null = null;
+  let readFailed = false;
   try {
     raw = localStorage.getItem('dbk-state');
-    if (!raw) return { state: resetState(), error: null, rejected: null };
-    const state = parseBracketState(JSON.parse(raw));
-    if (state) return { state, error: null, rejected: null };
-  } catch { /* Preserve raw input and suspend persistence instead of overwriting it. */ }
-  return { state: resetState(), error: 'Your saved bracket could not be loaded. Saving is paused so it is not overwritten.', rejected: raw };
+    if (raw) device = parseBracketState(JSON.parse(raw));
+  } catch { readFailed = true; }
+  if (link && ((device && bracketFingerprint(link) !== bracketFingerprint(device)) || (raw && !device) || readFailed)) {
+    return { state: device ?? resetState(), error: 'This link and this device contain different brackets. Saving is paused until you choose which to continue.', rejected: device ? null : raw,
+      conflict: { device, link, deviceRaw: raw, linkRaw } };
+  }
+  if (link || device) return { state: link ?? device!, error: null, rejected: null, conflict: null };
+  if (!raw && !readFailed) return { state: resetState(), error: null, rejected: null, conflict: null };
+  return { state: resetState(), error: 'Your saved bracket could not be loaded. Saving is paused so it is not overwritten.', rejected: raw, conflict: null };
 }
 
 export type UseBracketStateReturn = ReturnType<typeof useBracketState>;
@@ -43,6 +63,8 @@ export function useBracketState() {
   const stateRef = useRef(state);
   const [restoreError, setRestoreError] = useState<string | null>(init.error);
   const [rejectedSave, setRejectedSave] = useState<string | null>(init.rejected);
+  const [sourceConflict, setSourceConflict] = useState<SourceConflict | null>(init.conflict);
+  const sourceConflictRef = useRef(init.conflict);
   const [rerollPreview, setRerollPreview] = useState<RerollPreview | null>(null);
   const previewRef = useRef<RerollPreview | null>(null);
   const [rerollError, setRerollError] = useState<string | null>(null);
@@ -120,7 +142,7 @@ export function useBracketState() {
   }, [cancelPending]);
 
   const applyServerState = (raw: unknown) => {
-    if (raw == null) return;
+    if (raw == null) return false;
     const parsed = parseBracketState(raw);
     if (!parsed) {
       setRejectedSave(typeof raw === 'string' ? raw : JSON.stringify(raw));
@@ -129,9 +151,10 @@ export function useBracketState() {
       generation.current++;
       previewRef.current = null;
       setRerollPreview(null);
-      return;
+      return false;
     }
     applyState(parsed);
+    return true;
   };
 
   const pick = (winner: Movie) => {
@@ -161,15 +184,38 @@ export function useBracketState() {
 
   const reset = () => {
     // Explicit user reset is the only path allowed to replace an unresolved bad save.
-    if (rejectedSave) {
+    if (sourceConflictRef.current) {
+      try { localStorage.setItem('dbk-import-recovery', JSON.stringify(sourceConflictRef.current)); }
+      catch { setRestoreError('The link and device versions could not be backed up. Export recovery before resetting.'); return; }
+    } else if (rejectedSave) {
       try { localStorage.setItem('dbk-rejected-save', rejectedSave); }
       catch { setRestoreError('The rejected save could not be backed up. Export it before resetting.'); return; }
     }
     setRestoreError(null);
     setRejectedSave(null);
+    sourceConflictRef.current = null;
+    setSourceConflict(null);
     setRerollError(null);
     applyState(resetState());
     window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  };
+
+  const resolveSourceConflict = (choice: 'device' | 'link') => {
+    const conflict = sourceConflictRef.current;
+    if (!conflict) return;
+    const selected = choice === 'link' ? conflict.link : conflict.device;
+    if (!selected) return;
+    try {
+      localStorage.setItem('dbk-import-recovery', JSON.stringify({ ...conflict, notes: loadLS('dbk-notes', {}) }));
+    } catch {
+      setRestoreError('Both versions could not be preserved. Export recovery or free storage before choosing.');
+      return;
+    }
+    sourceConflictRef.current = null;
+    setSourceConflict(null);
+    setRestoreError(null);
+    setRejectedSave(null);
+    applyState(selected);
   };
 
   const roomPresent = () => new URLSearchParams(window.location.search).has('room');
@@ -235,7 +281,7 @@ export function useBracketState() {
     upNextIndex: isPlayIn ? playInIndex : currentMatch,
     animatingSeed, upFlash, serialized, applyServerState, pick, undo, reset,
     canRerollSweet16: !roomPresent() && !restoreError && canRerollSweet16(state),
-    rerollPreview, rerollError, rerollPending: false, hasRerollBackup, restoreError, rejectedSave,
+    rerollPreview, rerollError, rerollPending: false, hasRerollBackup, restoreError, rejectedSave, sourceConflict, resolveSourceConflict,
     openRerollPreview, shuffleRerollPreview, cancelRerollPreview, confirmRerollPreview,
   };
 }

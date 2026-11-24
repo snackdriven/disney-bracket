@@ -5,8 +5,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../App';
-import { applyPick, resetState } from '../lib/bracket';
+import { applyPick, applyUndo, resetState } from '../lib/bracket';
 import { serMatch } from '../lib/utils';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 // Firebase mocks
 vi.mock('firebase/auth', () => ({
@@ -94,6 +96,42 @@ describe('App — Sweet 16 reroll', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/saving is paused/i);
     expect(screen.getByRole('button', { name: /export recovery copy/i })).toBeInTheDocument();
     expect(localStorage.getItem('dbk-state')).toBe('{bad saved data');
+  });
+
+  it('keeps picks and Undo paused until a signed-in cloud bracket finishes loading', async () => {
+    let state = completedBracket();
+    // Undo the 15 later picks to reach the first Sweet 16 matchup.
+    while (state.history.length > 54) state = applyUndo(state);
+    localStorage.setItem('dbk-state', serializeState(state));
+    vi.mocked(onAuthStateChanged).mockImplementationOnce((_auth, callback) => {
+      if (typeof callback === 'function') callback({ uid: 'loading-user' } as User);
+      return vi.fn();
+    });
+    render(<App />);
+    expect(screen.getByRole('status')).toHaveTextContent(/loading your saved bracket/i);
+    expect(screen.getByRole('button', { name: 'Reroll Sweet 16' })).toBeDisabled();
+    fireEvent.click(screen.getAllByTestId('movie-card')[0]);
+    fireEvent.click(screen.getByRole('button', { name: /undo/i }));
+    await new Promise(resolve => setTimeout(resolve, 400));
+    expect(JSON.parse(localStorage.getItem('dbk-state')!).history).toHaveLength(54);
+  });
+
+  it('allows an explicit sign-out with a local recovery snapshot when cloud saving is unavailable', async () => {
+    vi.mocked(onAuthStateChanged).mockImplementationOnce((_auth, callback) => {
+      if (typeof callback === 'function') callback({ uid: 'loading-user', email: 'test@example.invalid' } as User);
+      return vi.fn();
+    });
+    const signOut = vi.fn().mockResolvedValue(undefined);
+    Object.assign(auth, { signOut });
+    render(<App />);
+    fireEvent.click(screen.getByTitle(/sign out/i));
+    const escape = await screen.findByRole('button', { name: 'Keep recovery & sign out' });
+    expect(signOut).not.toHaveBeenCalled();
+    fireEvent.click(escape);
+    await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
+    const recovery = JSON.parse(localStorage.getItem('dbk-signout-recovery:loading-user')!);
+    expect(recovery.bracket.phase).toBe('pi');
+    expect(recovery.notes).toEqual({});
   });
 });
 
@@ -261,8 +299,12 @@ describe('App — desktop sync and auth', () => {
 
 describe('App — champion screen', () => {
   it('shows champion screen when champion is set in state', async () => {
-    const s = resetState();
-    const champion = s.playInMatches[0].players[0];
+    let s = resetState();
+    while (!s.champion) {
+      const match = s.phase === 'pi' ? s.playInMatches[s.playInIndex] : s.rounds[s.currentRound][s.currentMatch];
+      s = applyPick(s, match.players[0]);
+    }
+    const champion = s.champion!;
     localStorage.setItem('dbk-state', JSON.stringify({
       _v: 2,
       phase: s.phase, playInIndex: s.playInIndex, currentRound: s.currentRound, currentMatch: s.currentMatch,

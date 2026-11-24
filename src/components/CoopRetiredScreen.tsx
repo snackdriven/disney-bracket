@@ -8,10 +8,13 @@ interface CoopRetiredScreenProps {
 export function CoopRetiredScreen({ originalUrl, onContinue }: CoopRetiredScreenProps) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const recoveryUrl = new URL(originalUrl);
+  const callback = new URLSearchParams(recoveryUrl.hash.slice(1));
+  if (['access_token', 'token_hash', 'id_token', 'error', 'error_description', 'code'].some(key => callback.has(key))) recoveryUrl.hash = '';
 
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(originalUrl);
+      await navigator.clipboard.writeText(recoveryUrl.href);
       setCopied(true);
       setError('');
     } catch {
@@ -54,7 +57,7 @@ export function CoopRetiredScreen({ originalUrl, onContinue }: CoopRetiredScreen
         </div>
         <label className="block space-y-[8px]">
           <span>Original room link</span>
-          <textarea readOnly value={originalUrl} onFocus={event => event.currentTarget.select()}
+          <textarea readOnly value={recoveryUrl.href} onFocus={event => event.currentTarget.select()}
             className="block min-h-[96px] w-full rounded-[10px] border border-white/20 bg-white/5 p-[12px] text-[13px]" />
         </label>
         <p className="text-[13px] text-[#a0a0c0]">Continuing saves a local recovery link when storage is available. It does not restore a room or an old backup.</p>

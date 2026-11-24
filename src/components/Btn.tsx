@@ -7,9 +7,10 @@ interface BtnProps {
   s?: boolean;
   mu?: boolean;
   mob: boolean;
+  disabled?: boolean;
 }
 
-export function Btn({ children, onClick, p, s, mu, mob }: BtnProps) {
+export function Btn({ children, onClick, p, s, mu, mob, disabled }: BtnProps) {
   const base = [
     "rounded-[10px] transition-all duration-150 cursor-pointer font-semibold",
     "leading-none webkit-tap-highlight-transparent",
@@ -30,6 +31,7 @@ export function Btn({ children, onClick, p, s, mu, mob }: BtnProps) {
     <button
       className={[...base, size, variant].filter(Boolean).join(" ")}
       onClick={onClick}
+      disabled={disabled}
       style={{ WebkitTapHighlightColor: "transparent" }}
     >
       {children}

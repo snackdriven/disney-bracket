@@ -48,6 +48,7 @@ test('reset button clears all picks back to play-in', async ({ page }) => {
   }
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 4 of 6');
 
+  page.once('dialog', dialog => { void dialog.accept(); });
   await page.getByRole('button', { name: /Reset/i }).click();
   await expect(page.locator('[data-testid="match-counter"]')).toHaveText('Match 1 of 6');
   await expect(page.locator('[data-testid="round-label"]')).toContainText('Play-In Round');

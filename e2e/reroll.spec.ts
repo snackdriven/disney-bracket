@@ -26,7 +26,7 @@ async function seed(page: Page, picks: number) {
   return state;
 }
 
-test('finished bracket can preview, cancel, restart, and reload the exact saved Sweet 16 draw', async ({ page }) => {
+test('finished bracket can preview, cancel, restart, and reload the exact saved Sweet 16 draw', async ({ page }, testInfo) => {
   const original = await seed(page, 69);
   await page.getByRole('button', { name: 'Reroll Sweet 16', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Reroll Sweet 16' });
@@ -38,6 +38,11 @@ test('finished bracket can preview, cancel, restart, and reload the exact saved 
   await page.getByRole('button', { name: 'Reroll Sweet 16', exact: true }).click();
   await dialog.getByRole('button', { name: 'Shuffle again' }).click();
   const preview = await dialog.getByRole('listitem').allTextContents();
+  await expect(dialog.getByRole('heading', { name: 'Reroll Sweet 16' })).toBeInViewport({ ratio: 1 });
+  await page.screenshot({ path: testInfo.outputPath('sweet16-reroll-preview.png') });
+  await dialog.getByRole('list', { name: 'Proposed Sweet 16 matchups' }).focus();
+  await page.keyboard.press('Shift+Tab');
+  await expect(dialog.getByRole('button', { name: 'Apply reroll & restart Sweet 16' })).toBeFocused();
   await dialog.getByRole('button', { name: 'Apply reroll & restart Sweet 16' }).click();
   await expect(dialog).toHaveCount(0);
   const after = await saved(page);

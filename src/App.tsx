@@ -12,6 +12,7 @@ import { AuthModal } from './components/AuthModal.js';
 import { NotesPanel } from './components/NotesPanel.js';
 import { FullBracket } from './components/FullBracket.js';
 import { SyncStrip } from './components/SyncStrip.js';
+import { SyncStatusPanel } from './components/SyncStatusPanel.js';
 import { MatchView } from './components/MatchView.js';
 import { FixMetaModal } from './components/FixMetaModal.js';
 
@@ -23,7 +24,7 @@ import type { Movie } from './types.js';
 export default function App() {
   const mob = useIsMobile();
 
-  const { notes, setNotes, showNotes, setShowNotes, updateNote } = useNotes();
+  const { notes, setNotes, showNotes, setShowNotes, updateNote: rawUpdateNote } = useNotes();
 
   const bracketState = useBracketState();
   const {
@@ -32,7 +33,7 @@ export default function App() {
     isPlayIn, activeMatch, progress, roundLabel,
     regionName,
     serialized, applyServerState,
-    pick, undo, reset,
+    pick: rawPick, undo: rawUndo, reset,
   } = bracketState;
 
   const [hoveredSeed, setHoveredSeed] = useState<number | null>(null);
@@ -42,15 +43,22 @@ export default function App() {
   const [fixingMovie, setFixingMovie] = useState<Movie | null>(null);
   const [rerollNotice, setRerollNotice] = useState('');
   const [downloadError, setDownloadError] = useState('');
+  const [showUnsavedSignOut, setShowUnsavedSignOut] = useState(false);
+  const [signOutRecoveryExported, setSignOutRecoveryExported] = useState(false);
 
   const { copiedLink, copiedBracket, copyLink, copyBracket, shareError } = useShareClipboard(playInMatches, rounds, champion, serialized);
 
   const handleSignOut = async () => {
-    await forcePush();
-    import("./lib/firebase.js").then(m => m.auth.signOut());
+    if (await forcePush()) {
+      import("./lib/firebase.js").then(m => m.auth.signOut());
+    } else {
+      setShowUnsavedSignOut(true);
+      setSignOutRecoveryExported(false);
+    }
   };
 
   const handleReset = () => {
+    if (loadingSavedWork && !bracketState.restoreError) return;
     if (window.confirm("Are you sure you want to reset your bracket? This cannot be undone.")) {
       reset();
       setShowBracketPanel(false);
@@ -58,22 +66,34 @@ export default function App() {
     }
   };
 
-  const { fbUser, syncStatus, showAuthModal, setShowAuthModal, forcePush } = useFirebaseSync({
+  const { fbUser, syncStatus, showAuthModal, setShowAuthModal, forcePush,
+    authReady, syncReady, syncError, syncConflict, syncRecovery, retrySync, resolveSyncConflict } = useFirebaseSync({
     serialized,
     notes,
+    enabled: !bracketState.restoreError,
     onPull: (state, serverNotes) => {
-      applyServerState(state);
+      if (!applyServerState(state)) return false;
       if (serverNotes && isNotes(serverNotes)) { setNotes(serverNotes); saveLS("dbk-notes", serverNotes); }
+      return true;
     },
   });
 
   const { movieMeta, updateSingleMeta } = useMovieMeta();
 
   const m64 = [...MAIN, ...playInMatches.map(m => m.winner).filter((w): w is Movie => !!w)];
+  const loadingSavedWork = !authReady || (!!fbUser && !syncReady);
+  const pick = (winner: Movie) => { if (!loadingSavedWork) rawPick(winner); };
+  const undo = () => { if (!loadingSavedWork) rawUndo(); };
+  const updateNote = (seed: number, value: string) => { if (!loadingSavedWork && !bracketState.restoreError) rawUpdateNote(seed, value); };
+  const viewBracket = { ...bracketState, undo };
+  const syncPanel = !bracketState.restoreError && <SyncStatusPanel authReady={authReady} signedIn={!!fbUser} syncReady={syncReady}
+    syncStatus={syncStatus} syncError={syncError} syncConflict={syncConflict} syncRecovery={syncRecovery}
+    retrySync={retrySync} resolveSyncConflict={resolveSyncConflict} />;
 
   const exportRecovery = (previous: boolean) => {
     try {
-      const raw = previous ? localStorage.getItem('dbk-pre-reroll') : bracketState.rejectedSave || JSON.stringify({ bracket: serialized, notes });
+      const raw = previous ? localStorage.getItem('dbk-pre-reroll') : bracketState.sourceConflict
+        ? JSON.stringify({ ...bracketState.sourceConflict, notes }) : bracketState.rejectedSave || JSON.stringify({ bracket: serialized, notes });
       if (!raw) throw new Error('No recovery copy is available.');
       const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
       const link = document.createElement('a');
@@ -82,31 +102,53 @@ export default function App() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       setDownloadError('');
-    } catch { setDownloadError('The recovery download could not be created. Keep this page open and try again.'); }
+      return true;
+    } catch { setDownloadError('The recovery download could not be created. Keep this page open and try again.'); return false; }
+  };
+  const signOutKeepingRecovery = async (exported = false) => {
+    try {
+      if (!exported) localStorage.setItem(`dbk-signout-recovery:${fbUser?.uid ?? 'device'}`, JSON.stringify({ bracket: serialized, notes, rejected: bracketState.rejectedSave, sources: bracketState.sourceConflict }));
+      const { auth } = await import('./lib/firebase.js');
+      await auth.signOut();
+      setShowUnsavedSignOut(false);
+    } catch { setDownloadError('Recovery could not be saved or sign-out failed. Export a recovery copy before trying again.'); }
   };
   const rerollControls = (
     <div className="shrink-0 px-[16px] py-[8px] text-center text-[13px]">
+      {mob && <button className="mr-[10px] min-h-[44px] rounded-[10px] border border-white/15 px-[12px]" aria-label="Open menu" onClick={() => setShowMobileMenu(true)}>Menu</button>}
       {bracketState.restoreError && <div role="alert" className="mb-[8px] rounded-[10px] border border-[#ffb4a8]/30 p-[12px] text-[#ffb4a8]">
         <p>{bracketState.restoreError}</p>
+        {bracketState.sourceConflict && <div className="my-[8px] text-[#e0e0f0]">
+          <p>This device: {bracketState.sourceConflict.device?.history.length ?? 'unreadable'} picks. Link: {bracketState.sourceConflict.link.history.length} picks. Both versions will be preserved before you choose.</p>
+          <button className="min-h-[44px] px-[10px] underline disabled:opacity-40" disabled={!bracketState.sourceConflict.device} onClick={() => bracketState.resolveSourceConflict('device')}>Keep this device’s bracket</button>
+          <button className="min-h-[44px] px-[10px] underline" onClick={() => bracketState.resolveSourceConflict('link')}>Use link bracket</button>
+        </div>}
         <button className="min-h-[44px] underline" onClick={() => exportRecovery(false)}>Export recovery copy</button>
         <button className="ml-[12px] min-h-[44px] underline" onClick={handleReset}>Reset after keeping recovery</button>
       </div>}
       {bracketState.canRerollSweet16 && <button
         className="min-h-[44px] rounded-[10px] border border-[#ce93d8]/30 bg-[#ce93d8]/10 px-[16px] py-[10px] font-semibold text-[#dfb7e5] disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4fc3f7]"
-        disabled={!!bracketState.animatingSeed} onClick={() => { setRerollNotice(''); bracketState.openRerollPreview(); }}>
+        disabled={!!bracketState.animatingSeed || loadingSavedWork} onClick={() => { if (!loadingSavedWork) { setRerollNotice(''); bracketState.openRerollPreview(); } }}>
         Reroll Sweet 16
       </button>}
       {bracketState.hasRerollBackup && <button className="ml-[12px] min-h-[44px] text-[#b8b8d0] underline" onClick={() => exportRecovery(true)}>Export previous bracket</button>}
       {rerollNotice && <p role="status" className="mt-[8px] text-[#b6eaff]">{rerollNotice}</p>}
       {downloadError && <p role="alert" className="mt-[8px] text-[#ffb4a8]">{downloadError}</p>}
       {shareError && <p role="alert" className="mt-[8px] text-[#ffb4a8]">{shareError} <button className="min-h-[44px] underline" onClick={() => exportRecovery(false)}>Download current bracket</button></p>}
+      {showUnsavedSignOut && <section role="alert" className="my-[10px] rounded-[10px] border border-[#ffd54f]/30 p-[12px]">
+        <p>Your cloud save has not completed. Stay and retry, or keep a recovery copy and sign out to continue solo.</p>
+        <button className="min-h-[44px] px-[10px] underline" onClick={() => { setShowUnsavedSignOut(false); retrySync(); }}>Stay & retry</button>
+        <button className="min-h-[44px] px-[10px] underline" onClick={() => { void signOutKeepingRecovery(); }}>Keep recovery & sign out</button>
+        <button className="min-h-[44px] px-[10px] underline" onClick={() => { if (exportRecovery(false)) setSignOutRecoveryExported(true); }}>Export recovery before sign-out</button>
+        {signOutRecoveryExported && <button className="min-h-[44px] px-[10px] underline" onClick={() => { void signOutKeepingRecovery(true); }}>I kept my recovery — sign out</button>}
+      </section>}
     </div>
   );
   const rerollModal = bracketState.rerollPreview && <Sweet16RerollModal
     {...bracketState.rerollPreview} pending={bracketState.rerollPending} error={bracketState.rerollError}
     onShuffle={bracketState.shuffleRerollPreview} onCancel={bracketState.cancelRerollPreview}
     onConfirm={() => {
-      if (bracketState.confirmRerollPreview()) {
+      if (!loadingSavedWork && bracketState.confirmRerollPreview()) {
         setShowFullBracket(false); setShowNotes(false);
         setRerollNotice('Sweet 16 rerolled. Your Round of 32 winners and earlier choices are saved.');
       }
@@ -125,6 +167,7 @@ export default function App() {
              showNotes={showNotes} setShowNotes={setShowNotes}
              onReset={handleReset} 
              fbUser={fbUser} syncStatus={syncStatus} onSignInClick={() => setShowAuthModal(true)}
+             onSignOutClick={handleSignOut}
           />
         )}
         
@@ -150,6 +193,7 @@ export default function App() {
            </div>
         </header>
 
+        {syncPanel}
         {rerollControls}
         <main className="flex-1 relative flex flex-col overflow-y-auto w-full">
            {showNotes ? <NotesPanel mob={mob} notes={notes} updateNote={updateNote}/> :
@@ -164,7 +208,7 @@ export default function App() {
             ) :
             activeMatch ? (
               <MatchView
-                mob={mob} bracket={bracketState} hoveredSeed={hoveredSeed} setHoveredSeed={setHoveredSeed}
+                mob={mob} bracket={viewBracket} disabled={loadingSavedWork || !!bracketState.restoreError} hoveredSeed={hoveredSeed} setHoveredSeed={setHoveredSeed}
                 copiedLink={copiedLink} showBracketPanel={showBracketPanel} notes={notes} movieMeta={movieMeta}
                 updateNote={updateNote} pick={pick} reset={handleReset} copyLink={copyLink} onFixMovie={setFixingMovie}
               />
@@ -178,7 +222,7 @@ export default function App() {
              <button onClick={() => setShowMobileMenu(true)} className="flex flex-col items-center justify-center p-[8px] text-[#8a8aae]">
                 <span className="text-[20px]">☰</span>
              </button>
-             <button onClick={undo} disabled={history.length === 0} className="flex flex-col items-center justify-center p-[8px] disabled:opacity-30 text-[#8a8aae] transition-opacity">
+             <button onClick={undo} disabled={history.length === 0 || loadingSavedWork} className="flex flex-col items-center justify-center p-[8px] disabled:opacity-30 text-[#8a8aae] transition-opacity">
                 <span className="text-[20px]">↩</span>
              </button>
              <button onClick={copyLink} className="flex flex-col items-center justify-center p-[8px] text-[#8a8aae]">
@@ -268,6 +312,7 @@ export default function App() {
           onSignInClick={() => setShowAuthModal(true)}
           onSignOutClick={handleSignOut}
         />
+        {syncPanel}
         {rerollControls}
 
         {/* Full Bracket + Notes toggles */}
@@ -352,7 +397,8 @@ export default function App() {
         ) : activeMatch ? (
           <MatchView
             mob={mob}
-            bracket={bracketState}
+            bracket={viewBracket}
+            disabled={loadingSavedWork || !!bracketState.restoreError}
             hoveredSeed={hoveredSeed}
             setHoveredSeed={setHoveredSeed}
             copiedLink={copiedLink}

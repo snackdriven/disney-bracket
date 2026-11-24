@@ -85,6 +85,17 @@ describe('retired room routing', () => {
     expect(window.location.hash).toBe('#solo-state');
   });
 
+  it('does not display or copy credentials from a legacy room auth callback', async () => {
+    window.history.replaceState(null, '', '/disney-bracket/?room=old#access_token=private-token&refresh_token=private-refresh');
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    render(<AppRouter />);
+    expect(screen.getByRole('textbox', { name: 'Original room link' })).toHaveValue('http://localhost:3000/disney-bracket/?room=old');
+    fireEvent.click(screen.getByRole('button', { name: 'Copy room link' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('http://localhost:3000/disney-bracket/?room=old'));
+    expect(window.location.hash).toContain('access_token=private-token');
+  });
+
   it('preserves the existing admin route precedence', async () => {
     window.history.replaceState(null, '', '/disney-bracket/?admin=1&room=a');
     render(<AppRouter />);

@@ -116,6 +116,33 @@ describe('reroll state lifecycle', () => {
     expect(result.current.rejectedSave).toBe(raw);
   });
 
+  it('preserves divergent link and device brackets until an explicit choice', () => {
+    const device = fixture(69);
+    const link = fixture(1);
+    const raw = JSON.stringify(device);
+    localStorage.setItem('dbk-state', raw);
+    window.location.hash = btoa(JSON.stringify(link));
+    const { result } = renderHook(() => useBracketState());
+    expect(result.current.sourceConflict).toBeTruthy();
+    expect(result.current.history).toHaveLength(69);
+    expect(localStorage.getItem('dbk-state')).toBe(raw);
+    act(() => result.current.resolveSourceConflict('link'));
+    expect(result.current.history).toHaveLength(1);
+    const recovery = JSON.parse(localStorage.getItem('dbk-import-recovery')!);
+    expect(recovery.deviceRaw).toBe(raw);
+    expect(recovery.linkRaw).toBe(JSON.stringify(link));
+  });
+
+  it('can retain the device bracket instead of a divergent share link', () => {
+    localStorage.setItem('dbk-state', JSON.stringify(fixture(69)));
+    window.location.hash = btoa(JSON.stringify(fixture(1)));
+    const { result } = renderHook(() => useBracketState());
+    act(() => result.current.resolveSourceConflict('device'));
+    expect(result.current.history).toHaveLength(69);
+    expect(result.current.sourceConflict).toBeNull();
+    expect(result.current.restoreError).toBeNull();
+  });
+
   it('refuses to open a solo reroll for any room parameter, including an empty one', () => {
     localStorage.setItem('dbk-state', JSON.stringify(fixture()));
     window.history.replaceState(null, '', '/?room=');
