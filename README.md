@@ -44,7 +44,7 @@ Did you know Toy Story 2 was almost entirely deleted by accident and only surviv
 
 Sign in with Google to sync your bracket across devices. This is not a one-session experience, and anyone who tells you they finished it in one sitting is lying or didn't think hard enough.
 
-**Co-op retirement edit by Codex (GPT-6 AI agent), November 23, 2026:** Room co-op is retired in this client. Old room links show a notice before loading a bracket or connecting to Firebase. Continue explicitly to use this device’s saved bracket; the room hash is not imported automatically. A recovery link is saved locally when storage permits. Existing room records, local backups, and personal cloud records are not deleted. Older open clients may still use rooms; backend access has not been shut down.
+**Co-op retirement edit by Codex (GPT-6 AI agent), November 23, 2026:** Room co-op is retired. Old room links show a notice before loading a bracket or connecting to Firebase. Continue explicitly to use this device’s saved bracket; the room hash is not imported automatically. A recovery link is saved locally when storage permits. Existing room records, local backups, and personal cloud records are not deleted. Database rules deny room access, including older clients.
 
 Solo play works without signing in. Your bracket saves in this browser until you clear its site storage; signing out does not clear the local copy.
 
@@ -67,26 +67,44 @@ npm run dev
 
 Testing scope updated by Codex (GPT-6 AI agent), November 23, 2026.
 
-The default gate is nine P0/P1 cases: three UI flows, three Firebase client API contracts, and three security cases. Playwright TypeScript runs the five browser cases on desktop Chromium and Pixel 5; four fast contract checks run once. No snapshot suite or stale Supabase login fixtures.
+The default gate is eleven P0/P1 cases: four UI flows, four Firebase client API contracts, and three security cases. Playwright TypeScript runs the six browser cases on desktop Chromium and Pixel 5; five fast contract checks run once. No snapshot suite or stale Supabase login fixtures.
 
 ```bash
 npx playwright install chromium  # first local setup only
 npm test                        # default critical gate
-npm run test:e2e                # 3 UI + 2 browser-security cases, desktop and mobile
-npm run test:api                # 3 Firebase client API contracts
+npm run test:e2e                # 4 UI + 2 browser-security cases, desktop and mobile
+npm run test:api                # 4 Firebase client API contracts
 npm run test:security           # account isolation + 2 browser security cases
 npm run test:unit               # optional original unit/integration suite
 ```
 
 | Priority | Cases |
 |---|---|
-| P0/P1 browser | Finished-bracket reroll with preview/cancel/recovery/reload; first Sweet 16 reroll and keyboard/Undo; solo picks and notes through reload/Undo/reset. |
-| P0 API contract | Hydrate before upload and apply notes-only changes; confirm only successful writes; abort concurrent cloud overwrite and preserve both copies. |
+| P0/P1 browser | Finished-bracket reroll with preview/cancel/recovery/reload; first Sweet 16 reroll and keyboard/Undo; solo picks and notes through reload/Undo/reset; local saving and recovery import while signed-in cloud loading stalls or fails. |
+| P0 API contract | Hydrate before upload and apply notes-only changes; preserve local intent during late hydration; confirm only successful writes; abort concurrent cloud overwrite and preserve both copies. |
 | P0 security | Account-switch/denied-read isolation; corrupt saves and divergent imports; legacy room links with no sync initialization or credential exposure. |
 
 The API contracts use the real sync hook and an in-memory Firebase SDK boundary. They do **not** prove deployed Firebase authorization rules or live Google login/cross-device persistence. Browser security checks use synthetic local fixtures; they do not probe personal cloud data.
 
 Pull requests run the critical gate plus source/E2E typechecks and build. Only a push to `main` deploys to Pages; PR jobs do not receive deployment permissions.
+
+### Browser saves and Firebase rules
+
+Cloud-save fix by Codex (GPT-6 AI agent), November 23, 2026.
+
+Browser saving is the default. Cloud loading and failures do not block local picks, notes, Undo, reset, or reroll. The browser-save panel verifies the active stored copy, offers a download, and checks current/recovery records for explicit import. Import first preserves the active bracket and notes under `dbk-before-browser-import`. Copies are limited to this browser and site origin; clearing site data removes them. This supports saving while offline after the app has loaded; it does not add offline installation or guarantee loading the app without a network connection.
+
+Local edit intent is retained under `dbk-local-edited`, including animated picks and resets to empty. A differing cloud version requires a choice after local edits; loading cloud data never automatically uploads an unhydrated local draft. Existing invalid-save and conflict safeguards remain active.
+
+`database.rules.json` grants read/write only to the signed-in owner of `users/{uid}`. Root listing, other users, unauthenticated access, and retired rooms are denied. The previous live rules expired May 14, 2026 and denied all client access. Rules deployment is separate from GitHub Pages: review the live rules first, then use `firebase deploy --only database --project disney-bracket1` with an authorized administrator. Never extend a public test-mode expiration.
+
+An opt-in live rules probe runs with Node 22+ and an authorized `gcloud` login:
+
+```bash
+node --experimental-strip-types scripts/verify-cloud-rules.ts
+```
+
+It evaluates the deployed rules with Firebase's limited-privilege auth override, writes only a unique synthetic probe record, checks owner access and denial boundaries, and removes the probe in `finally`. It does not log tokens, read personal saves, or establish live Google-session/cross-device behavior. It is intentionally outside the default CI gate.
 
 ## Commits and releases
 

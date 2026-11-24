@@ -75,7 +75,7 @@ disney-bracket/
 ├── src/__tests__/
 │   └── App.test.tsx          # Integration tests (React Testing Library)
 ├── e2e/
-│   ├── critical.spec.ts     # Three P0/P1 user flows
+│   ├── critical.spec.ts     # Four P0/P1 user flows
 │   ├── security.spec.ts     # Two P0 browser security boundaries
 │   └── fixtures.ts          # Shared deterministic browser fixtures
 ├── supabase/                 # Supabase config and migrations
@@ -100,7 +100,7 @@ npm run build         # Production build (output: dist/)
 npm run lint          # Run ESLint
 npm run preview       # Preview production build locally
 npm test              # Critical P0/P1 gate: API contracts plus Playwright TypeScript
-npm run test:e2e      # Five critical browser cases on desktop and mobile
+npm run test:e2e      # Six critical browser cases on desktop and mobile
 ```
 
 ## Architecture
@@ -185,7 +185,7 @@ Firebase Auth uses Google popup sign-in. `useFirebaseSync` owns personal `users/
 
 Testing edit by Codex (GPT-6 AI agent), November 23, 2026.
 
-Keep the required gate small: nine P0/P1 cases. `npm test` runs three Firebase client API contracts and one account-isolation contract in Vitest, followed by three UI flows and two browser-security cases in Playwright TypeScript. Browser cases run on desktop Chromium and Pixel 5. See README for the coverage matrix.
+Keep the required gate small: eleven P0/P1 cases. `npm test` runs four Firebase client API contracts and one account-isolation contract in Vitest, followed by four UI flows and two browser-security cases in Playwright TypeScript. Browser cases run on desktop Chromium and Pixel 5. See README for the coverage matrix.
 
 - `npm run test:api`: cloud hydration/notes, write confirmation/failure, concurrent-save conflicts.
 - `npm run test:security`: account isolation/denied reads plus unsafe save/import and legacy-room credential/network boundaries.

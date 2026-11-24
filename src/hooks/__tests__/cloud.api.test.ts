@@ -4,6 +4,25 @@ import { act } from '@testing-library/react';
 import { expect, it } from 'vitest';
 import { advance, alternate, backend, deliver, harness, saved, signIn } from './cloudSync.fixture';
 
+it('[P0][API] late cloud hydration preserves work made locally while waiting', async () => {
+  const { result } = harness();
+  await signIn();
+  act(() => result.current.markEdited());
+  // User intent is protected even before an animated pick commits, or after a reset to empty.
+  const initial = result.current.serialized;
+  await deliver({ state: alternate, notes: { 1: 'cloud work' } });
+  expect(result.current.serialized).toEqual(initial);
+  expect(result.current.syncConflict?.cloud.state).toEqual(alternate);
+  act(() => { result.current.setSerialized(saved); result.current.setNotes({ 1: 'offline work' }); });
+  await advance(5000);
+  expect(backend.writes).toEqual([]);
+  await deliver({ state: alternate, notes: { 1: 'cloud work' } });
+  expect(result.current.serialized).toEqual(saved);
+  expect(result.current.notes).toEqual({ 1: 'offline work' });
+  expect(result.current.syncConflict?.cloud.state).toEqual(alternate);
+  expect(backend.writes).toEqual([]);
+});
+
 it('[P0][API] restores cloud bracket and notes before permitting uploads', async () => {
   const { result } = harness();
   await signIn();

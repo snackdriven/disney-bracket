@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useIsMobile } from './hooks/useIsMobile.js';
 import { useBracketState } from './hooks/useBracketState.js';
 import { useShareClipboard } from './hooks/useShareClipboard.js';
@@ -6,13 +6,14 @@ import { useNotes } from './hooks/useNotes.js';
 import { useFirebaseSync } from './hooks/useFirebaseSync.js';
 import { useMovieMeta } from './hooks/useMovieMeta.js';
 import { MAIN } from './lib/data.js';
-import { saveLS, isNotes } from './lib/utils.js';
+import { loadLS, saveLS, isNotes } from './lib/utils.js';
 import { Dots } from './components/Dots.js';
 import { AuthModal } from './components/AuthModal.js';
 import { NotesPanel } from './components/NotesPanel.js';
 import { FullBracket } from './components/FullBracket.js';
 import { SyncStrip } from './components/SyncStrip.js';
 import { SyncStatusPanel } from './components/SyncStatusPanel.js';
+import { BrowserSavePanel } from './components/BrowserSavePanel.js';
 import { MatchView } from './components/MatchView.js';
 import { FixMetaModal } from './components/FixMetaModal.js';
 
@@ -45,6 +46,11 @@ export default function App() {
   const [downloadError, setDownloadError] = useState('');
   const [showUnsavedSignOut, setShowUnsavedSignOut] = useState(false);
   const [signOutRecoveryExported, setSignOutRecoveryExported] = useState(false);
+  const localEdited = useRef(loadLS<number>('dbk-local-edited', 0) === 1);
+  const markLocalEdit = () => {
+    localEdited.current = true;
+    try { localStorage.setItem('dbk-local-edited', '1'); } catch { /* Keep the in-memory intent. */ }
+  };
 
   const { copiedLink, copiedBracket, copyLink, copyBracket, shareError } = useShareClipboard(playInMatches, rounds, champion, serialized);
 
@@ -58,8 +64,9 @@ export default function App() {
   };
 
   const handleReset = () => {
-    if (loadingSavedWork && !bracketState.restoreError) return;
+    if (cloudChoicePending && !bracketState.restoreError) return;
     if (window.confirm("Are you sure you want to reset your bracket? This cannot be undone.")) {
+      markLocalEdit();
       reset();
       setShowBracketPanel(false);
       setShowFullBracket(false);
@@ -70,6 +77,7 @@ export default function App() {
     authReady, syncReady, syncError, syncConflict, syncRecovery, retrySync, resolveSyncConflict } = useFirebaseSync({
     serialized,
     notes,
+    hasLocalEdits: () => localEdited.current,
     enabled: !bracketState.restoreError,
     onPull: (state, serverNotes) => {
       if (!applyServerState(state)) return false;
@@ -81,14 +89,22 @@ export default function App() {
   const { movieMeta, updateSingleMeta } = useMovieMeta();
 
   const m64 = [...MAIN, ...playInMatches.map(m => m.winner).filter((w): w is Movie => !!w)];
-  const loadingSavedWork = !authReady || (!!fbUser && !syncReady);
-  const pick = (winner: Movie) => { if (!loadingSavedWork) rawPick(winner); };
-  const undo = () => { if (!loadingSavedWork) rawUndo(); };
-  const updateNote = (seed: number, value: string) => { if (!loadingSavedWork && !bracketState.restoreError) rawUpdateNote(seed, value); };
+  const cloudChoicePending = !!syncConflict;
+  const pick = (winner: Movie) => { if (!cloudChoicePending) { markLocalEdit(); rawPick(winner); } };
+  const undo = () => { if (!cloudChoicePending) { markLocalEdit(); rawUndo(); } };
+  const updateNote = (seed: number, value: string) => { if (!cloudChoicePending && !bracketState.restoreError) { markLocalEdit(); rawUpdateNote(seed, value); } };
   const viewBracket = { ...bracketState, undo };
-  const syncPanel = !bracketState.restoreError && <SyncStatusPanel authReady={authReady} signedIn={!!fbUser} syncReady={syncReady}
+  const syncPanel = <><BrowserSavePanel current={{ state: serialized, notes }} blocked={!!bracketState.restoreError || cloudChoicePending || !!bracketState.animatingSeed}
+    onImport={save => {
+      try { localStorage.setItem('dbk-before-browser-import', JSON.stringify({ bracket: serialized, notes })); }
+      catch { return false; }
+      markLocalEdit();
+      if (!applyServerState(save.state)) return false;
+      setNotes(save.notes); saveLS('dbk-notes', save.notes);
+      return true;
+    }} />{!bracketState.restoreError && <SyncStatusPanel authReady={authReady} signedIn={!!fbUser} syncReady={syncReady}
     syncStatus={syncStatus} syncError={syncError} syncConflict={syncConflict} syncRecovery={syncRecovery}
-    retrySync={retrySync} resolveSyncConflict={resolveSyncConflict} />;
+    retrySync={retrySync} resolveSyncConflict={resolveSyncConflict} localTransitionPending={!!bracketState.animatingSeed} />}</>;
 
   const exportRecovery = (previous: boolean) => {
     try {
@@ -120,15 +136,15 @@ export default function App() {
         <p>{bracketState.restoreError}</p>
         {bracketState.sourceConflict && <div className="my-[8px] text-[#e0e0f0]">
           <p>This device: {bracketState.sourceConflict.device?.history.length ?? 'unreadable'} picks. Link: {bracketState.sourceConflict.link.history.length} picks. Both versions will be preserved before you choose.</p>
-          <button className="min-h-[44px] px-[10px] underline disabled:opacity-40" disabled={!bracketState.sourceConflict.device} onClick={() => bracketState.resolveSourceConflict('device')}>Keep this device’s bracket</button>
-          <button className="min-h-[44px] px-[10px] underline" onClick={() => bracketState.resolveSourceConflict('link')}>Use link bracket</button>
+          <button className="min-h-[44px] px-[10px] underline disabled:opacity-40" disabled={!bracketState.sourceConflict.device} onClick={() => { markLocalEdit(); bracketState.resolveSourceConflict('device'); }}>Keep this device’s bracket</button>
+          <button className="min-h-[44px] px-[10px] underline" onClick={() => { markLocalEdit(); bracketState.resolveSourceConflict('link'); }}>Use link bracket</button>
         </div>}
         <button className="min-h-[44px] underline" onClick={() => exportRecovery(false)}>Export recovery copy</button>
         <button className="ml-[12px] min-h-[44px] underline" onClick={handleReset}>Reset after keeping recovery</button>
       </div>}
       {bracketState.canRerollSweet16 && <button
         className="min-h-[44px] rounded-[10px] border border-[#ce93d8]/30 bg-[#ce93d8]/10 px-[16px] py-[10px] font-semibold text-[#dfb7e5] disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4fc3f7]"
-        disabled={!!bracketState.animatingSeed || loadingSavedWork} onClick={() => { if (!loadingSavedWork) { setRerollNotice(''); bracketState.openRerollPreview(); } }}>
+        disabled={!!bracketState.animatingSeed || cloudChoicePending} onClick={() => { if (!cloudChoicePending) { setRerollNotice(''); bracketState.openRerollPreview(); } }}>
         Reroll Sweet 16
       </button>}
       {bracketState.hasRerollBackup && <button className="ml-[12px] min-h-[44px] text-[#b8b8d0] underline" onClick={() => exportRecovery(true)}>Export previous bracket</button>}
@@ -148,7 +164,8 @@ export default function App() {
     {...bracketState.rerollPreview} pending={bracketState.rerollPending} error={bracketState.rerollError}
     onShuffle={bracketState.shuffleRerollPreview} onCancel={bracketState.cancelRerollPreview}
     onConfirm={() => {
-      if (!loadingSavedWork && bracketState.confirmRerollPreview()) {
+      if (!cloudChoicePending && bracketState.confirmRerollPreview()) {
+        markLocalEdit();
         setShowFullBracket(false); setShowNotes(false);
         setRerollNotice('Sweet 16 rerolled. Your Round of 32 winners and earlier choices are saved.');
       }
@@ -208,7 +225,7 @@ export default function App() {
             ) :
             activeMatch ? (
               <MatchView
-                mob={mob} bracket={viewBracket} disabled={loadingSavedWork || !!bracketState.restoreError} hoveredSeed={hoveredSeed} setHoveredSeed={setHoveredSeed}
+                mob={mob} bracket={viewBracket} disabled={cloudChoicePending || !!bracketState.restoreError} hoveredSeed={hoveredSeed} setHoveredSeed={setHoveredSeed}
                 copiedLink={copiedLink} showBracketPanel={showBracketPanel} notes={notes} movieMeta={movieMeta}
                 updateNote={updateNote} pick={pick} reset={handleReset} copyLink={copyLink} onFixMovie={setFixingMovie}
               />
@@ -222,7 +239,7 @@ export default function App() {
              <button onClick={() => setShowMobileMenu(true)} className="flex flex-col items-center justify-center p-[8px] text-[#8a8aae]">
                 <span className="text-[20px]">☰</span>
              </button>
-             <button onClick={undo} disabled={history.length === 0 || loadingSavedWork} className="flex flex-col items-center justify-center p-[8px] disabled:opacity-30 text-[#8a8aae] transition-opacity">
+             <button onClick={undo} disabled={history.length === 0 || cloudChoicePending} className="flex flex-col items-center justify-center p-[8px] disabled:opacity-30 text-[#8a8aae] transition-opacity">
                 <span className="text-[20px]">↩</span>
              </button>
              <button onClick={copyLink} className="flex flex-col items-center justify-center p-[8px] text-[#8a8aae]">
@@ -398,7 +415,7 @@ export default function App() {
           <MatchView
             mob={mob}
             bracket={viewBracket}
-            disabled={loadingSavedWork || !!bracketState.restoreError}
+            disabled={cloudChoicePending || !!bracketState.restoreError}
             hoveredSeed={hoveredSeed}
             setHoveredSeed={setHoveredSeed}
             copiedLink={copiedLink}

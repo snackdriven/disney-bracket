@@ -1,5 +1,42 @@
 import { test, expect } from '@playwright/test';
-import { pickFirst, saved, seed, undo } from './fixtures';
+import { bracket, pickFirst, saved, seed, undo } from './fixtures';
+
+test('[P0][UI] browser saving stays usable while signed-in cloud loading stalls or fails', async ({ page }) => {
+  let denied = false;
+  // Exercise the UI's cloud boundary without a real Google session or production data.
+  await page.route(/\/src\/hooks\/useFirebaseSync\.ts/, route => route.fulfill({
+    contentType: 'text/javascript',
+    body: `export function useFirebaseSync() { return {
+      fbUser: { uid: 'browser-fallback-test' }, authReady: true, syncReady: false,
+      syncStatus: '${denied ? 'error' : 'loading'}', syncError: ${denied ? "'permission_denied'" : 'null'},
+      syncConflict: null, syncRecovery: null, showAuthModal: false,
+      setShowAuthModal() {}, forcePush: async () => false, retrySync() {}, resolveSyncConflict: async () => false
+    }; }`,
+  }));
+  await seed(page, 0);
+  await expect(page.getByRole('status').filter({ hasText: 'You can keep playing' })).toBeVisible();
+  await pickFirst(page);
+  expect((await saved(page)).history).toHaveLength(1);
+  denied = true;
+  await page.reload();
+  await expect(page.getByRole('alert')).toContainText('You can keep playing');
+  await expect(page.getByRole('region', { name: 'Browser saves' })).toContainText('Saved in this browser (offline copy).');
+  expect((await saved(page)).history).toHaveLength(1);
+  await pickFirst(page);
+  await page.reload();
+  await expect(page.getByRole('alert')).toContainText('permission_denied');
+  expect((await saved(page)).history).toHaveLength(2);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('dbk-notes')!))).toEqual({ 1: 'Keep this note' });
+  await page.evaluate(state => localStorage.setItem('dbk-pre-reroll', JSON.stringify({ bracket: state, notes: { 1: 'Recovered note' } })), bracket(3));
+  await page.getByRole('button', { name: 'Check browser saves', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Browser saves' })).toContainText('Before reroll: 3 picks, 1 notes');
+  await page.getByRole('button', { name: 'Import before reroll', exact: true }).click();
+  await expect.poll(async () => (await saved(page)).history.length).toBe(3);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('dbk-before-browser-import')!).bracket.history.length)).toBe(2);
+  await page.reload();
+  await expect.poll(async () => (await saved(page)).history.length).toBe(3);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('dbk-notes')!))).toEqual({ 1: 'Recovered note' });
+});
 
 test('[P0][UI] reroll a finished bracket without losing the original winners, notes, or recovery', async ({ page }) => {
   const original = await seed(page, 69);
