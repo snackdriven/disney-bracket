@@ -29,10 +29,11 @@ test('reuse candidate requires an exact merged same-repository PR', async () => 
     const f = fixture(); alter(f); await f.execute(); assert.deepEqual(f.output, {});
   }
   const f = fixture(); await f.execute(); assert.deepEqual(f.output, { 'run-id': '7' });
+  const merged = fixture(); merged.run.pull_requests = []; await merged.execute(); assert.deepEqual(merged.output, { 'run-id': '7' });
 });
 
 test('wrong SHA, failed checks, other repository/event, or unrelated PR cannot supply an artifact', async () => {
-  for (const alter of [f => { f.run.head_sha = 'old'; }, f => { f.run.conclusion = 'failure'; }, f => { f.run.event = 'push'; }, f => { f.run.head_repository.full_name = 'fork/repo'; }, f => { f.run.pull_requests = []; }]) {
+  for (const alter of [f => { f.run.head_sha = 'old'; }, f => { f.run.conclusion = 'failure'; }, f => { f.run.event = 'push'; }, f => { f.run.head_repository.full_name = 'fork/repo'; }, f => { f.run.pull_requests = [{ number: 99 }]; }]) {
     const f = fixture(); alter(f); await f.execute(); assert.deepEqual(f.output, {});
   }
 });
