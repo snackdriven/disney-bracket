@@ -8,7 +8,11 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "npm run test:contracts && npm run test:e2e",
+    "test:contracts": "vitest run src/hooks/__tests__/cloud.api.test.ts src/hooks/__tests__/cloud.security.test.ts",
+    "test:api": "vitest run src/hooks/__tests__/cloud.api.test.ts",
+    "test:security": "vitest run src/hooks/__tests__/cloud.security.test.ts && playwright test e2e/security.spec.ts",
+    "test:unit": "vitest run --exclude src/hooks/__tests__/cloud.*.test.ts",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test"
   },
@@ -20,7 +24,6 @@
     "tailwindcss": "^4.2.1"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.11.1",
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",

@@ -2,9 +2,11 @@
 
 Guide for AI assistants working on the Disney × Pixar Bracket codebase.
 
+Co-op retirement, routing, auth, and CI guidance updated by Codex (GPT-6 AI agent), November 23, 2026. Older unrelated examples may still describe removed files; inspect current source.
+
 ## Project Overview
 
-An interactive tournament bracket for 70 Disney and Pixar movies. Users pick favorites head-to-head through 69 matchups (6 play-in games + 63 main bracket) to crown a champion. State persists in localStorage; Supabase handles auth and cross-device sync.
+An interactive tournament bracket for 70 Disney and Pixar movies. Users pick favorites head-to-head through 69 matchups (6 play-in games + 63 main bracket) to crown a champion. State persists in localStorage; Firebase handles Google sign-in and personal cross-device sync. Co-op is retired in this client; existing room records and local recovery keys are retained.
 
 **Live site:** https://snackdriven.github.io/disney-bracket/
 
@@ -17,8 +19,8 @@ An interactive tournament bracket for 70 Disney and Pixar movies. Users pick fav
 - **Deployment:** GitHub Pages via GitHub Actions (push to `main`)
 - **Styling:** Tailwind CSS v4 (`@tailwindcss/vite` plugin, no config file; `@theme` in `index.css`)
 - **State management:** React hooks (`useState`, `useEffect`) + localStorage
-- **Auth/sync:** Supabase (magic link auth, implicit flow)
-- **Routing:** None — single-page app. `main.tsx` renders `<AdminPage />` at `/?admin=1`, `<App />` everywhere else.
+- **Auth/sync:** Firebase Auth (Google popup) and Realtime Database personal records
+- **Routing:** None — single-page app. `main.tsx` renders `AppRouter`: admin has existing precedence; room links show a retirement gate before App/Firebase initialization; normal solo URLs lazy-load App.
 
 ## Project Structure
 
@@ -37,7 +39,7 @@ disney-bracket/
 │   │   ├── useMovieMeta.ts     # TMDB fetch
 │   │   ├── useNotes.ts
 │   │   ├── useShareClipboard.ts  # Copy link / copy bracket text
-│   │   ├── useSupabaseSync.ts
+│   │   ├── useFirebaseSync.ts
 │   │   └── __tests__/
 │   │       ├── useBracketState.test.ts
 │   │       └── useNotes.test.ts
@@ -46,7 +48,7 @@ disney-bracket/
 │   │   ├── colors.ts         # Shared studio color constants (CLR, BADGE_CLR)
 │   │   ├── data.ts           # Movie data, seedings, round config
 │   │   ├── meta.ts           # fetchMovieMeta — TMDB + OMDB API calls, writes tmdb-meta-v1
-│   │   ├── supabase.ts       # Supabase client init
+│   │   ├── firebase.ts       # Supabase client init
 │   │   ├── theme.ts          # Re-exports from colors.ts
 │   │   ├── utils.ts          # localStorage helpers, serialization
 │   │   └── __tests__/
@@ -73,12 +75,9 @@ disney-bracket/
 ├── src/__tests__/
 │   └── App.test.tsx          # Integration tests (React Testing Library)
 ├── e2e/
-│   ├── auth.spec.js          # Auth modal, session injection
-│   ├── bracket.spec.js       # Pick flow, undo, reset, progress
-│   ├── exports.spec.js       # Share URL, text export
-│   ├── notes.spec.js         # Card notes, global notes panel
-│   ├── persistence.spec.js   # localStorage, URL hash, share links
-│   └── helpers.js            # Shared Playwright utilities
+│   ├── critical.spec.ts     # Three P0/P1 user flows
+│   ├── security.spec.ts     # Two P0 browser security boundaries
+│   └── fixtures.ts          # Shared deterministic browser fixtures
 ├── supabase/                 # Supabase config and migrations
 ├── public/                   # Static assets
 ├── .github/workflows/
@@ -100,8 +99,8 @@ npm run dev           # Start dev server (Vite)
 npm run build         # Production build (output: dist/)
 npm run lint          # Run ESLint
 npm run preview       # Preview production build locally
-npm test              # Run 73 Vitest unit tests
-npm run test:e2e      # Run 27 Playwright E2E tests (requires dev server or auto-starts it)
+npm test              # Critical P0/P1 gate: API contracts plus Playwright TypeScript
+npm run test:e2e      # Five critical browser cases on desktop and mobile
 ```
 
 ## Architecture
@@ -114,12 +113,12 @@ Business logic lives in `src/lib/` as pure TypeScript functions. State lives in 
 - **`colors.ts`** — Shared color constants (`CLR`, `BADGE_CLR`) for both React components and canvas. `theme.ts` re-exports from here.
 - **`data.ts`** — Movie data (70 movies), seeding constants (`MAIN`, `PLAYIN`, `PIP`, `R1`), round/region names, trivia, static metadata.
 - **`meta.ts`** — `fetchMovieMeta(tmdbKey, omdbKey)` fetches poster/rating/runtime/plot from TMDB and OMDB APIs in batches of 20, reads/writes `tmdb-meta-v1` in localStorage. Skips movies that already have both poster and plot. OMDB plot takes priority over TMDB overview. `fetchSingleMovieMeta` does the same for one movie without touching the cache. `loadImages(metaMap)` preloads poster URLs as `HTMLImageElement` objects into an `ImgCache` keyed by seed.
-- **`supabase.ts`** — Supabase client initialization.
+- **`firebase.ts`** — Firebase auth and personal database client initialization.
 - **`utils.ts`** — `loadLS`/`saveLS` for localStorage, `serMatch`/`desMatch` for match serialization, `extractImdbId`.
 
 ### Key State Variables
 
-State lives in `useBracketState` (bracket logic), `useShareClipboard` (clipboard), `useNotes`, `useSupabaseSync`, and `useMovieMeta`. Lightweight UI toggles (`hoveredSeed`, `showBracketPanel`, `showFullBracket`) live as plain `useState` in App.tsx.
+State lives in `useBracketState` (bracket logic), `useShareClipboard` (clipboard), `useNotes`, `useFirebaseSync`, and `useMovieMeta`. Lightweight UI toggles (`hoveredSeed`, `showBracketPanel`, `showFullBracket`) live as plain `useState` in App.tsx.
 
 | Variable | Hook/Location | Meaning | Values |
 |----------|---------------|---------|--------|
@@ -170,9 +169,9 @@ interface HistoryEntry { phase: Phase; matchIndex: number; round: number; wasUps
 
 ### Auth / Sync
 
-Supabase magic link with implicit flow (`flowType: "implicit"`). Session stored under `storageKey: "disney-bracket-auth"`. On sign-in, Supabase writes `#access_token=...` to the URL hash. The app guards against overwriting this with bracket state before the auth client reads it — there's a regression test for this in `persistence.spec.js`.
+Firebase Auth uses Google popup sign-in. `useFirebaseSync` owns personal `users/{uid}` state and notes. Preserve personal auth/sync when changing retired-room routing. Do not claim live persistence from mocked tests alone.
 
-Sync is debounced (~2s) after each pick and writes to the `disney_bracket` table. RLS enforces `auth.uid() = user_id`.
+`AppRouter` gates every present `room` query parameter before importing App. The gate performs no room requests, bracket initialization, or save uploads. Explicit Continue preserves the original link under `dbk-retired-room-link` (auth fragments excluded), removes all room parameters and unselected bracket hashes, and keeps unrelated query parameters. Recognized auth callback hashes remain in the live URL. Storage failure blocks Continue until the original link has been copied. Legacy room/local backup keys are retained; no backend rules or data are changed.
 
 ### Bracket Structure
 
@@ -184,36 +183,18 @@ Sync is debounced (~2s) after each pick and writes to the `disney_bracket` table
 
 ## Testing
 
-### Unit tests (Vitest)
+Testing edit by Codex (GPT-6 AI agent), November 23, 2026.
 
-73 tests across 8 files.
+Keep the required gate small: nine P0/P1 cases. `npm test` runs three Firebase client API contracts and one account-isolation contract in Vitest, followed by three UI flows and two browser-security cases in Playwright TypeScript. Browser cases run on desktop Chromium and Pixel 5. See README for the coverage matrix.
 
-```bash
-npm test
-```
+- `npm run test:api`: cloud hydration/notes, write confirmation/failure, concurrent-save conflicts.
+- `npm run test:security`: account isolation/denied reads plus unsafe save/import and legacy-room credential/network boundaries.
+- `npm run test:e2e`: only `e2e/critical.spec.ts` and `e2e/security.spec.ts`.
+- `npm run test:unit`: optional original unit/integration coverage, outside the required critical gate.
 
-- `src/lib/__tests__/bracket.test.ts` — State transitions, upset detection, play-in → R64 handoff, undo across phase boundaries, seed-based pick validation
-- `src/lib/__tests__/canvas.test.ts` — drawBracket smoke test (does not throw on post-playin state)
-- `src/lib/__tests__/data.test.ts` — Data integrity (seed uniqueness, required fields, STATIC_META completeness)
-- `src/lib/__tests__/utils.test.ts` — Serialization roundtrips, localStorage helpers
-- `src/hooks/__tests__/useBracketState.test.ts` — Hook integration: state restoration, pick/undo/reset
-- `src/hooks/__tests__/useNotes.test.ts` — Notes init, save, clear
-- `src/components/__tests__/BV.test.tsx` — Bracket visualizer: winner display, upset highlighting
-- `src/__tests__/App.test.tsx` — Integration tests via React Testing Library (14 tests)
+API contract tests use an in-memory Firebase SDK boundary, not production credentials or deployed authorization rules. Never describe a mock pass as live Google-session or cross-device proof. Add tests for concrete P0/P1 failure modes; do not restore cosmetic snapshots, stale Supabase fixtures, or duplicate component checks by default.
 
-### E2E tests (Playwright)
-
-27 test cases in `e2e/`, run against Chromium and Pixel 5 (mobile). Viewport: 1920×1080 on desktop.
-
-```bash
-npm run test:e2e
-```
-
-Coverage areas: full 69-pick flow, undo/reset, progress bar, auth modal open/close/escape, injected session behavior, sync network request on pick, localStorage persistence across reload, URL hash share links, text export, notes (card-level and global panel).
-
-### CI
-
-Both suites run on every push to `main` before the build. Deploy is blocked if either fails. Playwright installs only Chromium in CI (both projects use the Chromium engine).
+CI runs the critical suite and source/E2E typechecks and build on PRs and main pushes. It installs Chromium explicitly. Deployment and Pages write permissions are limited to the main-push deploy job.
 
 ## Code Conventions
 
@@ -231,8 +212,8 @@ Both suites run on every push to `main` before the build. Deploy is blocked if e
 
 Push to `main` → GitHub Actions:
 1. `npm ci`
-2. `npm test` (unit tests)
-3. Playwright install + `npm run test:e2e`
+2. `npm test` (critical API/security/browser gate)
+3. TypeScript checks for source and E2E tests
 4. `npm run build`
 5. Deploy `dist/` to GitHub Pages
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useIsMobile } from './hooks/useIsMobile.js';
 import { useBracketState } from './hooks/useBracketState.js';
 import { useShareClipboard } from './hooks/useShareClipboard.js';
@@ -12,19 +12,19 @@ import { AuthModal } from './components/AuthModal.js';
 import { NotesPanel } from './components/NotesPanel.js';
 import { FullBracket } from './components/FullBracket.js';
 import { SyncStrip } from './components/SyncStrip.js';
+import { SyncStatusPanel } from './components/SyncStatusPanel.js';
 import { MatchView } from './components/MatchView.js';
 import { FixMetaModal } from './components/FixMetaModal.js';
 
 import { ChampionScreen } from './components/ChampionScreen.js';
-import { RevealModal } from './components/RevealModal.js';
 import { MobileMenuModal } from './components/MobileMenuModal.js';
-import { useCoopRoom } from './hooks/useCoopRoom.js';
+import { Sweet16RerollModal } from './components/Sweet16RerollModal.js';
 import type { Movie } from './types.js';
 
 export default function App() {
   const mob = useIsMobile();
 
-  const { notes, setNotes, showNotes, setShowNotes, updateNote } = useNotes();
+  const { notes, setNotes, showNotes, setShowNotes, updateNote: rawUpdateNote } = useNotes();
 
   const bracketState = useBracketState();
   const {
@@ -33,7 +33,7 @@ export default function App() {
     isPlayIn, activeMatch, progress, roundLabel,
     regionName,
     serialized, applyServerState,
-    pick: rawPick, undo, reset,
+    pick: rawPick, undo: rawUndo, reset,
   } = bracketState;
 
   const [hoveredSeed, setHoveredSeed] = useState<number | null>(null);
@@ -41,16 +41,24 @@ export default function App() {
   const [showFullBracket, setShowFullBracket] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [fixingMovie, setFixingMovie] = useState<Movie | null>(null);
-  const [customName, setCustomName] = useState(() => localStorage.getItem('dbk-custom-name') || "");
+  const [rerollNotice, setRerollNotice] = useState('');
+  const [downloadError, setDownloadError] = useState('');
+  const [showUnsavedSignOut, setShowUnsavedSignOut] = useState(false);
+  const [signOutRecoveryExported, setSignOutRecoveryExported] = useState(false);
 
-  const { copiedLink, copiedBracket, copyLink, copyBracket } = useShareClipboard(playInMatches, rounds, champion);
+  const { copiedLink, copiedBracket, copyLink, copyBracket, shareError } = useShareClipboard(playInMatches, rounds, champion, serialized);
 
   const handleSignOut = async () => {
-    await forcePush();
-    import("./lib/firebase.js").then(m => m.auth.signOut());
+    if (await forcePush()) {
+      import("./lib/firebase.js").then(m => m.auth.signOut());
+    } else {
+      setShowUnsavedSignOut(true);
+      setSignOutRecoveryExported(false);
+    }
   };
 
   const handleReset = () => {
+    if (loadingSavedWork && !bracketState.restoreError) return;
     if (window.confirm("Are you sure you want to reset your bracket? This cannot be undone.")) {
       reset();
       setShowBracketPanel(false);
@@ -58,48 +66,98 @@ export default function App() {
     }
   };
 
-  const { fbUser, syncStatus, showAuthModal, setShowAuthModal, forcePush } = useFirebaseSync({
+  const { fbUser, syncStatus, showAuthModal, setShowAuthModal, forcePush,
+    authReady, syncReady, syncError, syncConflict, syncRecovery, retrySync, resolveSyncConflict } = useFirebaseSync({
     serialized,
     notes,
+    enabled: !bracketState.restoreError,
     onPull: (state, serverNotes) => {
-      applyServerState(state);
+      if (!applyServerState(state)) return false;
       if (serverNotes && isNotes(serverNotes)) { setNotes(serverNotes); saveLS("dbk-notes", serverNotes); }
+      return true;
     },
   });
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const roomCode = urlParams.get('room');
-  
-  // Make sure guests don't clobber each other if testing locally in different tabs
-  const guestIdCheck = React.useMemo(() => sessionStorage.getItem('dbk-guest-name') || `Guest-${Math.floor(Math.random()*1000)}`, []);
-  if (!sessionStorage.getItem('dbk-guest-name')) sessionStorage.setItem('dbk-guest-name', guestIdCheck);
-  const defaultName = fbUser?.email?.split('@')[0] || guestIdCheck;
-  const myName = customName || defaultName;
-
-  const { connected, coopState, lockPick, forceResolve } = useCoopRoom(
-    roomCode, myName, activeMatch, applyServerState, serialized
-  );
-
-  const pick = (w: Movie) => {
-    if (connected && roomCode) {
-      lockPick(w.seed);
-    } else {
-      rawPick(w);
-    }
-  };
-
-  const handleResolve = (winner: Movie) => {
-    forceResolve(winner.seed);
-    rawPick(winner);
-  };
 
   const { movieMeta, updateSingleMeta } = useMovieMeta();
 
   const m64 = [...MAIN, ...playInMatches.map(m => m.winner).filter((w): w is Movie => !!w)];
+  const loadingSavedWork = !authReady || (!!fbUser && !syncReady);
+  const pick = (winner: Movie) => { if (!loadingSavedWork) rawPick(winner); };
+  const undo = () => { if (!loadingSavedWork) rawUndo(); };
+  const updateNote = (seed: number, value: string) => { if (!loadingSavedWork && !bracketState.restoreError) rawUpdateNote(seed, value); };
+  const viewBracket = { ...bracketState, undo };
+  const syncPanel = !bracketState.restoreError && <SyncStatusPanel authReady={authReady} signedIn={!!fbUser} syncReady={syncReady}
+    syncStatus={syncStatus} syncError={syncError} syncConflict={syncConflict} syncRecovery={syncRecovery}
+    retrySync={retrySync} resolveSyncConflict={resolveSyncConflict} />;
+
+  const exportRecovery = (previous: boolean) => {
+    try {
+      const raw = previous ? localStorage.getItem('dbk-pre-reroll') : bracketState.sourceConflict
+        ? JSON.stringify({ ...bracketState.sourceConflict, notes }) : bracketState.rejectedSave || JSON.stringify({ bracket: serialized, notes });
+      if (!raw) throw new Error('No recovery copy is available.');
+      const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = previous ? 'disney-bracket-before-reroll.json' : 'disney-bracket-recovery.json';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setDownloadError('');
+      return true;
+    } catch { setDownloadError('The recovery download could not be created. Keep this page open and try again.'); return false; }
+  };
+  const signOutKeepingRecovery = async (exported = false) => {
+    try {
+      if (!exported) localStorage.setItem(`dbk-signout-recovery:${fbUser?.uid ?? 'device'}`, JSON.stringify({ bracket: serialized, notes, rejected: bracketState.rejectedSave, sources: bracketState.sourceConflict }));
+      const { auth } = await import('./lib/firebase.js');
+      await auth.signOut();
+      setShowUnsavedSignOut(false);
+    } catch { setDownloadError('Recovery could not be saved or sign-out failed. Export a recovery copy before trying again.'); }
+  };
+  const rerollControls = (
+    <div className="shrink-0 px-[16px] py-[8px] text-center text-[13px]">
+      {mob && <button className="mr-[10px] min-h-[44px] rounded-[10px] border border-white/15 px-[12px]" aria-label="Open menu" onClick={() => setShowMobileMenu(true)}>Menu</button>}
+      {bracketState.restoreError && <div role="alert" className="mb-[8px] rounded-[10px] border border-[#ffb4a8]/30 p-[12px] text-[#ffb4a8]">
+        <p>{bracketState.restoreError}</p>
+        {bracketState.sourceConflict && <div className="my-[8px] text-[#e0e0f0]">
+          <p>This device: {bracketState.sourceConflict.device?.history.length ?? 'unreadable'} picks. Link: {bracketState.sourceConflict.link.history.length} picks. Both versions will be preserved before you choose.</p>
+          <button className="min-h-[44px] px-[10px] underline disabled:opacity-40" disabled={!bracketState.sourceConflict.device} onClick={() => bracketState.resolveSourceConflict('device')}>Keep this device’s bracket</button>
+          <button className="min-h-[44px] px-[10px] underline" onClick={() => bracketState.resolveSourceConflict('link')}>Use link bracket</button>
+        </div>}
+        <button className="min-h-[44px] underline" onClick={() => exportRecovery(false)}>Export recovery copy</button>
+        <button className="ml-[12px] min-h-[44px] underline" onClick={handleReset}>Reset after keeping recovery</button>
+      </div>}
+      {bracketState.canRerollSweet16 && <button
+        className="min-h-[44px] rounded-[10px] border border-[#ce93d8]/30 bg-[#ce93d8]/10 px-[16px] py-[10px] font-semibold text-[#dfb7e5] disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4fc3f7]"
+        disabled={!!bracketState.animatingSeed || loadingSavedWork} onClick={() => { if (!loadingSavedWork) { setRerollNotice(''); bracketState.openRerollPreview(); } }}>
+        Reroll Sweet 16
+      </button>}
+      {bracketState.hasRerollBackup && <button className="ml-[12px] min-h-[44px] text-[#b8b8d0] underline" onClick={() => exportRecovery(true)}>Export previous bracket</button>}
+      {rerollNotice && <p role="status" className="mt-[8px] text-[#b6eaff]">{rerollNotice}</p>}
+      {downloadError && <p role="alert" className="mt-[8px] text-[#ffb4a8]">{downloadError}</p>}
+      {shareError && <p role="alert" className="mt-[8px] text-[#ffb4a8]">{shareError} <button className="min-h-[44px] underline" onClick={() => exportRecovery(false)}>Download current bracket</button></p>}
+      {showUnsavedSignOut && <section role="alert" className="my-[10px] rounded-[10px] border border-[#ffd54f]/30 p-[12px]">
+        <p>Your cloud save has not completed. Stay and retry, or keep a recovery copy and sign out to continue solo.</p>
+        <button className="min-h-[44px] px-[10px] underline" onClick={() => { setShowUnsavedSignOut(false); retrySync(); }}>Stay & retry</button>
+        <button className="min-h-[44px] px-[10px] underline" onClick={() => { void signOutKeepingRecovery(); }}>Keep recovery & sign out</button>
+        <button className="min-h-[44px] px-[10px] underline" onClick={() => { if (exportRecovery(false)) setSignOutRecoveryExported(true); }}>Export recovery before sign-out</button>
+        {signOutRecoveryExported && <button className="min-h-[44px] px-[10px] underline" onClick={() => { void signOutKeepingRecovery(true); }}>I kept my recovery — sign out</button>}
+      </section>}
+    </div>
+  );
+  const rerollModal = bracketState.rerollPreview && <Sweet16RerollModal
+    {...bracketState.rerollPreview} pending={bracketState.rerollPending} error={bracketState.rerollError}
+    onShuffle={bracketState.shuffleRerollPreview} onCancel={bracketState.cancelRerollPreview}
+    onConfirm={() => {
+      if (!loadingSavedWork && bracketState.confirmRerollPreview()) {
+        setShowFullBracket(false); setShowNotes(false);
+        setRerollNotice('Sweet 16 rerolled. Your Round of 32 winners and earlier choices are saved.');
+      }
+    }} />;
 
   if (mob) {
     return (
       <div className="h-[100dvh] flex flex-col font-[Inter,sans-serif] text-[#e0e0f0] bg-[#06060f] overflow-hidden relative">
+        {rerollModal}
         {showAuthModal && <AuthModal onClose={()=>setShowAuthModal(false)}/>}
         {fixingMovie && <FixMetaModal mob={mob} movie={fixingMovie} onClose={() => setFixingMovie(null)} onSave={updateSingleMeta} />}
         {showMobileMenu && (
@@ -107,10 +165,9 @@ export default function App() {
              onClose={() => setShowMobileMenu(false)}
              showFullBracket={showFullBracket} setShowFullBracket={setShowFullBracket}
              showNotes={showNotes} setShowNotes={setShowNotes}
-             customName={customName} setCustomName={setCustomName}
-             defaultName={defaultName} roomCode={roomCode} connected={connected}
              onReset={handleReset} 
              fbUser={fbUser} syncStatus={syncStatus} onSignInClick={() => setShowAuthModal(true)}
+             onSignOutClick={handleSignOut}
           />
         )}
         
@@ -136,9 +193,11 @@ export default function App() {
            </div>
         </header>
 
+        {syncPanel}
+        {rerollControls}
         <main className="flex-1 relative flex flex-col overflow-y-auto w-full">
            {showNotes ? <NotesPanel mob={mob} notes={notes} updateNote={updateNote}/> :
-            showFullBracket ? <FullBracket mob={mob} playInMatches={playInMatches} rounds={rounds} pool64={m64} currentRound={currentRound} currentMatch={currentMatch} isPlayIn={isPlayIn} upsets={upsets}/> :
+            showFullBracket ? <FullBracket mob={mob} sweet16Rerolled={bracketState.sweet16Rerolled} playInMatches={playInMatches} rounds={rounds} pool64={m64} currentRound={currentRound} currentMatch={currentMatch} isPlayIn={isPlayIn} upsets={upsets}/> :
             champion ? (
               <ChampionScreen
                 mob={mob} champion={champion} upsets={upsets} copiedLink={copiedLink} copiedBracket={copiedBracket}
@@ -149,20 +208,12 @@ export default function App() {
             ) :
             activeMatch ? (
               <MatchView
-                mob={mob} bracket={bracketState} hoveredSeed={hoveredSeed} setHoveredSeed={setHoveredSeed}
+                mob={mob} bracket={viewBracket} disabled={loadingSavedWork || !!bracketState.restoreError} hoveredSeed={hoveredSeed} setHoveredSeed={setHoveredSeed}
                 copiedLink={copiedLink} showBracketPanel={showBracketPanel} notes={notes} movieMeta={movieMeta}
                 updateNote={updateNote} pick={pick} reset={handleReset} copyLink={copyLink} onFixMovie={setFixingMovie}
-                partnerVoted={connected ? !!coopState.theirPick : false} partnerName={connected ? coopState.theirName : undefined}
               />
             ) : null}
             
-           {connected && activeMatch && (coopState.myPick || coopState.theirPick) && (
-             <RevealModal
-                myPick={coopState.myPick} theirPick={coopState.theirPick} myName={myName} theirName={coopState.theirName}
-                players={[activeMatch.players[0], activeMatch.players[1]] as [Movie, Movie]}
-                movieMeta={movieMeta} onResolve={handleResolve} onCancel={() => forceResolve(0)}
-             />
-           )}
         </main>
 
         {/* Bottom Nav */}
@@ -171,7 +222,7 @@ export default function App() {
              <button onClick={() => setShowMobileMenu(true)} className="flex flex-col items-center justify-center p-[8px] text-[#8a8aae]">
                 <span className="text-[20px]">☰</span>
              </button>
-             <button onClick={undo} disabled={history.length === 0} className="flex flex-col items-center justify-center p-[8px] disabled:opacity-30 text-[#8a8aae] transition-opacity">
+             <button onClick={undo} disabled={history.length === 0 || loadingSavedWork} className="flex flex-col items-center justify-center p-[8px] disabled:opacity-30 text-[#8a8aae] transition-opacity">
                 <span className="text-[20px]">↩</span>
              </button>
              <button onClick={copyLink} className="flex flex-col items-center justify-center p-[8px] text-[#8a8aae]">
@@ -185,6 +236,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen relative z-[9999] font-[Inter,sans-serif] text-[#e0e0f0]">
+      {rerollModal}
       <a
         href="#main-content"
         onFocus={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
@@ -260,6 +312,8 @@ export default function App() {
           onSignInClick={() => setShowAuthModal(true)}
           onSignOutClick={handleSignOut}
         />
+        {syncPanel}
+        {rerollControls}
 
         {/* Full Bracket + Notes toggles */}
         <div
@@ -306,125 +360,11 @@ export default function App() {
             {showNotes ? "Hide Notes" : "📝 Notes"}
           </button>
           
-          <div className="flex items-center" style={{ margin: mob ? "0" : "0 4px", flexShrink: 0 }}>
-             <input
-               type="text"
-               placeholder={defaultName}
-               value={customName}
-               onChange={(e) => {
-                  const val = e.target.value.trimStart();
-                  setCustomName(val);
-                  localStorage.setItem('dbk-custom-name', val);
-               }}
-               maxLength={12}
-               style={{
-                 background: mob ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.02)",
-                 border: mob ? "1px solid rgba(255,255,255,.1)" : "1px dashed rgba(255,255,255,.15)",
-                 color: customName ? "#fff" : (mob ? "#d0d0e8" : "#8a8aae"),
-                 padding: mob ? "8px 14px" : "6px 14px",
-                 borderRadius: 10,
-                 fontSize: mob ? 13 : 12,
-                 fontWeight: 600,
-                 letterSpacing: 0.5,
-                 outline: "none",
-                 width: "120px",
-                 minHeight: mob ? 40 : undefined,
-                 textAlign: "center",
-                 transition: "all 0.2s",
-               }}
-               title="Set your display name for Co-op!"
-               onFocus={(e) => { e.currentTarget.style.border = "1px solid #ce93d8"; e.currentTarget.style.background = "rgba(206,147,216,0.1)"; }}
-               onBlur={(e) => { e.currentTarget.style.border = mob ? "1px solid rgba(255,255,255,.1)" : "1px dashed rgba(255,255,255,.15)"; e.currentTarget.style.background = mob ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.02)"; }}
-             />
-          </div>
-          
-          {!roomCode ? (
-            <>
-              <button
-                className={mob ? "mob-btn" : ""}
-                onClick={() => {
-                   const prefixes = ["BAMB", "SIMB", "HERC", "ARI", "WDW", "TINK", "BUZZ", "NEMO", "MULA", "CRUZ", "OAK", "DPOO", "GENI", "PLUT"];
-                   const pre = prefixes[Math.floor(Math.random() * prefixes.length)];
-                   const num = Math.floor(Math.random() * 89) + 10;
-                   const code = `${pre}-${num}`;
-                   window.location.search = `?room=${code}`;
-                }}
-                style={{
-                  background: "rgba(255,255,255,.04)",
-                  border: "1px solid rgba(255,255,255,.08)",
-                  color: "#8a8aae",
-                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
-                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 40 : undefined,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}
-              >
-                🎮 Create Room
-              </button>
-              <button
-                className={mob ? "mob-btn" : ""}
-                onClick={() => {
-                   const code = window.prompt("Enter room code:");
-                   if (code && code.trim()) {
-                     window.location.search = `?room=${code.trim().toUpperCase()}`;
-                   }
-                }}
-                style={{
-                  background: "rgba(255,255,255,.04)",
-                  border: "1px solid rgba(255,255,255,.08)",
-                  color: "#8a8aae",
-                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
-                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 40 : undefined,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}
-              >
-                🤝 Join Room
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                className={mob ? "mob-btn" : ""}
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href).then(() => {
-                    alert("Copied room link to clipboard!");
-                  });
-                }}
-                style={{
-                  background: "rgba(79, 195, 247, 0.2)",
-                  border: "1px solid #4fc3f7",
-                  color: "#fff",
-                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
-                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 40 : undefined,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}
-              >
-                {connected ? `🟢 Room: ${roomCode} 📋` : `🟡 Room: ${roomCode} 📋`}
-              </button>
-              <button
-                 className={mob ? "mob-btn" : ""}
-                 onClick={() => { window.location.search = ''; }}
-                 style={{
-                  background: "rgba(255,255,255,.04)",
-                  border: "1px solid rgba(255,255,255,.08)",
-                  color: "#8a8aae",
-                  padding: mob ? "8px 16px" : "6px 18px", borderRadius: 10,
-                  fontSize: mob ? 13 : 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
-                  transition: "all .15s", minHeight: mob ? 40 : undefined,
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}
-              >
-                ✖ Leave
-              </button>
-            </>
-          )}
         </div>
 
         {showNotes && <NotesPanel mob={mob} notes={notes} updateNote={updateNote}/>}
 
-        {showFullBracket && <FullBracket mob={mob} playInMatches={playInMatches} rounds={rounds} pool64={m64} currentRound={currentRound} currentMatch={currentMatch} isPlayIn={isPlayIn} upsets={upsets}/>}
+        {showFullBracket && <FullBracket mob={mob} sweet16Rerolled={bracketState.sweet16Rerolled} playInMatches={playInMatches} rounds={rounds} pool64={m64} currentRound={currentRound} currentMatch={currentMatch} isPlayIn={isPlayIn} upsets={upsets}/>}
 
         {/* Play-In badge */}
         {isPlayIn && (
@@ -457,7 +397,8 @@ export default function App() {
         ) : activeMatch ? (
           <MatchView
             mob={mob}
-            bracket={bracketState}
+            bracket={viewBracket}
+            disabled={loadingSavedWork || !!bracketState.restoreError}
             hoveredSeed={hoveredSeed}
             setHoveredSeed={setHoveredSeed}
             copiedLink={copiedLink}
@@ -469,23 +410,9 @@ export default function App() {
             reset={handleReset}
             copyLink={copyLink}
             onFixMovie={setFixingMovie}
-            partnerVoted={connected ? !!coopState.theirPick : false}
-            partnerName={connected ? coopState.theirName : undefined}
           />
         ) : null}
 
-        {connected && activeMatch && (coopState.myPick || coopState.theirPick) && (
-          <RevealModal
-            myPick={coopState.myPick}
-            theirPick={coopState.theirPick}
-            myName={myName}
-            theirName={coopState.theirName}
-            players={[activeMatch.players[0], activeMatch.players[1]] as [Movie, Movie]}
-            movieMeta={movieMeta}
-            onResolve={handleResolve}
-            onCancel={() => forceResolve(0)}
-          />
-        )}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { MN } from './BV.js';
 import type { Movie, Match } from '../types.js';
 
 interface FullBracketProps {
+  sweet16Rerolled?: boolean;
   playInMatches: Match[];
   rounds: Match[][];
   pool64: Movie[];
@@ -13,7 +14,7 @@ interface FullBracketProps {
   upsets: { seedDiff: number; winner: Movie; loser: Movie }[];
 }
 
-export function FullBracket({ playInMatches, rounds, pool64, currentRound, currentMatch, isPlayIn, mob, upsets }: FullBracketProps) {
+export function FullBracket({ sweet16Rerolled, playInMatches, rounds, pool64, currentRound, currentMatch, isPlayIn, mob, upsets }: FullBracketProps) {
   const hasM64 = pool64.length >= 64;
   const r1Display = R1.map(([a,b],i) => {
     if (hasM64) return { a: pool64[a], b: pool64[b], region: Math.floor(i/8), aSlot: a, bSlot: b };
@@ -75,7 +76,7 @@ export function FullBracket({ playInMatches, rounds, pool64, currentRound, curre
         "text-[#7a7a9e]",
         mob ? "text-[13px] mb-[16px]" : "text-[12px] mb-[20px]",
       ].join(" ")}>
-        {mob ? "4 regions · Final Four · Championship" : "70 movies · 4 regions · Winners from each region meet in the Final Four"}
+        {sweet16Rerolled ? 'Sweet 16 matchups reshuffled across regions.' : mob ? "4 regions · Final Four · Championship" : "70 movies · 4 regions · Winners from each region meet in the Final Four"}
       </div>
 
       <div className={regionCls}>

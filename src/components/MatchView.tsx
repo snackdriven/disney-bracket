@@ -5,6 +5,7 @@ import type { Movie, Notes, MovieMeta } from '../types.js';
 import type { UseBracketStateReturn } from '../hooks/useBracketState.js';
 
 interface MatchViewProps {
+  disabled?: boolean;
   mob: boolean;
   bracket: UseBracketStateReturn;
   hoveredSeed: number | null;
@@ -18,16 +19,14 @@ interface MatchViewProps {
   reset: () => void;
   copyLink: () => void;
   onFixMovie: (m: Movie) => void;
-  partnerVoted?: boolean;
-  partnerName?: string;
 }
 
 export function MatchView({
+  disabled = false,
   mob, bracket, hoveredSeed, setHoveredSeed,
   copiedLink, showBracketPanel,
   notes, movieMeta, updateNote,
   pick, reset, copyLink, onFixMovie,
-  partnerVoted, partnerName,
 }: MatchViewProps) {
   const {
     phase, isPlayIn, playInIndex, currentRound, currentMatch,
@@ -50,16 +49,10 @@ export function MatchView({
         </div>
       )}
 
-      {partnerVoted && partnerName && (
-        <div className="text-center text-[#ce93d8] font-bold uppercase tracking-[1px] animate-pulse" style={{ fontSize: 11, marginBottom: 12 }}>
-          ✓ {partnerName} is waiting for you!
-        </div>
-      )}
-
       {mob ? (
         <div className="flex-1 flex flex-col relative w-full h-full overflow-hidden shrink-0">
           <div className="flex-1 w-full flex flex-col justify-end overflow-hidden pb-[2px]">
-            <Card mob movie={activeMatch.players[0]} hovered={hoveredSeed === activeMatch.players[0].seed} animating={animatingSeed === activeMatch.players[0].seed} disabled={!!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[0])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
+            <Card mob movie={activeMatch.players[0]} hovered={hoveredSeed === activeMatch.players[0].seed} animating={animatingSeed === activeMatch.players[0].seed} disabled={disabled || !!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[0])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
           </div>
           
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-[44px] h-[44px] rounded-full bg-[#06060f] border-2 border-[rgba(255,255,255,0.08)] flex items-center justify-center shadow-lg pointer-events-none">
@@ -67,18 +60,18 @@ export function MatchView({
           </div>
 
           <div className="flex-1 w-full flex flex-col justify-start overflow-hidden pt-[2px]">
-             <Card mob movie={activeMatch.players[1]} hovered={hoveredSeed === activeMatch.players[1].seed} animating={animatingSeed === activeMatch.players[1].seed} disabled={!!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[1])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
+             <Card mob movie={activeMatch.players[1]} hovered={hoveredSeed === activeMatch.players[1].seed} animating={animatingSeed === activeMatch.players[1].seed} disabled={disabled || !!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[1])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
           </div>
         </div>
       ) : (
         <div className="flex items-center justify-center gap-0">
-          <Card key={activeMatch.players[0].seed} movie={activeMatch.players[0]} hovered={hoveredSeed === activeMatch.players[0].seed} animating={animatingSeed === activeMatch.players[0].seed} disabled={!!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[0])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
+          <Card key={activeMatch.players[0].seed} movie={activeMatch.players[0]} hovered={hoveredSeed === activeMatch.players[0].seed} animating={animatingSeed === activeMatch.players[0].seed} disabled={disabled || !!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[0])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
           <div className="px-[22px] shrink-0 flex flex-col items-center gap-[8px]">
             <div className="w-[1px] h-[32px] bg-gradient-to-b from-transparent to-white/10"/>
             <span data-testid="vs-divider" className="text-[13px] font-extrabold text-[#3a3a58] tracking-[4px]">VS</span>
             <div className="w-[1px] h-[32px] bg-gradient-to-t from-transparent to-white/10"/>
           </div>
-          <Card key={activeMatch.players[1].seed} movie={activeMatch.players[1]} hovered={hoveredSeed === activeMatch.players[1].seed} animating={animatingSeed === activeMatch.players[1].seed} disabled={!!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[1])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
+          <Card key={activeMatch.players[1].seed} movie={activeMatch.players[1]} hovered={hoveredSeed === activeMatch.players[1].seed} animating={animatingSeed === activeMatch.players[1].seed} disabled={disabled || !!animatingSeed} onHover={setHoveredSeed} onPick={() => pick(activeMatch.players[1])} notes={notes} updateNote={updateNote} movieMeta={movieMeta} onFixMovie={onFixMovie}/>
         </div>
       )}
 
@@ -96,13 +89,14 @@ export function MatchView({
       {!mob && (
         <>
           <div className="flex justify-center" style={{ gap: mob ? 10 : 10, marginTop: mob ? 12 : 22 }}>
-            {history.length > 0 && <Btn mob={mob} s onClick={undo}>← Undo</Btn>}
+            {history.length > 0 && <Btn mob={mob} s disabled={disabled} onClick={undo}>← Undo</Btn>}
             {history.length > 0 && <Btn mob={mob} s mu onClick={copyLink}>{copiedLink ? "✓!" : "🔗 Share"}</Btn>}
           </div>
 
           <div className="text-center" style={{ marginTop: mob ? 16 : 24, marginBottom: mob ? 8 : 0 }}>
             <button 
               onClick={reset}
+              disabled={disabled}
               className="bg-transparent border-none text-[12px] text-[#505070] underline cursor-pointer tracking-wide"
             >
               Reset Bracket

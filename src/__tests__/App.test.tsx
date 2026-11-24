@@ -8,6 +8,8 @@ import App from '../App';
 import { applyPick, resetState } from '../lib/bracket';
 import { serMatch } from '../lib/utils';
 
+
+
 // Firebase mocks
 vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(() => ({})),
@@ -224,8 +226,12 @@ describe('App — desktop sync and auth', () => {
 
 describe('App — champion screen', () => {
   it('shows champion screen when champion is set in state', async () => {
-    const s = resetState();
-    const champion = s.playInMatches[0].players[0];
+    let s = resetState();
+    while (!s.champion) {
+      const match = s.phase === 'pi' ? s.playInMatches[s.playInIndex] : s.rounds[s.currentRound][s.currentMatch];
+      s = applyPick(s, match.players[0]);
+    }
+    const champion = s.champion!;
     localStorage.setItem('dbk-state', JSON.stringify({
       _v: 2,
       phase: s.phase, playInIndex: s.playInIndex, currentRound: s.currentRound, currentMatch: s.currentMatch,

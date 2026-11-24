@@ -1,16 +1,16 @@
 name: Deploy to GitHub Pages
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -27,7 +27,9 @@ jobs:
         run: npx tsc --noEmit
       - name: Type-check e2e tests
         run: npx tsc --noEmit --project e2e/tsconfig.json
-      - name: Run unit tests
+      - name: Install Chromium for critical browser checks
+        run: npx playwright install --with-deps chromium
+      - name: Run P0 and P1 API, security, and browser checks
         run: npm test
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
@@ -35,8 +37,12 @@ jobs:
           path: dist
 
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

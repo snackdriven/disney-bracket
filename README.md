@@ -40,11 +40,11 @@ Did you know Toy Story 2 was almost entirely deleted by accident and only surviv
 
 ---
 
-## Play together
+## Save your bracket
 
 Sign in with Google to sync your bracket across devices. This is not a one-session experience, and anyone who tells you they finished it in one sitting is lying or didn't think hard enough.
 
-Create a room code and invite a friend to play through Firebase Realtime Database. Each player locks in a pick before the app reveals both choices. If you disagree, work it out.
+**Co-op retirement edit by Codex (GPT-6 AI agent), November 23, 2026:** Room co-op is retired in this client. Old room links show a notice before loading a bracket or connecting to Firebase. Continue explicitly to use this device’s saved bracket; the room hash is not imported automatically. A recovery link is saved locally when storage permits. Existing room records, local backups, and personal cloud records are not deleted. Older open clients may still use rooms; backend access has not been shut down.
 
 Solo play works without signing in. Your bracket saves in this browser until you clear its site storage; signing out does not clear the local copy.
 
@@ -65,19 +65,28 @@ npm run dev
 
 ### Tests
 
-The app started as a single 1,600-line component. All logic, all data, all canvas rendering in one file. Fine for moving fast, bad for knowing whether anything works.
+Testing scope updated by Codex (GPT-6 AI agent), November 23, 2026.
 
-The pure logic now lives in `src/lib/`: bracket state transitions, data constants, canvas math, and localStorage helpers. Tests cover those modules, along with hooks and components.
+The default gate is nine P0/P1 cases: three UI flows, three Firebase client API contracts, and three security cases. Playwright TypeScript runs the five browser cases on desktop Chromium and Pixel 5; four fast contract checks run once. No snapshot suite or stale Supabase login fixtures.
 
 ```bash
-npm test          # Vitest unit and integration tests
-npm run test:e2e  # Playwright browser tests
+npx playwright install chromium  # first local setup only
+npm test                        # default critical gate
+npm run test:e2e                # 3 UI + 2 browser-security cases, desktop and mobile
+npm run test:api                # 3 Firebase client API contracts
+npm run test:security           # account isolation + 2 browser security cases
+npm run test:unit               # optional original unit/integration suite
 ```
 
-Unit tests cover the core bracket engine: state transitions, upset detection, play-in to R64 handoff, serialization roundtrips, and notes init logic.
+| Priority | Cases |
+|---|---|
+| P0/P1 browser | Finished-bracket reroll with preview/cancel/recovery/reload; first Sweet 16 reroll and keyboard/Undo; solo picks and notes through reload/Undo/reset. |
+| P0 API contract | Hydrate before upload and apply notes-only changes; confirm only successful writes; abort concurrent cloud overwrite and preserve both copies. |
+| P0 security | Account-switch/denied-read isolation; corrupt saves and divergent imports; legacy room links with no sync initialization or credential exposure. |
 
-> [!NOTE]
-> **Browser tests are paused in CI** while the suite is updated for Firebase and co-op play. The existing suite includes the 69-pick flow; it does not establish coverage of the new co-op behavior. Deployment runs source and E2E type checks, Vitest, and the production build, but does not run Playwright.
+The API contracts use the real sync hook and an in-memory Firebase SDK boundary. They do **not** prove deployed Firebase authorization rules or live Google login/cross-device persistence. Browser security checks use synthetic local fixtures; they do not probe personal cloud data.
+
+Pull requests run the critical gate plus source/E2E typechecks and build. Only a push to `main` deploys to Pages; PR jobs do not receive deployment permissions.
 
 ## Commits and releases
 

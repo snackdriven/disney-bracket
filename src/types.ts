@@ -22,6 +22,7 @@ export interface DisplayMatch {
 export type Phase = "pi" | "m";
 
 export interface BracketState {
+  sweet16Rerolled?: boolean;
   phase: Phase;
   playInMatches: Match[];
   playInIndex: number;
