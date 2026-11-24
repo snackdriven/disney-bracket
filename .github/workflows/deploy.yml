@@ -94,6 +94,7 @@ jobs:
         with:
           name: verified-site
           path: .verified/
+          include-hidden-files: true
           retention-days: 7
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
