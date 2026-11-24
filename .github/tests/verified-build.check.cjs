@@ -9,7 +9,7 @@ function fixture() {
   const run = { id: 7, head_sha: 'head-sha', event: 'pull_request', conclusion: 'success', head_repository: { full_name: 'owner/repo' }, pull_requests: [{ number: 44 }] };
   const context = { eventName: 'push', ref: 'refs/heads/main', sha: 'main-sha', repo: { owner: 'owner', repo: 'repo' } };
   let artifacts = [{ name: 'verified-site', expired: false }];
-  const github = {
+  const github = { rest: {
     repos: { listPullRequestsAssociatedWithCommit: async () => ({ data: [pr] }) },
     actions: {
       listWorkflowRuns: async args => {
@@ -19,7 +19,7 @@ function fixture() {
       },
       listWorkflowRunArtifacts: async () => ({ data: { artifacts } }),
     },
-  };
+  } };
   const core = { info() {}, setOutput: (key, value) => { output[key] = value; } };
   return { pr, run, context, output, execute: () => find({ github, context, core }), expire: () => { artifacts[0].expired = true; } };
 }
